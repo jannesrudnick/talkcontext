@@ -1,36 +1,126 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# QA-Recorder
 
-## Getting Started
+Loom für Coding-Agenten. Du lädst eine Website in einen iframe, klickst dich durch und
+erklärst dabei laut, was du siehst. Heraus kommt **kein Video**, sondern ein strukturiertes
+Protokoll: auf welchem DOM-Element die Maus stand, was geklickt wurde, was sich daraufhin
+im DOM geändert hat — dazu das Transkript deiner Erklärung, auf der gleichen Zeitachse.
 
-First, run the development server:
+Ein Agent muss also keine Screenshots interpretieren. Er liest Selektoren.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+- **[00:01.4]** KLICK auf button "Speichern"
+  - Selektor: `[data-testid="save-btn"]`
+  - Wirkung: Attribute: #result[hidden=null]
+- **[00:01.4]** KONSOLE ERROR: Speichern fehlgeschlagen: 500
+- **[00:01.4]** REQUEST POST http://localhost:4321/api/save -> 501
+- **[00:03.5]** GESPROCHEN: "hier kommt nur eine Fehlermeldung ohne jeden Kontext"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ein vollständiges Beispiel liegt in [`docs/beispiel-aufnahme.md`](docs/beispiel-aufnahme.md).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Starten
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install
+npm run dev          # http://localhost:3000
+```
 
-## Learn More
+URL eintragen (`localhost:3000`, `https://staging.example.com`), **Laden**, **Aufnahme**,
+durchklicken, **Stop**, exportieren.
 
-To learn more about Next.js, take a look at the following resources:
+> Für Sprache und Live-Transkript ist Chrome oder Edge nötig (Web Speech API). In anderen
+> Browsern wird der Ton trotzdem aufgezeichnet und lässt sich als `.webm` exportieren.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Warum zwei Modi
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Ein normaler Cross-Origin-iframe ist für JavaScript eine Blackbox: Man erfährt weder,
+wo die Maus steht, noch welches Element darunter liegt. Deshalb gibt es zwei Wege,
+den Recorder *in* die Zielseite zu bekommen:
 
-## Deploy on Vercel
+| Modus      | Aufwand                     | Wann                                                        |
+| ---------- | --------------------------- | ----------------------------------------------------------- |
+| **Proxy**  | keiner                      | Fremde Seiten, Staging, alles worauf du keinen Zugriff hast |
+| **Bridge** | ein `<script>` im Zielprojekt | Dein eigenes Projekt — exakter und ohne HTML-Rewriting      |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Proxy-Modus
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Die Zielseite wird über `/p/<base64url(origin)><pfad>` von dieser App ausgeliefert. Dabei
+werden alle URLs auf den Proxy umgeschrieben und `public/qa-recorder.js` in den `<head>`
+injiziert. Weil das Dokument damit auf *unserer* Origin liegt, hat der Recorder vollen
+DOM-Zugriff.
+
+Was der Proxy dafür tut:
+
+- `X-Frame-Options`, CSP und `Referrer-Policy` der Zielseite werden entfernt (sonst keine Einbettung)
+- HTML-Attribute (`src`, `href`, `action`, `srcset`, …) und CSS-`url()` werden auf den Proxy gebogen
+- Cookies werden auf unsere Origin ummünzt, damit eingeloggte Flows funktionieren
+- Wurzel-relative URLs, die erst zur Laufzeit entstehen (`/_next/...`), fängt `src/proxy.ts`
+  über den Referer ab und leitet sie in den Proxy zurück
+
+Grenzen: Seiten mit aggressivem Origin-Check, Service Workern oder WebSockets zur eigenen
+API können im Proxy anders laufen als im Original. Dann Bridge-Modus nehmen.
+
+### Bridge-Modus
+
+Ein Zeile im eigenen Dev-Build, danach lädt der iframe die Seite direkt:
+
+```html
+<script src="http://localhost:3000/qa-recorder.js" data-qa-mode="bridge" data-qa-autostart="true"></script>
+```
+
+Kein Rewriting, keine Cookie-Tricks, exakt die App wie sie ist. Voraussetzung ist nur,
+dass die Seite überhaupt eingebettet werden darf (Dev-Server tun das in der Regel).
+
+## Was aufgezeichnet wird
+
+| Event      | Inhalt                                                                        |
+| ---------- | ----------------------------------------------------------------------------- |
+| `hover`    | Element ab 400 ms Verweildauer, mit Verweildauer beim Verlassen                |
+| `click`    | Element, Maustaste, Trefferpunkt relativ zum Element, Modifier                 |
+| `input`    | Feld und Wert (Passwörter und `data-qa-secret` immer maskiert)                 |
+| `change`   | Auswahl in `<select>` inkl. Label                                             |
+| `key`      | Enter, Escape, Tab, Pfeile, Ctrl/Cmd-Kombinationen                            |
+| `scroll`   | Seite (in Prozent) oder scrollbares Element                                   |
+| `navigate` | Seitenwechsel inkl. `pushState`/`popstate`                                    |
+| `submit`   | Formular, Methode, Ziel                                                        |
+| `console`  | `console.error`/`warn`, unbehandelte Fehler und Promise-Rejections            |
+| `network`  | Requests mit Status ≥ 400 oder Netzwerkfehler                                  |
+| `note`     | Manuell gesetzter Befund, hängt am zuletzt anvisierten Element                 |
+
+Nach jedem Klick beobachtet der Recorder 700 ms lang das DOM und hängt die **Wirkung** an
+das Event: neue/entfernte Knoten, geöffnete Dialoge, Alert-Texte, geänderte Attribute,
+URL-Wechsel. Das ist der Teil, der einem Agenten „was ist passiert" beantwortet.
+
+Jedes Element wird beschrieben als: stabiler Selektor (bevorzugt `data-testid`, `#id`,
+`[aria-label]`), XPath, Rolle, Accessible Name, Attribute, Bounding-Box, Vorfahrenkette
+und gekürztes `outerHTML`. Die Maus-Bahn wird separat mit ~8 Hz abgetastet, damit der
+Event-Log semantisch bleibt.
+
+Was **nicht** passiert: keine Screenshots, keine Pixel. Alles ist Text.
+
+## Export
+
+- **Markdown** — die Timeline oben, direkt in einen Agenten-Prompt kopierbar
+- **JSON** — vollständige Daten (`qa-recording/1`), inklusive Cursor-Bahn und Transkript
+- **Audio** — die Tonspur als `.webm`, falls sie gebraucht wird
+- **In `./qa-sessions` ablegen** — schreibt JSON + Markdown ins Projektverzeichnis,
+  damit ein Agent die Datei direkt vom Dateisystem lesen kann
+
+## Architektur
+
+```
+src/app/p/[...slug]/route.ts   Frame-Proxy: fetch, Header bereinigen, HTML/CSS umschreiben, injizieren
+src/proxy.ts                   Referer-Fallback für wurzel-relative Requests aus dem Frame
+public/qa-recorder.js          Läuft in der Zielseite, meldet Events per postMessage
+src/hooks/use-recorder.ts      Empfängt Events, rechnet Zeitstempel auf den Sessionstart um
+src/hooks/use-narration.ts     Mikrofon (MediaRecorder) + Live-Transkript (Web Speech API)
+src/lib/qa/export.ts           Markdown- und JSON-Artefakt
+src/components/qa/studio.tsx   Oberfläche
+```
+
+## Datenschutz
+
+Der Proxy leitet Cookies der Zielseite auf die Origin dieser App um — praktisch für
+eingeloggte QA, aber ein lokales Werkzeug: nicht öffentlich deployen. Eingabewerte lassen
+sich im Setup-Tab komplett abschalten; Passwortfelder und alles mit `data-qa-secret`
+werden ohnehin immer maskiert.

@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# QA-Aufnahmen (lokal erzeugte Artefakte)
+qa-sessions/
