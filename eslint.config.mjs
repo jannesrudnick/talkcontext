@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Browser-Skript, das in der Zielseite laeuft - kein Teil des App-Builds.
+    "public/qa-recorder.js",
   ]),
 ]);
 
