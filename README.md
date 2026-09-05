@@ -28,8 +28,9 @@ npm run dev          # http://localhost:3000
 URL eintragen (`localhost:3000`, `https://staging.example.com`), **Laden**, **Aufnahme**,
 durchklicken, **Stop**, exportieren.
 
-> Für Sprache und Live-Transkript ist Chrome oder Edge nötig (Web Speech API). In anderen
-> Browsern wird der Ton trotzdem aufgezeichnet und lässt sich als `.webm` exportieren.
+> Das *Live*-Transkript während der Aufnahme braucht Chrome oder Edge (Web Speech API).
+> Unabhängig davon lässt sich die Tonspur nach der Aufnahme in jedem Browser lokal mit
+> Whisper transkribieren — siehe unten.
 
 ## Warum zwei Modi
 
@@ -65,11 +66,41 @@ API können im Proxy anders laufen als im Original. Dann Bridge-Modus nehmen.
 Ein Zeile im eigenen Dev-Build, danach lädt der iframe die Seite direkt:
 
 ```html
-<script src="http://localhost:3000/qa-recorder.js" data-qa-mode="bridge" data-qa-autostart="true"></script>
+<script src="http://localhost:3000/qa-recorder.js" data-qa-mode="bridge"></script>
 ```
 
 Kein Rewriting, keine Cookie-Tricks, exakt die App wie sie ist. Voraussetzung ist nur,
 dass die Seite überhaupt eingebettet werden darf (Dev-Server tun das in der Regel).
+
+## Transkription
+
+Zwei Wege, beide ohne API-Key:
+
+| | Live-Transkript | Whisper lokal |
+| --- | --- | --- |
+| Wann | während der Aufnahme | nach dem Stoppen, auf Knopfdruck |
+| Technik | Web Speech API | `@huggingface/transformers` + ONNX, WebGPU mit WASM-Fallback |
+| Browser | Chrome, Edge | alle mit WebGPU oder WASM |
+| Qualität | brauchbar | deutlich besser, echte Zeitstempel pro Abschnitt |
+| Preis | Chrome schickt Audio an Google | nichts verlässt den Rechner |
+
+Whisper läuft in einem Web Worker, damit weder Modell-Download noch Inferenz die Oberfläche
+blockiert. Modelle (einmaliger Download, danach im Browser-Cache):
+
+| Modell | Download | wofür |
+| --- | --- | --- |
+| Tiny | 96 MB | schnelle Kontrolle, Stichworte |
+| Base | 146 MB | Standard, guter Kompromiss |
+| Small | 325 MB | wenn es auf jedes Wort ankommt |
+
+Zur Quantisierung: die `_quantized`- und `int8`-Decoder von `onnx-community` lassen sich mit
+der mitgelieferten onnxruntime-web nicht laden (`Missing required scale ... MatMulNBits`).
+Deshalb q8-Encoder plus q4-Decoder — getestet, funktioniert auf WebGPU und WASM.
+
+Die WASM-Runtime von onnxruntime-web würde transformers.js zur Laufzeit von einem CDN holen.
+Für ein Werkzeug, das ausdrücklich lokal arbeitet, ist das die falsche Abhängigkeit, also
+kopiert `scripts/copy-ort-runtime.mjs` sie bei `install`/`dev`/`build` aus `node_modules`
+nach `public/ort/` (rund 74 MB, deshalb nicht im Repo).
 
 ## Was aufgezeichnet wird
 
@@ -114,6 +145,8 @@ src/proxy.ts                   Referer-Fallback für wurzel-relative Requests au
 public/qa-recorder.js          Läuft in der Zielseite, meldet Events per postMessage
 src/hooks/use-recorder.ts      Empfängt Events, rechnet Zeitstempel auf den Sessionstart um
 src/hooks/use-narration.ts     Mikrofon (MediaRecorder) + Live-Transkript (Web Speech API)
+src/lib/qa/whisper.worker.ts   Lokale Whisper-Transkription im Web Worker
+src/hooks/use-transcription.ts Audio-Decode zu 16 kHz Mono, Fortschritt, Worker-Steuerung
 src/lib/qa/export.ts           Markdown- und JSON-Artefakt
 src/components/qa/studio.tsx   Oberfläche
 ```

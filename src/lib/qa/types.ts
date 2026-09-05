@@ -100,6 +100,10 @@ export interface QaSessionMeta {
   viewport: { width: number; height: number; dpr: number };
   userAgent: string;
   language: string;
+  /** Woher das Transkript stammt. */
+  transcriptSource?: "webspeech" | "whisper" | "none";
+  /** Modell, falls lokal mit Whisper transkribiert wurde. */
+  transcriptModel?: string;
 }
 
 export interface QaSession {
@@ -116,7 +120,9 @@ export type FrameMessage =
   | { source: "qa-recorder"; type: "ready"; url: string; ts: number; mode: QaMode }
   | { source: "qa-recorder"; type: "events"; events: RawFrameEvent[] }
   | { source: "qa-recorder"; type: "cursor"; samples: Array<{ ts: number; x: number; y: number }> }
-  | { source: "qa-recorder"; type: "effect"; id: string; effect: DomEffect };
+  | { source: "qa-recorder"; type: "effect"; id: string; effect: DomEffect }
+  /** Anvisiertes Element ausserhalb einer laufenden Aufnahme - nur zur Anzeige. */
+  | { source: "qa-recorder"; type: "preview"; target?: ElementRef };
 
 /** Event wie es der Recorder schickt - Zeit als epoch ms, Studio rechnet um. */
 export interface RawFrameEvent {

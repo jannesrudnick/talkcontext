@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Browser-Skript, das in der Zielseite laeuft - kein Teil des App-Builds.
     "public/qa-recorder.js",
+    // Aus node_modules kopierte ONNX-Runtime, siehe scripts/copy-ort-runtime.mjs.
+    "public/ort/**",
   ]),
 ]);
 

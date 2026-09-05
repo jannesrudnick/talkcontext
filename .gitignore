@@ -42,3 +42,6 @@ next-env.d.ts
 
 # QA-Aufnahmen (lokal erzeugte Artefakte)
 qa-sessions/
+
+# Lokal kopierte ONNX-Runtime (siehe scripts/copy-ort-runtime.mjs)
+public/ort/
