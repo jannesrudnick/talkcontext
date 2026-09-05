@@ -156,6 +156,11 @@ export function useRecorder({ frameRef, mode }: UseRecorderOptions) {
         return;
       }
 
+      if (data.type === "preview") {
+        if (data.target) setLastTarget(data.target);
+        return;
+      }
+
       if (data.type === "effect") {
         setEvents((previous) =>
           previous.map((event) => (event.id === data.id ? { ...event, effect: data.effect } : event)),

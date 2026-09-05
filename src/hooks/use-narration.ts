@@ -213,5 +213,21 @@ export function useNarration(language: string) {
     setTranscript((previous) => [...previous, { t, endT: t, text, final: true }]);
   }, []);
 
-  return { supported, active, transcript, interim, audioBlob, error, start, stop, addManualSegment };
+  /** Ersetzt das Live-Transkript, z.B. durch das genauere Whisper-Ergebnis. */
+  const replaceTranscript = useCallback((segments: TranscriptSegment[]) => {
+    setTranscript(segments);
+  }, []);
+
+  return {
+    supported,
+    active,
+    transcript,
+    interim,
+    audioBlob,
+    error,
+    start,
+    stop,
+    addManualSegment,
+    replaceTranscript,
+  };
 }

@@ -18,6 +18,8 @@ import {
   Smartphone,
   Square,
   Tablet,
+  Unplug,
+  WandSparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +43,7 @@ import { ElementInspector } from "@/components/qa/element-inspector";
 import { EventList } from "@/components/qa/event-list";
 import { useNarration } from "@/hooks/use-narration";
 import { useRecorder } from "@/hooks/use-recorder";
+import { WHISPER_MODELS, useTranscription } from "@/hooks/use-transcription";
 import {
   buildJson,
   buildMarkdown,
@@ -52,6 +55,7 @@ import {
 } from "@/lib/qa/export";
 import { normalizeTargetUrl, toProxyPath } from "@/lib/qa/proxy-url";
 import type { QaMode, QaSession } from "@/lib/qa/types";
+import type { WhisperModelId } from "@/lib/qa/whisper.worker";
 import { cn } from "@/lib/utils";
 
 const VIEWPORTS = [
@@ -97,10 +101,14 @@ export function QaStudio() {
   const [sessionId, setSessionId] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [frameKey, setFrameKey] = useState(0);
+  const [connectionHint, setConnectionHint] = useState(false);
+  const [whisperModel, setWhisperModel] = useState<WhisperModelId>("onnx-community/whisper-base");
+  const [transcriptSource, setTranscriptSource] = useState<"webspeech" | "whisper" | "none">("none");
 
   const origin = useOrigin();
   const recorder = useRecorder({ frameRef, mode });
   const narration = useNarration(language);
+  const transcription = useTranscription();
   const recording = recorder.status === "recording";
 
   const iframeSrc = useMemo(() => {
@@ -154,12 +162,18 @@ export function QaStudio() {
       setProbing(false);
     }
     recorder.reset();
+    recorder.markFrameDisconnected();
+    setConnectionHint(false);
     setLoadedUrl(normalized);
     setFrameKey((key) => key + 1);
     if (!title) setTitle(new URL(normalized).host);
   }, [recorder, title, urlInput]);
 
-  const reloadFrame = useCallback(() => setFrameKey((key) => key + 1), []);
+  const reloadFrame = useCallback(() => {
+    recorder.markFrameDisconnected();
+    setConnectionHint(false);
+    setFrameKey((key) => key + 1);
+  }, [recorder]);
 
   /* ----------------------------------------------------------- Aufnahme */
 
@@ -170,9 +184,11 @@ export function QaStudio() {
     }
     setSessionId(crypto.randomUUID());
     const startedAt = recorder.start();
+    setTranscriptSource("none");
     if (micEnabled) {
       const ok = await narration.start(startedAt);
       if (!ok) toast.warning("Aufnahme laeuft ohne Ton - Mikrofonzugriff fehlt.");
+      else if (narration.supported.speech) setTranscriptSource("webspeech");
     }
     toast.success("Aufnahme laeuft");
   }, [loadedUrl, micEnabled, narration, recorder]);
@@ -191,12 +207,32 @@ export function QaStudio() {
     toast.success("Notiz gesetzt");
   }, [note, recorder]);
 
+  // Nach dem Laden kurz warten und dann sagen, wenn sich der Recorder nicht
+  // gemeldet hat - Funkstille ohne Erklaerung ist der schlimmste Zustand.
+  useEffect(() => {
+    if (!iframeSrc) return;
+    const timer = window.setTimeout(() => setConnectionHint(true), 3000);
+    return () => window.clearTimeout(timer);
+  }, [iframeSrc, frameKey]);
+
   useEffect(() => {
     if (!recording) return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [recording]);
+
+  const runWhisper = useCallback(async () => {
+    if (!narration.audioBlob) return;
+    const segments = await transcription.transcribe(narration.audioBlob, whisperModel, language);
+    if (!segments) {
+      toast.error(transcription.error ?? "Transkription fehlgeschlagen");
+      return;
+    }
+    narration.replaceTranscript(segments);
+    setTranscriptSource("whisper");
+    toast.success(`Transkript erzeugt - ${segments.length} Abschnitte`);
+  }, [language, narration, transcription, whisperModel]);
 
   /* ------------------------------------------------------------- Export */
 
@@ -220,6 +256,8 @@ export function QaStudio() {
         },
         userAgent: typeof navigator === "undefined" ? "" : navigator.userAgent,
         language,
+        transcriptSource,
+        transcriptModel: transcriptSource === "whisper" ? whisperModel : undefined,
       },
       events: recorder.events,
       cursor: recorder.cursor,
@@ -248,7 +286,18 @@ export function QaStudio() {
           }
         : undefined,
     };
-  }, [language, loadedUrl, mode, narration.audioBlob, narration.transcript, recorder, sessionId, title]);
+  }, [
+    language,
+    loadedUrl,
+    mode,
+    narration.audioBlob,
+    narration.transcript,
+    recorder,
+    sessionId,
+    title,
+    transcriptSource,
+    whisperModel,
+  ]);
 
   const hasRecording = recorder.events.length > 0 || narration.transcript.length > 0;
 
@@ -291,7 +340,7 @@ export function QaStudio() {
     }
   }, [buildSession]);
 
-  const bridgeSnippet = `<script src="${origin}/qa-recorder.js" data-qa-mode="bridge" data-qa-autostart="true"></script>`;
+  const bridgeSnippet = `<script src="${origin}/qa-recorder.js" data-qa-mode="bridge"></script>`;
 
   const frameWidth = VIEWPORTS.find((entry) => entry.id === viewport)?.width ?? null;
 
@@ -380,6 +429,25 @@ export function QaStudio() {
           {formatTimecode(recorder.elapsed)}
         </span>
 
+        {loadedUrl && (
+          <span
+            className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+            title={
+              recorder.frameConnected
+                ? "Der Recorder laeuft in der Zielseite."
+                : "Der Recorder hat sich aus dem Frame noch nicht gemeldet."
+            }
+          >
+            <span
+              className={cn(
+                "size-2 rounded-full",
+                recorder.frameConnected ? "bg-emerald-500" : "bg-amber-500",
+              )}
+            />
+            {recorder.frameConnected ? "Recorder aktiv" : "kein Recorder"}
+          </span>
+        )}
+
         <Button
           type="button"
           size="sm"
@@ -461,6 +529,9 @@ export function QaStudio() {
               {recording && (
                 <div className="pointer-events-none absolute inset-0 rounded-lg ring-2 ring-red-500/70" />
               )}
+              {connectionHint && !recorder.frameConnected && (
+                <ConnectionHint mode={mode} snippet={bridgeSnippet} onSwitchMode={() => setMode("bridge")} />
+              )}
             </div>
           ) : (
             <EmptyState bridgeSnippet={bridgeSnippet} />
@@ -509,10 +580,82 @@ export function QaStudio() {
             <TabsContent value="speech" className="min-h-0 flex-1">
               <ScrollArea className="h-full">
                 <div className="space-y-2 p-3 text-xs">
+                  <div className="space-y-2 rounded-lg border bg-card p-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <WandSparkles className="size-3.5 text-violet-500" />
+                      <p className="text-xs font-medium">Lokal transkribieren</p>
+                    </div>
+                    <p className="text-[10px] leading-snug text-muted-foreground">
+                      Whisper laeuft komplett im Browser (WebGPU, sonst WASM). Kein Upload, kein
+                      API-Key, echte Zeitstempel - und es funktioniert auch in Firefox und Safari.
+                      Das Modell wird einmalig geladen und danach vom Browser gecacht.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={whisperModel}
+                        onValueChange={(value) => setWhisperModel(value as WhisperModelId)}
+                        disabled={transcription.running}
+                      >
+                        <SelectTrigger size="sm" className="flex-1 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {WHISPER_MODELS.map((entry) => (
+                            <SelectItem key={entry.id} value={entry.id}>
+                              {entry.label} ({entry.size})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => void runWhisper()}
+                        disabled={!narration.audioBlob || transcription.running}
+                      >
+                        {transcription.running ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <WandSparkles className="size-3.5" />
+                        )}
+                        Starten
+                      </Button>
+                    </div>
+                    {!narration.audioBlob && !transcription.running && (
+                      <p className="text-[10px] text-muted-foreground">
+                        Erst mit Mikrofon aufnehmen und stoppen - dann steht die Tonspur bereit.
+                      </p>
+                    )}
+                    {transcription.progress && (
+                      <div className="space-y-1">
+                        <div className="h-1 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full bg-violet-500 transition-all"
+                            style={{ width: `${Math.round(transcription.progress.ratio * 100)}%` }}
+                          />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">
+                          {transcription.progress.label}
+                          {transcription.device ? ` - ${transcription.device.toUpperCase()}` : ""}
+                        </p>
+                      </div>
+                    )}
+                    {transcription.error && (
+                      <p className="text-[10px] text-red-500">{transcription.error}</p>
+                    )}
+                    {transcriptSource === "whisper" && !transcription.running && (
+                      <p className="text-[10px] text-emerald-500">
+                        Transkript stammt aus Whisper ({whisperModel.split("/")[1]}).
+                      </p>
+                    )}
+                  </div>
+
                   {!narration.supported.speech && (
                     <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px]">
-                      Live-Transkript braucht die Web Speech API (Chrome/Edge). Der Ton wird trotzdem
-                      aufgezeichnet und laesst sich exportieren.
+                      Das <em>Live</em>-Transkript braucht die Web Speech API (Chrome/Edge). Der Ton
+                      wird trotzdem aufgezeichnet - transkribiere ihn danach einfach lokal mit
+                      Whisper.
                     </p>
                   )}
                   {narration.error && (
@@ -778,6 +921,67 @@ function EmptyState({ bridgeSnippet }: { bridgeSnippet: string }) {
               </code>
             </li>
           </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Wenn sich der Recorder nicht meldet, ist der haeufigste Grund modusabhaengig -
+ * also sagen wir konkret, was zu tun ist, statt den Frame stumm stehen zu lassen.
+ */
+function ConnectionHint({
+  mode,
+  snippet,
+  onSwitchMode,
+}: {
+  mode: QaMode;
+  snippet: string;
+  onSwitchMode: () => void;
+}) {
+  return (
+    <div className="absolute inset-x-3 bottom-3 rounded-lg border border-amber-500/40 bg-background/95 p-3 shadow-lg backdrop-blur">
+      <div className="flex items-start gap-2">
+        <Unplug className="mt-0.5 size-4 shrink-0 text-amber-500" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <p className="text-xs font-medium">Der Recorder meldet sich nicht aus dem Frame</p>
+          {mode === "bridge" ? (
+            <>
+              <p className="text-[11px] text-muted-foreground">
+                Im Bridge-Modus muss das Snippet in der Zielseite eingebunden sein. Ohne das Skript
+                sieht das Studio nichts - weder Hover noch Klicks.
+              </p>
+              <code className="block break-all rounded bg-muted p-1.5 font-mono text-[10px]">
+                {snippet}
+              </code>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(snippet);
+                    toast.success("Snippet kopiert");
+                  }}
+                >
+                  <Copy className="size-3.5" />
+                  Snippet kopieren
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-[11px] text-muted-foreground">
+                Die Seite laedt im Proxy, aber das injizierte Skript laeuft nicht. Meist blockiert
+                die Zielseite fremde Skripte oder haengt beim Rendern. Fuer eigene Projekte ist der
+                Bridge-Modus der zuverlaessigere Weg.
+              </p>
+              <Button type="button" size="sm" variant="secondary" onClick={onSwitchMode}>
+                Zu Bridge wechseln
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>

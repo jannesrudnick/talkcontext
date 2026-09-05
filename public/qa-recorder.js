@@ -34,7 +34,11 @@
     captureNetwork: true,
   };
 
-  var recording = MODE === "proxy" || dataset.qaAutostart === "true";
+  // Das Studio ist die einzige Quelle der Wahrheit: Es schickt nach dem
+  // "ready"-Handshake ein "start", falls eine Aufnahme laeuft. Faengt der
+  // Recorder von sich aus an, meldet er Events, die das Studio verwirft - und
+  // schickt dabei keine Vorschau mehr, sodass die Oberflaeche tot wirkt.
+  var recording = false;
   var queue = [];
   var cursorQueue = [];
   var flushTimer = null;
@@ -155,6 +159,9 @@
     for (var i = 0; i < classes.length && list.length < 2; i++) {
       var name = classes[i];
       if (!name || name.length > 40) continue;
+      // Utility-Varianten wie "data-[size=sm]:h-7" oder "hover:bg-accent" sind
+      // als Identitaet wertlos und machen den Selektor unlesbar.
+      if (/[[\]:/%()]/.test(name)) continue;
       if (NOISY_CLASS.test(name)) continue;
       if (HASHED_CLASS.test(name) && !/^[a-z-]+$/i.test(name)) continue;
       list.push(name);
@@ -278,9 +285,19 @@
     "checked",
   ];
 
+  /** Grober Groessenindikator - guenstiger als outerHTML zu bauen. */
+  function subtreeSize(el) {
+    try {
+      return el.getElementsByTagName ? el.getElementsByTagName("*").length : 0;
+    } catch (err) {
+      return 0;
+    }
+  }
+
   function describe(el, options) {
     if (!el || el.nodeType !== 1) return undefined;
     var opts = options || {};
+    var size = subtreeSize(el);
     var rect = null;
     try {
       rect = el.getBoundingClientRect();
@@ -333,8 +350,12 @@
     }
     var name = accessibleName(el);
     if (name) ref.name = name;
-    // Bei Formularfeldern ist der Textinhalt (alle <option>) kein Label.
-    var text = /^(select|input|textarea)$/i.test(el.tagName) ? undefined : truncate(el.textContent, 160);
+    // Bei Formularfeldern ist der Textinhalt (alle <option>) kein Label, bei
+    // grossen Containern waere er der halbe Seiteninhalt.
+    var text =
+      /^(select|input|textarea)$/i.test(el.tagName) || size > 200
+        ? undefined
+        : truncate(el.textContent, 160);
     if (text && text !== name) ref.text = text;
     if (Object.keys(attrs).length) ref.attrs = attrs;
     if (rect) {
@@ -345,7 +366,9 @@
         h: Math.round(rect.height),
       };
     }
-    if (config.captureHtml && opts.html !== false) {
+    // outerHTML eines grossen Containers zu bauen kostet mehr, als das Snippet
+    // je wert waere - die Zielseite soll durch die Aufnahme nicht ruckeln.
+    if (config.captureHtml && opts.html !== false && size <= 60) {
       var html = el.outerHTML;
       if (html) {
         if (MODE === "proxy") {
@@ -558,7 +581,9 @@
   }
 
   function paintOverlay(el) {
-    if (!config.highlight || !recording) {
+    // Bewusst unabhaengig von `recording`: Wer die Seite laedt, soll sofort
+    // sehen, welches Element der Recorder erfassen wuerde.
+    if (!config.highlight) {
       if (overlay) overlay.style.display = "none";
       return;
     }
@@ -621,6 +646,16 @@
     paintOverlay(el);
     hoverTimer = setTimeout(function () {
       if (hoverEl !== el) return;
+      if (!recording) {
+        // Ohne Aufnahme nichts protokollieren, aber das Studio soll zeigen
+        // koennen, was erfasst wuerde.
+        post({
+          source: "qa-recorder",
+          type: "preview",
+          target: describe(el, { html: false, leaf: raw }),
+        });
+        return;
+      }
       hoverReported = true;
       emit("hover", {
         target: describe(el, { leaf: raw }),
@@ -840,6 +875,38 @@
     });
   }
 
+  /**
+   * Im Proxy-Modus zeigt location.origin auf das Studio - eine WebSocket-URL
+   * der Zielseite (typisch: HMR eines Dev-Servers) landet damit bei uns statt
+   * beim Ziel. Der Proxy kann kein Upgrade sprechen, also biegen wir die
+   * Verbindung direkt auf die echte Zielorigin um; WebSockets unterliegen
+   * keiner Same-Origin-Policy.
+   */
+  function patchWebSocket() {
+    if (MODE !== "proxy" || typeof window.WebSocket !== "function") return;
+    var Original = window.WebSocket;
+
+    function QaWebSocket(url, protocols) {
+      var target = url;
+      try {
+        var parsed = new URL(String(url), location.href);
+        if (parsed.host === location.host) {
+          var asHttp = parsed.href.replace(/^ws/i, "http");
+          target = deproxy(asHttp).replace(/^http/i, "ws");
+        }
+      } catch (err) {
+        /* nicht parsebar - unveraendert durchreichen */
+      }
+      return protocols === undefined ? new Original(target) : new Original(target, protocols);
+    }
+
+    QaWebSocket.prototype = Original.prototype;
+    ["CONNECTING", "OPEN", "CLOSING", "CLOSED"].forEach(function (key) {
+      QaWebSocket[key] = Original[key];
+    });
+    window.WebSocket = QaWebSocket;
+  }
+
   function patchNetwork() {
     var originalFetch = window.fetch;
     if (typeof originalFetch === "function") {
@@ -976,6 +1043,7 @@
   patchHistory();
   patchConsole();
   patchNetwork();
+  patchWebSocket();
   listen();
 
   function announce() {
