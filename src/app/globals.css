@@ -4,12 +4,19 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Nocturne design system, mapped onto shadcn's semantic tokens.
+ * Dark is the system's native palette (values match the exported
+ * _ds/nocturne .../styles.css 1:1). Light is derived from the same
+ * accent/neutral ramps - the bundle itself ships dark-only.
+ */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-inter);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,82 +46,86 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  /* Nocturne's own radius scale (4 / 8 / 14) rather than a single-ratio derivation. */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 22px;
+  --radius-3xl: 26px;
+  --radius-4xl: 999px;
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Light - derived from Nocturne's accent/neutral ramps, kept low-chroma. */
+  --background: #f4f5fb;
+  --foreground: #24252f;
+  --card: #ffffff;
+  --card-foreground: #24252f;
+  --popover: #ffffff;
+  --popover-foreground: #24252f;
+  --primary: #796cbf; /* --color-accent-600 */
+  --primary-foreground: #ffffff;
+  --secondary: #e4e7f5; /* --color-neutral-200 */
+  --secondary-foreground: #24252f;
+  --muted: #eceefa;
+  --muted-foreground: #75798c; /* --color-neutral-600 */
+  --accent: #e7e5fe; /* --color-accent-200, tint for hovers/focus fills */
+  --accent-foreground: #423a6a; /* --color-accent-800 */
+  --destructive: #b8544a;
+  --destructive-foreground: #ffffff;
+  --border: color-mix(in srgb, #24252f 14%, transparent);
+  --input: color-mix(in srgb, #24252f 14%, transparent);
+  --ring: #796cbf;
+  --chart-1: #9184d9;
+  --chart-2: #796cbf;
+  --chart-3: #5d5294;
+  --chart-4: #423a6a;
+  --chart-5: #2b2741;
+  --sidebar: #eceefa;
+  --sidebar-foreground: #24252f;
+  --sidebar-primary: #796cbf;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e7e5fe;
+  --sidebar-accent-foreground: #423a6a;
+  --sidebar-border: color-mix(in srgb, #24252f 14%, transparent);
+  --sidebar-ring: #796cbf;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Dark - Nocturne native, values match styles.css exactly. */
+  --background: #161826; /* --color-bg */
+  --foreground: #e9e9ed; /* --color-text */
+  --card: #232532; /* --color-surface */
+  --card-foreground: #e9e9ed;
+  --popover: #232532;
+  --popover-foreground: #e9e9ed;
+  --primary: #9184d9; /* --color-accent */
+  --primary-foreground: #161826;
+  --secondary: #3f424d; /* --color-neutral-800 */
+  --secondary-foreground: #e9e9ed;
+  --muted: #292b31; /* --color-neutral-900 */
+  --muted-foreground: #9397ab; /* --color-neutral-500 */
+  --accent: #423a6a; /* --color-accent-800, tint for hovers/focus fills */
+  --accent-foreground: #e9e9ed;
+  --destructive: #d9776c;
+  --destructive-foreground: #161826;
+  --border: color-mix(in srgb, #e9e9ed 16%, transparent); /* --color-divider */
+  --input: color-mix(in srgb, #e9e9ed 16%, transparent);
+  --ring: #9184d9;
+  --chart-1: #9184d9;
+  --chart-2: #b5abfc;
+  --chart-3: #796cbf;
+  --chart-4: #5d5294;
+  --chart-5: #423a6a;
+  --sidebar: #232532;
+  --sidebar-foreground: #e9e9ed;
+  --sidebar-primary: #9184d9;
+  --sidebar-primary-foreground: #161826;
+  --sidebar-accent: #423a6a;
+  --sidebar-accent-foreground: #e9e9ed;
+  --sidebar-border: color-mix(in srgb, #e9e9ed 16%, transparent);
+  --sidebar-ring: #9184d9;
 }
 
 @layer base {
@@ -126,5 +137,13 @@
   }
   html {
     @apply font-sans;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    letter-spacing: -0.015em;
   }
 }

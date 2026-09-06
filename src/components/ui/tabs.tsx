@@ -30,6 +30,8 @@ const tabsListVariants = cva(
       variant: {
         default: "bg-muted",
         line: "gap-1 bg-transparent",
+        /* A narrow icon-only rail (Nocturne's sidebar tab pattern). */
+        rail: "w-full gap-0.5 rounded-none bg-transparent p-1.5",
       },
     },
     defaultVariants: {
@@ -66,6 +68,7 @@ function TabsTrigger({
         "group-data-[variant=line]/tabs-list:bg-transparent group-data-[variant=line]/tabs-list:data-active:bg-transparent dark:group-data-[variant=line]/tabs-list:data-active:border-transparent dark:group-data-[variant=line]/tabs-list:data-active:bg-transparent",
         "data-active:bg-background data-active:text-foreground dark:data-active:border-input dark:data-active:bg-input/30 dark:data-active:text-foreground",
         "after:absolute after:bg-foreground after:opacity-0 after:transition-opacity group-data-horizontal/tabs:after:inset-x-0 group-data-horizontal/tabs:after:bottom-[-5px] group-data-horizontal/tabs:after:h-0.5 group-data-vertical/tabs:after:inset-y-0 group-data-vertical/tabs:after:-right-1 group-data-vertical/tabs:after:w-0.5 group-data-[variant=line]/tabs-list:data-active:after:opacity-100",
+        "group-data-[variant=rail]/tabs-list:h-9 group-data-[variant=rail]/tabs-list:w-full group-data-[variant=rail]/tabs-list:flex-none group-data-[variant=rail]/tabs-list:justify-center group-data-[variant=rail]/tabs-list:rounded-none group-data-[variant=rail]/tabs-list:border-none group-data-[variant=rail]/tabs-list:text-muted-foreground group-data-[variant=rail]/tabs-list:shadow-none group-data-[variant=rail]/tabs-list:data-active:bg-transparent group-data-[variant=rail]/tabs-list:data-active:text-primary group-data-[variant=rail]/tabs-list:dark:data-active:bg-transparent group-data-[variant=rail]/tabs-list:hover:bg-foreground/7 group-data-[variant=rail]/tabs-list:data-active:after:inset-y-1.5 group-data-[variant=rail]/tabs-list:data-active:after:-left-1.5 group-data-[variant=rail]/tabs-list:data-active:after:right-auto group-data-[variant=rail]/tabs-list:data-active:after:w-0.5 group-data-[variant=rail]/tabs-list:data-active:after:rounded-full group-data-[variant=rail]/tabs-list:data-active:after:bg-primary group-data-[variant=rail]/tabs-list:data-active:after:opacity-100",
         className
       )}
       {...props}

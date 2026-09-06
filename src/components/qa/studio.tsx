@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import {
   Circle,
   Cloud,
+  Component,
   Copy,
   Download,
   ExternalLink,
@@ -11,11 +12,14 @@ import {
   FileText,
   Flag,
   HardDriveDownload,
+  Languages,
+  List,
   Loader2,
   Mic,
   MicOff,
   Monitor,
   RotateCcw,
+  Settings,
   Smartphone,
   Square,
   Tablet,
@@ -35,13 +39,16 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ElementInspector } from "@/components/qa/element-inspector";
 import { EventList } from "@/components/qa/event-list";
+import { ThemeToggle } from "@/components/qa/theme-toggle";
 import { correlate } from "@/lib/qa/correlate";
 import { useNarration } from "@/hooks/use-narration";
 import { useOpenAiKey } from "@/hooks/use-openai-key";
@@ -410,14 +417,15 @@ export function QaStudio() {
   const frameWidth = VIEWPORTS.find((entry) => entry.id === viewport)?.width ?? null;
 
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="flex h-dvh flex-col bg-background">
       {/* ------------------------------------------------------- Kopfzeile */}
-      <header className="flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2">
-        <div className="flex items-center gap-2 pr-2">
-          <span className="grid size-7 place-items-center rounded-md bg-foreground text-background">
-            <Circle className="size-3 fill-current" />
+      <header className="flex shrink-0 flex-wrap items-center gap-2 border-b bg-card px-3 py-2">
+        <div className="flex items-center gap-2 pr-3">
+          <span className="grid size-[22px] shrink-0 place-items-center rounded-md border-[1.5px] border-primary">
+            <span className="size-[7px] rounded-full bg-primary" />
           </span>
-          <span className="text-sm font-semibold tracking-tight">QA-Recorder</span>
+          <span className="font-heading text-[13px] font-medium tracking-tight">QA-Recorder</span>
         </div>
 
         <form
@@ -449,13 +457,13 @@ export function QaStudio() {
           </Button>
         </form>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 border-l pl-3">
           {VIEWPORTS.map((entry) => (
             <Button
               key={entry.id}
               type="button"
               size="sm"
-              variant={viewport === entry.id ? "secondary" : "ghost"}
+              variant={viewport === entry.id ? "default" : "ghost"}
               className="h-8 px-2 text-[11px]"
               onClick={() => setViewport(entry.id)}
             >
@@ -463,6 +471,7 @@ export function QaStudio() {
               {entry.label}
             </Button>
           ))}
+          <Separator orientation="vertical" className="mx-1 h-4.5" />
           <Button type="button" size="sm" variant="ghost" className="h-8 px-2" onClick={reloadFrame} disabled={!loadedUrl}>
             <RotateCcw className="size-3.5" />
           </Button>
@@ -473,24 +482,44 @@ export function QaStudio() {
               </a>
             </Button>
           )}
+          <Separator orientation="vertical" className="mx-1 h-4.5" />
+          <ThemeToggle />
         </div>
       </header>
 
       {/* --------------------------------------------------- Aufnahmeleiste */}
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2">
+      <div className="flex shrink-0 flex-wrap items-center gap-3 border-b bg-card px-4 py-2.5">
         {recording ? (
-          <Button type="button" size="sm" variant="destructive" onClick={stop}>
+          <Button
+            type="button"
+            size="sm"
+            variant="destructive"
+            className="rounded-full border-destructive/60 pl-2.5"
+            onClick={stop}
+          >
             <Square className="size-3.5 fill-current" />
             Stop
           </Button>
         ) : (
-          <Button type="button" size="sm" onClick={() => void start()} disabled={!loadedUrl}>
-            <Circle className="size-3.5 fill-red-500 text-red-500" />
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="rounded-full border-destructive/60 pl-2.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => void start()}
+            disabled={!loadedUrl}
+          >
+            <Circle className="size-3.5 fill-current" />
             Aufnahme
           </Button>
         )}
 
-        <span className={cn("font-mono text-sm tabular-nums", recording && "text-red-500")}>
+        <span
+          className={cn(
+            "font-mono text-xl font-semibold tabular-nums tracking-tight",
+            recording && "text-destructive",
+          )}
+        >
           {formatTimecode(recorder.elapsed)}
         </span>
 
@@ -505,7 +534,7 @@ export function QaStudio() {
           >
             <span
               className={cn(
-                "size-2 rounded-full",
+                "size-[7px] rounded-full",
                 recorder.frameConnected ? "bg-emerald-500" : "bg-amber-500",
               )}
             />
@@ -513,10 +542,12 @@ export function QaStudio() {
           </span>
         )}
 
+        <Separator orientation="vertical" className="h-5" />
+
         <Button
           type="button"
-          size="sm"
-          variant={micEnabled ? "secondary" : "ghost"}
+          size="icon-sm"
+          variant={micEnabled ? "default" : "ghost"}
           onClick={() => setMicEnabled((value) => !value)}
           disabled={recording}
           title={micEnabled ? "Mikrofon an" : "Mikrofon aus"}
@@ -524,50 +555,83 @@ export function QaStudio() {
           {micEnabled ? <Mic className="size-3.5" /> : <MicOff className="size-3.5" />}
         </Button>
 
-        <Select value={language} onValueChange={setLanguage} disabled={recording}>
-          <SelectTrigger size="sm" className="w-24 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="de-DE">Deutsch</SelectItem>
-            <SelectItem value="en-US">English</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Separator orientation="vertical" className="mx-1 h-6" />
-
-        <div className="flex min-w-56 flex-1 items-center gap-2">
-          <Input
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                addNote();
-              }
-            }}
-            placeholder="Befund notieren (haengt am zuletzt anvisierten Element)"
-            className="h-8 text-xs"
-            disabled={!recording}
-          />
-          <Button type="button" size="sm" variant="outline" onClick={addNote} disabled={!recording || !note.trim()}>
-            <Flag className="size-3.5" />
-            Notiz
-          </Button>
+        <div role="radiogroup" aria-label="Sprache" className="inline-flex overflow-hidden rounded-md border">
+          {(
+            [
+              { value: "de-DE", label: "DE" },
+              { value: "en-US", label: "EN" },
+            ] as const
+          ).map((option, index) => (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={language === option.value}
+              disabled={recording}
+              onClick={() => setLanguage(option.value)}
+              className={cn(
+                "px-2.5 py-1 text-[12px] font-medium transition-colors disabled:pointer-events-none disabled:opacity-45",
+                index > 0 && "border-l",
+                language === option.value
+                  ? "text-primary shadow-[inset_0_0_0_1px_var(--primary)]"
+                  : "text-foreground/70 hover:bg-foreground/7",
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
         </div>
 
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <Badge variant="outline" className="font-mono">
+        <Popover>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <PopoverTrigger asChild>
+                <Button type="button" size="icon-sm" variant="ghost" disabled={!recording} aria-label="Befund notieren">
+                  <Flag className="size-3.5" />
+                </Button>
+              </PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent>Befund notieren</TooltipContent>
+          </Tooltip>
+          <PopoverContent align="start" className="w-80 space-y-2">
+            <p className="text-xs font-medium">Befund notieren</p>
+            <p className="text-[11px] text-muted-foreground">Haengt am zuletzt anvisierten Element.</p>
+            <div className="flex items-center gap-2">
+              <Input
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    addNote();
+                  }
+                }}
+                placeholder="z.B. Button reagiert nicht"
+                className="h-8 text-xs"
+                disabled={!recording}
+                autoFocus
+              />
+              <Button type="button" size="sm" onClick={addNote} disabled={!recording || !note.trim()}>
+                Notiz
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <Separator orientation="vertical" className="h-5" />
+
+        <div className="flex flex-1 flex-wrap items-center justify-end gap-1.5">
+          <Badge variant="outline" className="rounded-full border-primary font-mono text-primary">
             {summary.clicks} Klicks
           </Badge>
-          <Badge variant="outline" className="font-mono">
+          <Badge variant="outline" className="rounded-full border-primary font-mono text-primary">
             {summary.hovers} Hovers
           </Badge>
-          <Badge variant="outline" className="font-mono">
+          <Badge variant="outline" className="rounded-full border-primary font-mono text-primary">
             {summary.elements} Elemente
           </Badge>
           {summary.errors > 0 && (
-            <Badge variant="destructive" className="font-mono">
+            <Badge variant="outline" className="rounded-full border-destructive font-mono text-destructive">
               {summary.errors} Fehler
             </Badge>
           )}
@@ -592,7 +656,7 @@ export function QaStudio() {
                 sandbox="allow-forms allow-modals allow-popups allow-same-origin allow-scripts allow-downloads"
               />
               {recording && (
-                <div className="pointer-events-none absolute inset-0 rounded-lg ring-2 ring-red-500/70" />
+                <div className="pointer-events-none absolute inset-0 rounded-lg ring-2 ring-destructive/70" />
               )}
               {connectionHint && !recorder.frameConnected && (
                 <ConnectionHint mode={mode} snippet={bridgeSnippet} onSwitchMode={() => setMode("bridge")} />
@@ -604,25 +668,32 @@ export function QaStudio() {
         </main>
 
         {/* ------------------------------------------------------- Seitenleiste */}
-        <aside className="flex w-96 shrink-0 flex-col border-l">
-          <Tabs defaultValue="timeline" className="flex min-h-0 flex-1 flex-col gap-0">
-            <TabsList className="m-2 grid grid-cols-4">
-              <TabsTrigger value="timeline" className="text-xs">
-                Timeline
-              </TabsTrigger>
-              <TabsTrigger value="element" className="text-xs">
-                Element
-              </TabsTrigger>
-              <TabsTrigger value="speech" className="text-xs">
-                Sprache
-              </TabsTrigger>
-              <TabsTrigger value="setup" className="text-xs">
-                Setup
-              </TabsTrigger>
+        <aside className="flex w-[360px] shrink-0 border-l bg-card">
+          <Tabs defaultValue="timeline" orientation="vertical" className="flex min-h-0 flex-1 !flex-row gap-0">
+            <TabsList
+              variant="rail"
+              className="flex h-auto w-[46px] shrink-0 flex-col border-r"
+            >
+              {[
+                { value: "timeline", label: "Timeline", icon: List },
+                { value: "element", label: "Element", icon: Component },
+                { value: "speech", label: "Sprache", icon: Languages },
+                { value: "setup", label: "Setup", icon: Settings },
+              ].map((tab) => (
+                <Tooltip key={tab.value}>
+                  <TooltipTrigger asChild>
+                    <TabsTrigger value={tab.value} aria-label={tab.label}>
+                      <tab.icon className="size-[15px]" />
+                    </TabsTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">{tab.label}</TooltipContent>
+                </Tooltip>
+              ))}
             </TabsList>
 
-            <TabsContent value="timeline" className="min-h-0 flex-1">
-              <ScrollArea className="h-full">
+            <TabsContent value="timeline" className="flex min-h-0 flex-1 flex-col">
+              <TabPaneHeader label="Timeline" />
+              <ScrollArea className="min-h-0 flex-1">
                 <EventList
                   events={correlatedEvents}
                   autoScroll={recording}
@@ -636,14 +707,16 @@ export function QaStudio() {
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="element" className="min-h-0 flex-1">
-              <ScrollArea className="h-full">
+            <TabsContent value="element" className="flex min-h-0 flex-1 flex-col">
+              <TabPaneHeader label="Element" />
+              <ScrollArea className="min-h-0 flex-1">
                 <ElementInspector element={recorder.lastTarget} />
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="speech" className="min-h-0 flex-1">
-              <ScrollArea className="h-full">
+            <TabsContent value="speech" className="flex min-h-0 flex-1 flex-col">
+              <TabPaneHeader label="Sprache" />
+              <ScrollArea className="min-h-0 flex-1">
                 <div className="space-y-2 p-3 text-xs">
                   <div className="space-y-2 rounded-lg border bg-card p-2.5">
                     <div className="flex items-center gap-1.5">
@@ -792,8 +865,9 @@ export function QaStudio() {
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="setup" className="min-h-0 flex-1">
-              <ScrollArea className="h-full">
+            <TabsContent value="setup" className="flex min-h-0 flex-1 flex-col">
+              <TabPaneHeader label="Setup" />
+              <ScrollArea className="min-h-0 flex-1">
                 <div className="space-y-4 p-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="qa-title" className="text-xs">
@@ -903,53 +977,52 @@ export function QaStudio() {
               </ScrollArea>
             </TabsContent>
           </Tabs>
-
-          {/* ------------------------------------------------------- Export */}
-          <div className="shrink-0 space-y-2 border-t p-3">
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-              <span>Artefakt</span>
-              <span>
-                {recorder.events.length} Events · {formatDuration(recorder.elapsed)}
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button type="button" size="sm" variant="outline" onClick={exportMarkdown} disabled={!hasRecording}>
-                <FileText className="size-3.5" />
-                Markdown
-              </Button>
-              <Button type="button" size="sm" variant="outline" onClick={exportJson} disabled={!hasRecording}>
-                <FileJson className="size-3.5" />
-                JSON
-              </Button>
-              <Button type="button" size="sm" variant="outline" onClick={copyMarkdown} disabled={!hasRecording}>
-                <Copy className="size-3.5" />
-                Kopieren
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={exportAudio}
-                disabled={!narration.audioBlob}
-              >
-                <Download className="size-3.5" />
-                Audio
-              </Button>
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              className="w-full"
-              onClick={() => void saveToServer()}
-              disabled={!hasRecording || saving}
-            >
-              {saving ? <Loader2 className="size-3.5 animate-spin" /> : <HardDriveDownload className="size-3.5" />}
-              In ./qa-sessions ablegen
-            </Button>
-          </div>
         </aside>
       </div>
+
+      {/* ------------------------------------------------------------- Export */}
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t bg-card px-4 py-2.5">
+        <span className="text-[11px] text-muted-foreground">
+          Artefakt · {recorder.events.length} Events · {formatDuration(recorder.elapsed)}
+        </span>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={exportMarkdown} disabled={!hasRecording}>
+            <FileText className="size-3.5" />
+            Markdown
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={exportJson} disabled={!hasRecording}>
+            <FileJson className="size-3.5" />
+            JSON
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={copyMarkdown} disabled={!hasRecording}>
+            <Copy className="size-3.5" />
+            Kopieren
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={exportAudio} disabled={!narration.audioBlob}>
+            <Download className="size-3.5" />
+            Audio
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => void saveToServer()}
+            disabled={!hasRecording || saving}
+          >
+            {saving ? <Loader2 className="size-3.5 animate-spin" /> : <HardDriveDownload className="size-3.5" />}
+            In ./qa-sessions ablegen
+          </Button>
+        </div>
+      </div>
     </div>
+    </TooltipProvider>
+  );
+}
+
+function TabPaneHeader({ label }: { label: string }) {
+  return (
+    <h6 className="shrink-0 border-b px-3 py-2.5 text-[11px] font-medium tracking-[0.08em] text-muted-foreground uppercase">
+      {label}
+    </h6>
   );
 }
 
