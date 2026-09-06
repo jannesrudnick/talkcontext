@@ -4,6 +4,7 @@
  * JSON = vollstaendige Daten, Markdown = lesbare Timeline, in der Sprache und
  * DOM-Interaktion verschraenkt sind. Beides kommt ohne Screenshot aus.
  */
+import { correlate, type CorrelatedEvent } from "./correlate";
 import type { ElementRef, QaEvent, QaSession } from "./types";
 
 export function formatTimecode(ms: number): string {
@@ -149,17 +150,24 @@ function effectLines(event: QaEvent): string[] {
 }
 
 type TimelineItem =
-  | { t: number; kind: "event"; event: QaEvent }
+  | { t: number; kind: "event"; event: CorrelatedEvent }
   | { t: number; kind: "speech"; text: string };
 
-/** Sprache und Interaktion in eine gemeinsame, sortierte Timeline mischen. */
+/**
+ * Sprache und Interaktion in eine gemeinsame, sortierte Timeline mischen.
+ * Sprache, die sich einem Event zuordnen liess, haengt schon an dessen
+ * `spokenContext` (siehe correlate.ts) und wird hier nicht nochmal einzeln
+ * aufgefuehrt - nur was uebrig bleibt (Pausen, freies Nachdenken) wird als
+ * eigene Zeile eingemischt.
+ */
 function buildTimeline(session: QaSession): TimelineItem[] {
-  const items: TimelineItem[] = session.events
+  const { events, unmatched } = correlate(session);
+
+  const items: TimelineItem[] = events
     .filter((event) => !(event.type === "hover" && event.detail?.phase === "end" && Number(event.detail?.durationMs ?? 0) < 1000))
     .map((event) => ({ t: event.t, kind: "event" as const, event }));
 
-  for (const segment of session.transcript) {
-    if (!segment.final || !segment.text.trim()) continue;
+  for (const segment of unmatched) {
     items.push({ t: segment.t, kind: "speech", text: segment.text.trim() });
   }
 
@@ -212,6 +220,9 @@ export function buildMarkdown(session: QaSession): string {
     lines.push(`- **[${formatTimecode(event.t)}]** ${eventHeadline(event)}`);
     if (event.target?.selector) {
       lines.push(`  - Selektor: \`${event.target.selector}\``);
+    }
+    if (event.spokenContext?.length) {
+      lines.push(`  - Gesagt: "${event.spokenContext.join(" ")}"`);
     }
     lines.push(...effectLines(event));
   }
@@ -266,7 +277,8 @@ export function buildMarkdown(session: QaSession): string {
 }
 
 export function buildJson(session: QaSession): string {
-  return JSON.stringify(session, null, 2);
+  const { events } = correlate(session);
+  return JSON.stringify({ ...session, events }, null, 2);
 }
 
 export function downloadFile(fileName: string, content: BlobPart, mimeType: string): void {

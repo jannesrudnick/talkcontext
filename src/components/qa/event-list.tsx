@@ -117,6 +117,11 @@ export function EventList({ events, autoScroll, onHighlight, emptyHint }: EventL
                 {event.effect?.alert && (
                   <span className="block truncate text-[10px] text-amber-500">→ {event.effect.alert}</span>
                 )}
+                {event.spokenContext?.length && (
+                  <span className="block truncate text-[10px] text-foreground/70 italic">
+                    &ldquo;{event.spokenContext.join(" ")}&rdquo;
+                  </span>
+                )}
               </span>
             </button>
           </li>

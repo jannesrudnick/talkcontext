@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
   Circle,
+  Cloud,
   Copy,
   Download,
   ExternalLink,
@@ -41,7 +42,10 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ElementInspector } from "@/components/qa/element-inspector";
 import { EventList } from "@/components/qa/event-list";
+import { correlate } from "@/lib/qa/correlate";
 import { useNarration } from "@/hooks/use-narration";
+import { useOpenAiKey } from "@/hooks/use-openai-key";
+import { OPENAI_WHISPER_USD_PER_MINUTE, useOpenAiTranscription } from "@/hooks/use-openai-transcription";
 import { useRecorder } from "@/hooks/use-recorder";
 import { WHISPER_MODELS, useTranscription } from "@/hooks/use-transcription";
 import {
@@ -68,6 +72,22 @@ const VIEWPORTS = [
 type ViewportId = (typeof VIEWPORTS)[number]["id"];
 
 const subscribeToNothing = () => () => {};
+
+const TARGET_QUERY = "url";
+
+/** Liest die persistierte Ziel-URL aus der Tool-Addressleiste. */
+function readTargetQuery(): string | null {
+  const raw = new URLSearchParams(window.location.search).get(TARGET_QUERY);
+  return raw ? normalizeTargetUrl(raw) : null;
+}
+
+/** Schreibt die Ziel-URL in `?url=` ohne History-Eintrag. */
+function persistTargetQuery(targetUrl: string) {
+  const next = new URL(window.location.href);
+  if (next.searchParams.get(TARGET_QUERY) === targetUrl) return;
+  next.searchParams.set(TARGET_QUERY, targetUrl);
+  window.history.replaceState(window.history.state, "", `${next.pathname}${next.search}${next.hash}`);
+}
 
 /** Origin erst nach dem Mount lesen - sonst weicht das Markup vom Server ab. */
 function useOrigin(): string {
@@ -103,18 +123,30 @@ export function QaStudio() {
   const [frameKey, setFrameKey] = useState(0);
   const [connectionHint, setConnectionHint] = useState(false);
   const [whisperModel, setWhisperModel] = useState<WhisperModelId>("onnx-community/whisper-base");
-  const [transcriptSource, setTranscriptSource] = useState<"webspeech" | "whisper" | "none">("none");
+  const [transcriptSource, setTranscriptSource] = useState<"webspeech" | "whisper" | "openai" | "none">("none");
 
   const origin = useOrigin();
   const recorder = useRecorder({ frameRef, mode });
   const narration = useNarration(language);
   const transcription = useTranscription();
+  const openaiKey = useOpenAiKey();
+  const openaiTranscription = useOpenAiTranscription();
   const recording = recorder.status === "recording";
 
   const iframeSrc = useMemo(() => {
     if (!loadedUrl) return null;
     return mode === "proxy" ? toProxyPath(loadedUrl) : loadedUrl;
   }, [loadedUrl, mode]);
+
+  const correlatedEvents = useMemo(
+    () =>
+      correlate({
+        events: recorder.events,
+        transcript: narration.transcript,
+        meta: { durationMs: recorder.elapsed },
+      }).events,
+    [recorder.events, narration.transcript, recorder.elapsed],
+  );
 
   const summary = useMemo(
     () =>
@@ -140,34 +172,49 @@ export function QaStudio() {
 
   /* --------------------------------------------------------------- Laden */
 
-  const load = useCallback(async () => {
-    const normalized = normalizeTargetUrl(urlInput);
-    if (!normalized) {
-      toast.error("Bitte eine gueltige URL eingeben, z.B. localhost:3000");
-      return;
-    }
-    setUrlInput(normalized);
-    setProbing(true);
-    setProbe(null);
-    try {
-      const response = await fetch(`/api/qa/probe?url=${encodeURIComponent(normalized)}`);
-      const result = (await response.json()) as ProbeResult;
-      setProbe(result);
-      if (!result.reachable) {
-        toast.error(`Ziel nicht erreichbar: ${result.error ?? "unbekannter Fehler"}`);
+  const loadTarget = useCallback(
+    async (raw: string) => {
+      const normalized = normalizeTargetUrl(raw);
+      if (!normalized) {
+        toast.error("Bitte eine gueltige URL eingeben, z.B. localhost:3000");
+        return;
       }
-    } catch {
-      setProbe({ reachable: false, error: "Probe fehlgeschlagen" });
-    } finally {
-      setProbing(false);
-    }
-    recorder.reset();
-    recorder.markFrameDisconnected();
-    setConnectionHint(false);
-    setLoadedUrl(normalized);
-    setFrameKey((key) => key + 1);
-    if (!title) setTitle(new URL(normalized).host);
-  }, [recorder, title, urlInput]);
+      setUrlInput(normalized);
+      persistTargetQuery(normalized);
+      setProbing(true);
+      setProbe(null);
+      try {
+        const response = await fetch(`/api/qa/probe?url=${encodeURIComponent(normalized)}`);
+        const result = (await response.json()) as ProbeResult;
+        setProbe(result);
+        if (!result.reachable) {
+          toast.error(`Ziel nicht erreichbar: ${result.error ?? "unbekannter Fehler"}`);
+        }
+      } catch {
+        setProbe({ reachable: false, error: "Probe fehlgeschlagen" });
+      } finally {
+        setProbing(false);
+      }
+      recorder.reset();
+      recorder.markFrameDisconnected();
+      setConnectionHint(false);
+      setLoadedUrl(normalized);
+      setFrameKey((key) => key + 1);
+      if (!title) setTitle(new URL(normalized).host);
+    },
+    [recorder, title],
+  );
+
+  const load = useCallback(() => loadTarget(urlInput), [loadTarget, urlInput]);
+
+  const loadTargetRef = useRef(loadTarget);
+  loadTargetRef.current = loadTarget;
+
+  useEffect(() => {
+    const fromQuery = readTargetQuery();
+    if (!fromQuery) return;
+    void loadTargetRef.current(fromQuery);
+  }, []);
 
   const reloadFrame = useCallback(() => {
     recorder.markFrameDisconnected();
@@ -234,6 +281,23 @@ export function QaStudio() {
     toast.success(`Transkript erzeugt - ${segments.length} Abschnitte`);
   }, [language, narration, transcription, whisperModel]);
 
+  const runOpenAiTranscription = useCallback(async () => {
+    if (!narration.audioBlob) return;
+    const key = openaiKey.key.trim();
+    if (!key) {
+      toast.error("Erst den OpenAI API-Key eintragen.");
+      return;
+    }
+    const segments = await openaiTranscription.transcribe(narration.audioBlob, key, language);
+    if (!segments) {
+      toast.error(openaiTranscription.error ?? "Transkription fehlgeschlagen");
+      return;
+    }
+    narration.replaceTranscript(segments);
+    setTranscriptSource("openai");
+    toast.success(`Transkript erzeugt - ${segments.length} Abschnitte`);
+  }, [language, narration, openaiKey.key, openaiTranscription]);
+
   /* ------------------------------------------------------------- Export */
 
   const buildSession = useCallback((): QaSession => {
@@ -257,7 +321,8 @@ export function QaStudio() {
         userAgent: typeof navigator === "undefined" ? "" : navigator.userAgent,
         language,
         transcriptSource,
-        transcriptModel: transcriptSource === "whisper" ? whisperModel : undefined,
+        transcriptModel:
+          transcriptSource === "whisper" ? whisperModel : transcriptSource === "openai" ? "whisper-1" : undefined,
       },
       events: recorder.events,
       cursor: recorder.cursor,
@@ -559,7 +624,7 @@ export function QaStudio() {
             <TabsContent value="timeline" className="min-h-0 flex-1">
               <ScrollArea className="h-full">
                 <EventList
-                  events={recorder.events}
+                  events={correlatedEvents}
                   autoScroll={recording}
                   onHighlight={recorder.highlight}
                   emptyHint={
@@ -648,6 +713,52 @@ export function QaStudio() {
                       <p className="text-[10px] text-emerald-500">
                         Transkript stammt aus Whisper ({whisperModel.split("/")[1]}).
                       </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 rounded-lg border bg-card p-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <Cloud className="size-3.5 text-sky-500" />
+                      <p className="text-xs font-medium">Mit OpenAI transkribieren</p>
+                    </div>
+                    <p className="text-[10px] leading-snug text-muted-foreground">
+                      Schickt die Tonspur einmalig an OpenAI (whisper-1), meist genauer als das lokale
+                      Modell. Der Key bleibt in deinem Browser gespeichert und geht nur fuer diesen
+                      einen Request durch unseren Server - wir legen ihn nirgends ab.
+                    </p>
+                    <Input
+                      type="password"
+                      value={openaiKey.key}
+                      onChange={(event) => openaiKey.setKey(event.target.value)}
+                      placeholder="sk-..."
+                      className="h-8 text-xs"
+                      autoComplete="off"
+                    />
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[10px] text-muted-foreground">
+                        ~{formatDuration(recorder.elapsed)} Audio ≈ $
+                        {((recorder.elapsed / 60000) * OPENAI_WHISPER_USD_PER_MINUTE).toFixed(3)}
+                      </p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => void runOpenAiTranscription()}
+                        disabled={!narration.audioBlob || openaiTranscription.running}
+                      >
+                        {openaiTranscription.running ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Cloud className="size-3.5" />
+                        )}
+                        Starten
+                      </Button>
+                    </div>
+                    {openaiTranscription.error && (
+                      <p className="text-[10px] text-red-500">{openaiTranscription.error}</p>
+                    )}
+                    {transcriptSource === "openai" && !openaiTranscription.running && (
+                      <p className="text-[10px] text-emerald-500">Transkript stammt aus OpenAI (whisper-1).</p>
                     )}
                   </div>
 

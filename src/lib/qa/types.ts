@@ -73,6 +73,8 @@ export interface QaEvent {
   target?: ElementRef;
   detail?: Record<string, unknown>;
   effect?: DomEffect;
+  /** Gesprochener Text aus dem Zeitfenster dieses Events - siehe correlate.ts. */
+  spokenContext?: string[];
 }
 
 /** Grob abgetastete Cursorbahn - fuer Replay, haelt den Event-Log semantisch. */
@@ -101,8 +103,8 @@ export interface QaSessionMeta {
   userAgent: string;
   language: string;
   /** Woher das Transkript stammt. */
-  transcriptSource?: "webspeech" | "whisper" | "none";
-  /** Modell, falls lokal mit Whisper transkribiert wurde. */
+  transcriptSource?: "webspeech" | "whisper" | "openai" | "none";
+  /** Modell, falls lokal mit Whisper oder ueber OpenAI transkribiert wurde. */
   transcriptModel?: string;
 }
 
