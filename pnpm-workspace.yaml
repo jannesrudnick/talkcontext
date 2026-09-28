@@ -1,5 +1,10 @@
+packages:
+  - extension
+
 allowBuilds:
   onnxruntime-node: true
   protobufjs: true
   sharp: true
   unrs-resolver: true
+  esbuild: true
+  spawn-sync: true

@@ -6,7 +6,7 @@
  * was geklickt wurde und was der Nutzer dabei gesagt hat.
  */
 
-export type QaMode = "proxy" | "bridge";
+export type QaMode = "proxy" | "bridge" | "extension";
 
 /** Beschreibung eines DOM-Elements, robust genug zum Wiederfinden durch einen Agenten. */
 export interface ElementRef {
@@ -106,6 +106,13 @@ export interface QaSessionMeta {
   transcriptSource?: "webspeech" | "whisper" | "openai" | "none";
   /** Modell, falls lokal mit Whisper oder ueber OpenAI transkribiert wurde. */
   transcriptModel?: string;
+  /** Umgebung (z.B. "Staging"), in der aufgenommen wurde - nur Extension. */
+  environment?: {
+    name: string;
+    notes?: string;
+    /** Geheime Werte sind hier bereits maskiert. */
+    variables?: Array<{ key: string; value: string }>;
+  };
 }
 
 export interface QaSession {

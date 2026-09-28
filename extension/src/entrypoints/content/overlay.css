@@ -1,0 +1,79 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "../../assets/shadcn.css";
+@import "../../assets/theme.css";
+
+/*
+ * Das Overlay lebt in einem Shadow Root auf fremden Seiten:
+ *  - rem-Werte haengen an der font-size der Seite -> hier alles in px.
+ *  - @font-face greift im Shadow DOM nicht -> Systemschrift.
+ */
+@theme {
+  --spacing: 4px;
+  --text-xs: 11px;
+  --text-xs--line-height: 16px;
+  --text-sm: 13px;
+  --text-sm--line-height: 18px;
+  --text-base: 14px;
+  --text-base--line-height: 20px;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:host {
+  --radius: 10px;
+}
+
+@layer base {
+  /*
+   * Tailwind v4 initialisiert --tw-* ueber @property - das wird in Shadow
+   * Roots ignoriert. Ohne diese Defaults fehlen Schatten, Ringe und Transforms.
+   */
+  *,
+  ::before,
+  ::after,
+  ::backdrop {
+    --tw-border-style: solid;
+    --tw-shadow: 0 0 #0000;
+    --tw-shadow-alpha: 100%;
+    --tw-inset-shadow: 0 0 #0000;
+    --tw-inset-shadow-alpha: 100%;
+    --tw-ring-shadow: 0 0 #0000;
+    --tw-inset-ring-shadow: 0 0 #0000;
+    --tw-ring-offset-width: 0px;
+    --tw-ring-offset-color: #fff;
+    --tw-ring-offset-shadow: 0 0 #0000;
+    --tw-translate-x: 0;
+    --tw-translate-y: 0;
+    --tw-translate-z: 0;
+    --tw-scale-x: 1;
+    --tw-scale-y: 1;
+    --tw-scale-z: 1;
+    --tw-space-x-reverse: 0;
+    --tw-space-y-reverse: 0;
+    --tw-outline-style: solid;
+  }
+  .qey-root {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+    color: var(--foreground);
+  }
+}
+
+@keyframes qey-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.8);
+  }
+}
+
+.qey-pulse {
+  animation: qey-pulse 1.4s ease-in-out infinite;
+}

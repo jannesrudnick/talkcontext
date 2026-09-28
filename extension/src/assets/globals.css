@@ -1,0 +1,32 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./shadcn.css";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+@import "./theme.css";
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans antialiased;
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/*
+ * Chrome injiziert in Extension-Seiten eigene Schrift-Defaults (ohne Layer) -
+ * die schlagen alles in @layer base. Deshalb hier bewusst ungelayert.
+ */
+html,
+body {
+  font-family: var(--font-sans);
+  font-size: 16px;
+}

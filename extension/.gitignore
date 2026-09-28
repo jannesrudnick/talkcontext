@@ -1,0 +1,7 @@
+node_modules
+.output
+.wxt
+stats.html
+web-ext.config.ts
+# Lokal kopierte ONNX-Runtime (siehe scripts/copy-ort-runtime.mjs)
+public/ort/
