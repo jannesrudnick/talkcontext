@@ -18,6 +18,10 @@ Ein Agent muss also keine Screenshots interpretieren. Er liest Selektoren.
 
 Ein vollständiges Beispiel liegt in [`docs/beispiel-aufnahme.md`](docs/beispiel-aufnahme.md).
 
+> **Neu: Browser-Extension.** Unter [`extension/`](extension/README.md) liegt qey als
+> Chrome-Extension – Overlay direkt über der Anwendung, ohne Proxy oder Skript im Zielprojekt,
+> mit Session-Replay (rrweb), Konsole, Netzwerk und Einstellungen für Umgebungen.
+
 ## Starten
 
 ```bash

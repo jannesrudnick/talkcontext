@@ -108,9 +108,10 @@ export function eventHeadline(event: QaEvent): string {
         ? `SCROLL Seite auf ${String(detail.percent ?? 0)}%`
         : `SCROLL in ${target} auf ${String(detail.top ?? 0)}px`;
     case "navigate":
-      return detail.kind === "start"
-        ? `START auf ${String(detail.to ?? "")}`
-        : `NAVIGATION ${String(detail.from ?? "")} -> ${String(detail.to ?? "")}`;
+      if (detail.kind === "start") return `START auf ${String(detail.to ?? "")}`;
+      // Die Extension meldet jeden vollstaendigen Seitenaufruf mit kind "load".
+      if (detail.kind === "load") return `SEITE GELADEN ${String(detail.to ?? "")}`;
+      return `NAVIGATION ${String(detail.from ?? "")} -> ${String(detail.to ?? "")}`;
     case "resize":
       return `VIEWPORT ${String(detail.width ?? "")}x${String(detail.height ?? "")}`;
     case "select":
@@ -192,13 +193,28 @@ export function buildMarkdown(session: QaSession): string {
   lines.push(`- Dauer: ${formatDuration(session.meta.durationMs)}`);
   lines.push(`- Viewport: ${session.meta.viewport.width}x${session.meta.viewport.height} @${session.meta.viewport.dpr}x`);
   lines.push(`- Aufnahmemodus: ${session.meta.mode}`);
+  if (session.meta.environment) lines.push(`- Umgebung: ${session.meta.environment.name}`);
   lines.push(
     `- Umfang: ${summary.clicks} Klicks, ${summary.hovers} Hovers, ${summary.inputs} Eingaben, ` +
       `${summary.navigations} Navigationen, ${summary.errors} Fehler, ${summary.notes} Notizen`,
   );
   lines.push("");
 
-  const notes = session.events.filter((event) => event.type === "note");
+  const environment = session.meta.environment;
+  if (environment && (environment.notes || environment.variables?.length)) {
+    lines.push(`## Umgebung: ${environment.name}`);
+    lines.push("");
+    if (environment.notes) {
+      lines.push(environment.notes);
+      lines.push("");
+    }
+    for (const variable of environment.variables ?? []) {
+      lines.push(`- \`${variable.key}\` = \`${variable.value}\``);
+    }
+    if (environment.variables?.length) lines.push("");
+  }
+
+  const notes = session.events.filter((event) => event.type === "note" || event.type === "marker");
   if (notes.length) {
     lines.push("## Markierte Befunde");
     lines.push("");
