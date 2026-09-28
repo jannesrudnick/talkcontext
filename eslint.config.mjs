@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     "public/qa-recorder.js",
     // Aus node_modules kopierte ONNX-Runtime, siehe scripts/copy-ort-runtime.mjs.
     "public/ort/**",
+    // Eigenes Paket mit eigenem Build (WXT), siehe extension/README.md.
+    "extension/**",
   ]),
 ]);
 
