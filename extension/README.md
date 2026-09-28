@@ -17,6 +17,8 @@ Toolbar-Symbol / Alt+Shift+Q  →  Overlay  →  Aufnahme starten  →  durchkli
 
 ## Entwicklung
 
+Voraussetzung: **Node ≥ 22** (WXT nutzt `util.parseEnv`), siehe `.nvmrc` – z.B. `nvm use` oder `fnm use`.
+
 ```bash
 pnpm install            # im Repo-Root oder hier – das Paket ist Teil des pnpm-Workspaces
 pnpm --filter qey-extension dev     # startet Chrome mit geladener Extension (HMR)
