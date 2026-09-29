@@ -34,6 +34,17 @@ export interface TimelineMarker {
   label: string;
 }
 
+/** Stift-Markierung, sichtbar im Replay-Zeitfenster [start, end]. */
+export interface ReplayStroke {
+  id: string;
+  start: number;
+  end: number;
+  color: string;
+  width: number;
+  points: Array<[number, number]>;
+  viewport: { width: number; height: number };
+}
+
 export interface PlayerHandle {
   seek(ms: number, options?: { play?: boolean }): void;
 }
@@ -46,6 +57,7 @@ interface PlayerProps {
   /** Replay-Zeit, zu der die Tonspur beginnt. */
   audioOffsetMs: number;
   highlightSelector: string | null;
+  strokes?: ReplayStroke[];
   onTime: (ms: number) => void;
 }
 
@@ -60,7 +72,7 @@ const MARKER_COLORS: Record<TimelineMarker["kind"], string> = {
 };
 
 export const ReplayPlayer = forwardRef<PlayerHandle, PlayerProps>(function ReplayPlayer(
-  { events, durationMs, markers, audioUrl, audioOffsetMs, highlightSelector, onTime },
+  { events, durationMs, markers, audioUrl, audioOffsetMs, highlightSelector, strokes = [], onTime },
   ref,
 ) {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -91,6 +103,12 @@ export const ReplayPlayer = forwardRef<PlayerHandle, PlayerProps>(function Repla
       mouseTail: { strokeStyle: "rgba(124, 92, 255, 0.55)", lineWidth: 2, duration: 600 },
       speed: 1,
       triggerFocus: false,
+      // Chrome injiziert in Extension-Seiten (auch in das Replay-iframe)
+      // `body { font-family: system-ui; font-size: 75% }`. Ohne Reset waere das
+      // Replay kleiner als das Original und Stift-Markierungen laegen daneben.
+      // rrweb setzt diese Regel vor die Styles der Seite - deren eigene
+      // body-Regeln gewinnen also weiterhin.
+      insertStyleRules: ["body { font-size: medium; font-family: initial; }"],
     });
     replayerRef.current = replayer;
     replayer.on("resize", (payload) => {
@@ -280,6 +298,26 @@ export const ReplayPlayer = forwardRef<PlayerHandle, PlayerProps>(function Repla
               className="qey-replay absolute top-0 left-0 origin-top-left"
               style={{ transform: `scale(${scale})`, width: viewport?.width, height: viewport?.height }}
             />
+            {viewport &&
+              strokes
+                .filter((stroke) => time >= stroke.start && time <= stroke.end)
+                .map((stroke) => (
+                  <svg
+                    key={stroke.id}
+                    className="pointer-events-none absolute inset-0 z-10 size-full"
+                    viewBox={`0 0 ${stroke.viewport.width} ${stroke.viewport.height}`}
+                    preserveAspectRatio="xMinYMin meet"
+                  >
+                    <path
+                      d={stroke.points.map(([x, y], i) => `${i ? "L" : "M"}${x} ${y}`).join(" ")}
+                      fill="none"
+                      stroke={stroke.color}
+                      strokeWidth={stroke.width}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                ))}
             {box && (
               <div
                 className="pointer-events-none absolute z-10 rounded-[3px] border-2 border-brand bg-brand/10 shadow-[0_0_0_4px_color-mix(in_oklch,var(--brand)_20%,transparent)] transition-all"

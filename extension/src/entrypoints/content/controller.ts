@@ -7,15 +7,19 @@
 import { record } from "rrweb";
 import { injectScript } from "#imports";
 import {
+  COMPONENT_PROBE_EVENT,
   MAIN_WORLD_SOURCE,
   RECORDER_PORT,
+  type LiveTextEvent,
   type MainWorldMessage,
   type PortDownMessage,
   type PortUpMessage,
 } from "@/lib/messages";
 import { startSemanticRecorder, type SemanticRecorder } from "@/lib/recorder/semantic";
-import { describe } from "@/lib/recorder/describe";
-import type { ChunkKind, ChunkPayloads, Settings } from "@/lib/types";
+import { describe, meaningful } from "@/lib/recorder/describe";
+import { newId } from "@/lib/settings";
+import type { ChunkKind, ChunkPayloads, ComponentInfo, FeedbackItem, Settings } from "@/lib/types";
+import { FeedbackManager } from "./feedback";
 import type { ElementRef } from "@shared/types";
 
 /** Alles, was zum Overlay gehoert, taucht weder im Replay noch im Protokoll auf. */
@@ -43,6 +47,10 @@ const emptyBuffers = (): Buffers => ({
   console: [],
   network: [],
   audio: [],
+  feedback: [],
+  strokes: [],
+  screenshots: [],
+  live: [],
 });
 
 export interface TargetInfo {
@@ -61,6 +69,11 @@ export class RecordingController {
   private running = false;
   private lastTarget: Element | null = null;
   private targetListeners = new Set<(target: TargetInfo | null) => void>();
+  private settings: Settings | null = null;
+  private componentRequests = new Map<string, (info: ComponentInfo | null) => void>();
+  private lastErrorShot = 0;
+  private cleanups: Array<() => void> = [];
+  feedback: FeedbackManager | null = null;
 
   get isRunning() {
     return this.running;
@@ -79,6 +92,7 @@ export class RecordingController {
   start(settings: Settings) {
     if (this.running) return;
     this.running = true;
+    this.settings = settings;
     this.injectMainWorld();
     this.connect();
 
@@ -104,13 +118,110 @@ export class RecordingController {
       isOwn: isOverlayNode,
     });
 
+    this.feedback = new FeedbackManager({
+      save: (item) => {
+        this.push("feedback", item);
+        this.flush();
+      },
+      saveStrokes: (strokes) => {
+        for (const stroke of strokes) this.push("strokes", stroke);
+      },
+      logNote: (item) => this.logFeedback(item),
+      probeComponent: (el) => this.probeComponent(el),
+      captureHtml: settings.recorder.captureHtml,
+      isOwn: isOverlayNode,
+    });
+    this.feedback.setPenColor(settings.feedback.penColor);
+    this.listenForFeedback(settings);
+
     this.send({ type: "page", url: location.href, title: document.title });
     this.flushTimer = window.setInterval(() => this.flush(), 1000);
     window.addEventListener("pagehide", this.onPageHide);
   }
 
+  /* ------------------------------------------------------------- Feedback */
+
+  private listenForFeedback(settings: Settings) {
+    const onContextMenu = (event: MouseEvent) => {
+      // Alt+Rechtsklick laesst das normale Kontextmenue durch.
+      if (!settings.feedback.contextMenu || event.altKey) return;
+      const target = event.composedPath()[0] ?? event.target;
+      if (isOverlayNode(target as Node) || !(event.target instanceof Element)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      void this.feedback?.begin(meaningful(event.target), "contextmenu");
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      const editable = target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
+      if (editable) return;
+      if (event.key === "Escape") {
+        if (this.feedback?.active) this.feedback.close();
+        this.feedback?.togglePen(false);
+      }
+    };
+    document.addEventListener("contextmenu", onContextMenu, true);
+    window.addEventListener("keydown", onKeyDown, true);
+    this.cleanups.push(() => {
+      document.removeEventListener("contextmenu", onContextMenu, true);
+      window.removeEventListener("keydown", onKeyDown, true);
+    });
+  }
+
+  /** Neuen Feedback-Punkt am zuletzt anvisierten Element (Notiz- und Bug-Button). */
+  beginAtCurrentTarget(source: "note" | "marker") {
+    const el = this.lastTarget?.isConnected ? this.lastTarget : null;
+    return this.feedback?.begin(el, source, { text: source === "marker" ? "Bug" : "" });
+  }
+
+  onLive(event: LiveTextEvent) {
+    this.feedback?.onLive(event);
+  }
+
+  private logFeedback(item: FeedbackItem) {
+    const said = item.speech.join(" ");
+    const text = [item.text, said].filter(Boolean).join(" – ");
+    this.push("events", {
+      id: newId("e"),
+      ts: item.activeTo ?? Date.now(),
+      type: item.source === "marker" ? "marker" : "note",
+      url: item.url,
+      target: item.target,
+      detail: { text: `F${item.index}${text ? `: ${text}` : ""}`, feedbackId: item.id },
+    });
+  }
+
+  private probeComponent(el: Element): Promise<ComponentInfo | null> {
+    const requestId = newId("probe_");
+    return new Promise((resolve) => {
+      const timer = window.setTimeout(() => {
+        this.componentRequests.delete(requestId);
+        resolve(null);
+      }, 400);
+      this.componentRequests.set(requestId, (info) => {
+        window.clearTimeout(timer);
+        this.componentRequests.delete(requestId);
+        resolve(info);
+      });
+      el.dispatchEvent(new CustomEvent(COMPONENT_PROBE_EVENT, { detail: requestId, bubbles: false }));
+    });
+  }
+
+  private maybeErrorScreenshot() {
+    if (!this.settings?.feedback.screenshotOnError || !this.feedback) return;
+    if (Date.now() - this.lastErrorShot < 4000) return;
+    this.lastErrorShot = Date.now();
+    // Der Fehler wird oft erst kurz danach sichtbar (Toast, Meldung).
+    window.setTimeout(() => void this.feedback?.screenshot("error"), 500);
+  }
+
   stop() {
     if (!this.running) return;
+    this.feedback?.finish();
+    this.feedback?.togglePen(false);
+    this.feedback = null;
+    for (const cleanup of this.cleanups.splice(0)) cleanup();
     this.running = false;
     this.stopRrweb?.();
     this.semantic?.stop();
@@ -151,15 +262,23 @@ export class RecordingController {
     for (const listener of this.targetListeners) listener(info);
   }
 
-  private onPageHide = () => this.flush();
+  private onPageHide = () => {
+    this.feedback?.finish();
+    this.flush();
+  };
 
   private onMainWorldMessage = (event: MessageEvent) => {
     if (event.source !== window || !this.running) return;
     const data = event.data as MainWorldMessage | undefined;
     if (!data || data.source !== MAIN_WORLD_SOURCE) return;
+    if (data.type === "component") {
+      this.componentRequests.get(data.requestId)?.(data.info);
+      return;
+    }
     if (data.type === "console") {
       this.push("console", data.entry);
       if (data.entry.level === "error") {
+        this.maybeErrorScreenshot();
         this.push("events", {
           id: data.entry.id,
           ts: data.entry.ts,
@@ -172,6 +291,7 @@ export class RecordingController {
       this.push("network", data.entry);
       const failed = data.entry.status === 0 || data.entry.status >= 400;
       if (failed) {
+        this.maybeErrorScreenshot();
         this.push("events", {
           id: data.entry.id,
           ts: data.entry.ts,
@@ -208,6 +328,7 @@ export class RecordingController {
     }
     this.port.onMessage.addListener((message: PortDownMessage) => {
       if (message.type === "flush") {
+        this.feedback?.finish();
         this.flush();
         this.send({ type: "flushed", token: message.token });
       }
