@@ -8,7 +8,9 @@ import {
   GlobeIcon,
   Loader2Icon,
   MusicIcon,
+  PackageIcon,
   PlayCircleIcon,
+  SendIcon,
   Trash2Icon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -43,10 +45,15 @@ import { ActivityPanel } from "./activity-panel";
 import { ConsolePanel } from "./console-panel";
 import { ElementInspector } from "./element-inspector";
 import { eventMeta } from "./event-meta";
-import { exportAudio, exportJson, exportMarkdown, exportReplay, recordingMarkdown } from "./export";
-import { correlated, loadRecording, transcriptInReplayTime, type LoadedRecording } from "./load";
+import { downloadFile, sessionFileBase } from "@shared/export";
+import { buildHandoff } from "@/lib/handoff/build";
+import { sendHandoff, zipHandoff } from "@/lib/handoff/transport";
+import { formatRelative } from "@/lib/format";
+import { exportAudio, exportJson, exportMarkdown, exportReplay } from "./export";
+import { FeedbackPanel } from "./feedback-panel";
+import { correlated, loadRecording, toQaSession, transcriptInReplayTime, type LoadedRecording } from "./load";
 import { NetworkPanel } from "./network-panel";
-import { ReplayPlayer, type PlayerHandle, type TimelineMarker } from "./player";
+import { ReplayPlayer, type PlayerHandle, type ReplayStroke, type TimelineMarker } from "./player";
 import { TranscriptPanel, type TranscriptionChoice } from "./transcript-panel";
 
 export function RecordingDetailPage({ id }: { id: string }) {
@@ -92,7 +99,11 @@ function RecordingView({
   const playerRef = useRef<PlayerHandle>(null);
   const [time, setTime] = useState(0);
   const [selected, setSelected] = useState<QaEvent | null>(null);
-  const [tab, setTab] = useState("activity");
+  const [selectedFeedback, setSelectedFeedback] = useState<string | null>(null);
+  const [highlight, setHighlight] = useState<string | null>(null);
+  const [tab, setTab] = useState(recording.feedback.length || recording.screenshots.length ? "feedback" : "activity");
+  const [sending, setSending] = useState(false);
+  const autoSent = useRef(false);
   const [transcribing, setTranscribing] = useState(false);
   const [progress, setProgress] = useState<TranscriptionProgress | null>(null);
   const [transcriptError, setTranscriptError] = useState<string | null>(null);
@@ -121,8 +132,21 @@ function RecordingView({
       else if (event.type === "navigate") list.push({ t: event.t, kind: "navigate", label: eventMeta(event).label });
     }
     for (const segment of transcript) list.push({ t: segment.t, kind: "speech", label: segment.text });
+    for (const item of recording.feedback) {
+      list.push({ t: Math.max(0, item.activeFrom - recording.base), kind: "note", label: `F${item.index}` });
+    }
     return list;
-  }, [recording.events, transcript]);
+  }, [recording.events, recording.feedback, recording.base, transcript]);
+
+  const strokes = useMemo<ReplayStroke[]>(
+    () =>
+      recording.strokes.map((stroke) => {
+        const item = recording.feedback.find((entry) => entry.id === stroke.feedbackId);
+        const end = Math.max((item?.activeTo ?? stroke.ts) + 1500, stroke.ts + 4000);
+        return { ...stroke, start: stroke.ts - recording.base, end: end - recording.base };
+      }),
+    [recording.strokes, recording.feedback, recording.base],
+  );
 
   const currentUrl = useMemo(() => {
     let url = meta.initialUrl;
@@ -184,9 +208,51 @@ function RecordingView({
   };
 
   const copyMarkdown = async () => {
-    await navigator.clipboard.writeText(recordingMarkdown(recording));
-    toast.success("Markdown kopiert", { description: "Direkt in den Prompt deines Coding-Agenten einfügen." });
+    const handoff = await buildHandoff(recording);
+    await navigator.clipboard.writeText(handoff.markdown);
+    toast.success("Markdown kopiert", {
+      description: "Screenshots sind nur im Paket bzw. über „An Claude senden“ enthalten.",
+    });
   };
+
+  const downloadPackage = async () => {
+    const handoff = await buildHandoff(recording);
+    downloadFile(`${sessionFileBase(toQaSession(recording))}.zip`, zipHandoff(handoff), "application/zip");
+  };
+
+  const send = useCallback(
+    async ({ silent = false } = {}) => {
+      setSending(true);
+      try {
+        const handoff = await buildHandoff(recording);
+        const result = await sendHandoff(settings.handoff.endpoint, handoff);
+        const next = await updateRecording(meta.id, (current) => ({ ...current, sentAt: Date.now() }));
+        if (next) onChange({ ...recording, meta: next });
+        toast.success("An Claude Code gesendet", {
+          description: `In Claude Code: „Fix das qey-Feedback“ – ${handoff.manifest.items.length} Punkte${result.path ? ` · ${result.path}` : ""}`,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (silent) toast.info("Nicht automatisch gesendet", { description: message });
+        else toast.error("Senden fehlgeschlagen", { description: message });
+      } finally {
+        setSending(false);
+      }
+    },
+    [meta.id, onChange, recording, settings.handoff.endpoint],
+  );
+
+  // Frische Aufnahme: nach der Transkription automatisch an Claude Code schicken.
+  useEffect(() => {
+    if (!settingsLoaded || autoSent.current || !settings.handoff.autoSend || meta.sentAt || transcribing) return;
+    const fresh = meta.endedAt && Date.now() - meta.endedAt < 10 * 60_000;
+    if (!fresh) return;
+    const waitingForTranscript =
+      Boolean(recording.audio) && !meta.transcript && settings.transcription.auto && settings.transcription.engine !== "none" && !transcriptError;
+    if (waitingForTranscript) return;
+    autoSent.current = true;
+    void send({ silent: true });
+  }, [meta.endedAt, meta.sentAt, meta.transcript, recording.audio, send, settings, settingsLoaded, transcribing, transcriptError]);
 
   const errorCount = recording.console.filter((entry) => entry.level === "error").length;
   const failedRequests = recording.network.filter((entry) => entry.status === 0 || entry.status >= 400).length;
@@ -228,17 +294,26 @@ function RecordingView({
         </div>
         <Button variant="outline" onClick={() => void copyMarkdown()}>
           <ClipboardCopyIcon />
-          Für Agent kopieren
+          Kopieren
+        </Button>
+        <Button onClick={() => void send()} disabled={sending} title={meta.sentAt ? `Zuletzt gesendet ${formatRelative(meta.sentAt)}` : undefined}>
+          {sending ? <Loader2Icon className="animate-spin" /> : <SendIcon />}
+          {meta.sentAt ? "Erneut an Claude" : "An Claude senden"}
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button variant="outline" />}>
             Export
             <ChevronDownIcon />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-60">
+            <DropdownMenuItem onClick={() => void downloadPackage()}>
+              <PackageIcon />
+              Handoff-Paket (.zip)
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => exportMarkdown(recording)}>
               <FileTextIcon />
-              Markdown (.md)
+              Timeline-Markdown (.md)
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => exportJson(recording)}>
               <FileJsonIcon />
@@ -298,23 +373,28 @@ function RecordingView({
               markers={markers}
               audioUrl={audioUrl}
               audioOffsetMs={meta.audio ? meta.audio.startedAt - recording.base : 0}
-              highlightSelector={selected?.target?.selector ?? null}
+              highlightSelector={highlight}
+              strokes={strokes}
               onTime={setTime}
             />
           </div>
         </section>
 
-        <aside className="flex w-[420px] shrink-0 flex-col border-l">
+        <aside className="flex w-[440px] min-w-0 shrink-0 flex-col border-l">
           <Tabs value={tab} onValueChange={(value) => setTab(String(value))} className="flex min-h-0 flex-1 flex-col gap-0">
             <div className="border-b px-3 pt-3 pb-2">
-              <TabsList className="w-full">
+              <TabsList className="w-full *:data-[slot=tabs-trigger]:px-1.5 *:data-[slot=tabs-trigger]:text-[13px]">
+                <TabsTrigger value="feedback">
+                  Feedback
+                  {recording.feedback.length > 0 && <CountBadge tone="brand">{recording.feedback.length}</CountBadge>}
+                </TabsTrigger>
                 <TabsTrigger value="activity">Aktivität</TabsTrigger>
                 <TabsTrigger value="console">
                   Konsole
                   {errorCount > 0 && <CountBadge tone="error">{errorCount}</CountBadge>}
                 </TabsTrigger>
                 <TabsTrigger value="network">
-                  Netzwerk
+                  Netz
                   {failedRequests > 0 && <CountBadge tone="error">{failedRequests}</CountBadge>}
                 </TabsTrigger>
                 <TabsTrigger value="transcript">
@@ -323,6 +403,18 @@ function RecordingView({
                 </TabsTrigger>
               </TabsList>
             </div>
+            <TabsContent value="feedback" className="min-h-0 flex-1">
+              <FeedbackPanel
+                recording={recording}
+                time={time}
+                selectedId={selectedFeedback}
+                onSelect={(item) => {
+                  setSelectedFeedback(item.id);
+                  setHighlight(item.target?.selector ?? null);
+                  seek(Math.max(0, item.activeFrom - recording.base - 300));
+                }}
+              />
+            </TabsContent>
             <TabsContent value="activity" className="min-h-0 flex-1">
               <ActivityPanel
                 events={events}
@@ -331,6 +423,7 @@ function RecordingView({
                 selectedId={selected?.id ?? null}
                 onSelect={(item) => {
                   setSelected(item.event ?? null);
+                  setHighlight(item.event?.target?.selector ?? null);
                   seek(Math.max(0, item.t - 300));
                 }}
               />
@@ -363,13 +456,13 @@ function RecordingView({
   );
 }
 
-function CountBadge({ children, tone }: { children: React.ReactNode; tone: "error" }) {
+function CountBadge({ children, tone }: { children: React.ReactNode; tone: "error" | "brand" }) {
   return (
     <span
       className={
         tone === "error"
           ? "rounded-full bg-destructive/15 px-1.5 text-[10px] font-semibold text-destructive tabular-nums"
-          : ""
+          : "rounded-full bg-brand/15 px-1.5 text-[10px] font-semibold text-brand tabular-nums"
       }
     >
       {children}

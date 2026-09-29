@@ -20,7 +20,8 @@ Ein vollständiges Beispiel liegt in [`docs/beispiel-aufnahme.md`](docs/beispiel
 
 > **Neu: Browser-Extension.** Unter [`extension/`](extension/README.md) liegt qey als
 > Chrome-Extension – Overlay direkt über der Anwendung, ohne Proxy oder Skript im Zielprojekt,
-> mit Session-Replay (rrweb), Konsole, Netzwerk und Einstellungen für Umgebungen.
+> mit Session-Replay (rrweb), Feedback-Punkten per Rechtsklick/Stift, Screenshots,
+> Live-Transkript und Handoff an Claude Code über den [qey-MCP-Server](mcp/README.md).
 
 ## Starten
 

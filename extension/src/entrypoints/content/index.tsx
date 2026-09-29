@@ -66,6 +66,9 @@ export default defineContentScript({
         case "qey:saved":
           overlayStore.setState({ savedId: message.recordingId });
           break;
+        case "qey:live":
+          controller.onLive(message.event);
+          break;
       }
       return undefined;
     });

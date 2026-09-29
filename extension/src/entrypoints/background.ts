@@ -7,7 +7,7 @@
  * Worker kann jederzeit beendet und neu gestartet werden.
  */
 import { storage } from "#imports";
-import { appendChunk, putRecording, readTrack, updateRecording, deleteRecording } from "@/lib/db";
+import { appendChunk, deleteRecording, putRecording, readLatestById, readTrack, updateRecording } from "@/lib/db";
 import {
   RECORDER_PORT,
   type ContentRequest,
@@ -18,7 +18,7 @@ import {
   type TabMessage,
 } from "@/lib/messages";
 import { findEnvironment, getSettings, newId } from "@/lib/settings";
-import type { ActiveRecording, EnvironmentSnapshot, RecordingMeta, TabState } from "@/lib/types";
+import type { ActiveRecording, EnvironmentSnapshot, RecordingMeta, Screenshot, TabState } from "@/lib/types";
 
 const activeItem = storage.defineItem<ActiveRecording | null>("session:active", { fallback: null });
 const overlayItem = storage.defineItem<Record<string, boolean>>("session:overlay", { fallback: {} });
@@ -158,18 +158,29 @@ export default defineBackground(() => {
     };
     await putRecording(meta);
 
+    const liveConfig =
+      settings.audio.enabled && settings.transcription.live && settings.transcription.openaiKey.trim()
+        ? {
+            apiKey: settings.transcription.openaiKey.trim(),
+            model: settings.transcription.liveModel,
+            language: settings.language,
+          }
+        : null;
+
     const active: ActiveRecording = {
       recordingId,
       tabId: tab.id,
       startedAt,
       audio: settings.audio.enabled ? "starting" : "off",
+      live: liveConfig ? "connecting" : "off",
+      nextFeedbackIndex: 1,
     };
     await activeItem.setValue(active);
 
     if (settings.audio.enabled) {
       try {
         await ensureOffscreen();
-        const request: OffscreenRequest = { target: "offscreen", type: "start-audio", recordingId };
+        const request: OffscreenRequest = { target: "offscreen", type: "start-audio", recordingId, live: liveConfig };
         // Das frisch erzeugte Dokument registriert seinen Listener evtl. erst einen Tick spaeter.
         for (let attempt = 0; ; attempt++) {
           try {
@@ -210,7 +221,7 @@ export default defineBackground(() => {
   async function stopAudio(recordingId: string, audioState: ActiveRecording["audio"]) {
     if (audioState !== "on" && audioState !== "starting") return;
     const stopped = await new Promise<Extract<OffscreenEvent, { type: "qey:audio-stopped" }> | null>((resolve) => {
-      const timer = setTimeout(() => resolve(null), 4000);
+      const timer = setTimeout(() => resolve(null), 7000);
       pendingAudioStop = (event) => {
         clearTimeout(timer);
         resolve(event);
@@ -228,19 +239,87 @@ export default defineBackground(() => {
     await closeOffscreen();
   }
 
+  /* ------------------------------------------------------- Screenshots */
+
+  // Chrome erlaubt nur ~2 captureVisibleTab-Aufrufe pro Sekunde.
+  let lastCapture = 0;
+  let captureChain: Promise<unknown> = Promise.resolve();
+
+  function capture(
+    recordingId: string,
+    tab: Browser.tabs.Tab,
+    reason: Screenshot["reason"],
+    feedbackId?: string,
+  ): Promise<{ id: string; ts: number }> {
+    const run = async () => {
+      const wait = lastCapture + 600 - Date.now();
+      if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+      lastCapture = Date.now();
+      // captureVisibleTab fotografiert den aktiven Tab des Fensters - ist das
+      // nicht der Aufnahme-Tab, lieber gar kein Bild als ein falsches.
+      const current = await browser.tabs.get(tab.id!);
+      if (!current.active) throw new Error("Aufnahme-Tab ist nicht im Vordergrund");
+      const dataUrl = await browser.tabs.captureVisibleTab(current.windowId, { format: "jpeg", quality: 85 });
+      const blob = await (await fetch(dataUrl)).blob();
+      const bitmap = await createImageBitmap(blob);
+      const screenshot: Screenshot = {
+        id: newId("shot_"),
+        ts: lastCapture,
+        reason,
+        feedbackId,
+        url: tab.url ?? "",
+        width: bitmap.width,
+        height: bitmap.height,
+        blob,
+      };
+      bitmap.close();
+      await enqueue(() => appendChunk(recordingId, "screenshots", [screenshot]));
+      return { id: screenshot.id, ts: screenshot.ts };
+    };
+    const result = captureChain.then(run, run);
+    captureChain = result.catch(() => undefined);
+    return result;
+  }
+
   async function finalize(recordingId: string) {
-    const [events, consoleEntries, network] = await Promise.all([
+    const [events, consoleEntries, network, feedback, screenshots, live] = await Promise.all([
       readTrack(recordingId, "events"),
       readTrack(recordingId, "console"),
       readTrack(recordingId, "network"),
+      readLatestById(recordingId, "feedback"),
+      readTrack(recordingId, "screenshots"),
+      readTrack(recordingId, "live"),
     ]);
     const endedAt = Date.now();
+    const settings = await getSettings();
     await updateRecording(recordingId, (meta) => ({
       ...meta,
       status: "ready",
       endedAt,
       durationMs: endedAt - meta.startedAt,
+      // Das Live-Transkript ist bereits ein vollwertiges Transkript - dann
+      // muss nach dem Stoppen nichts mehr nachtranskribiert werden.
+      transcript:
+        meta.transcript ??
+        (live.length && meta.audio
+          ? {
+              source: "openai-live" as const,
+              model: settings.transcription.liveModel,
+              createdAt: endedAt,
+              segments: live
+                .filter((segment) => segment.text)
+                .sort((a, b) => a.start - b.start)
+                .map((segment) => ({
+                  t: Math.max(0, segment.start - meta.audio!.startedAt),
+                  endT: Math.max(0, segment.end - meta.audio!.startedAt),
+                  text: segment.text,
+                  final: true,
+                })),
+            }
+          : undefined),
       counts: {
+        feedback: feedback.filter((item) => !item.discarded).length,
+        screenshots: screenshots.length,
         events: events.length,
         clicks: events.filter((e) => e.type === "click" || e.type === "dblclick").length,
         notes: events.filter((e) => e.type === "note" || e.type === "marker").length,
@@ -384,7 +463,39 @@ export default defineBackground(() => {
           await openPage(request.page, request.recordingId);
           return true;
         }
+        case "qey:capture": {
+          const active = await activeItem.getValue();
+          if (!active || tab?.id !== active.tabId) throw new Error("Keine Aufnahme in diesem Tab");
+          const request = message as Extract<ContentRequest, { type: "qey:capture" }>;
+          return capture(active.recordingId, tab, request.reason, request.feedbackId);
+        }
+        case "qey:next-feedback-index": {
+          const active = await activeItem.getValue();
+          if (!active) return 1;
+          await activeItem.setValue({ ...active, nextFeedbackIndex: active.nextFeedbackIndex + 1 });
+          return active.nextFeedbackIndex;
+        }
         /* ---- Offscreen ---- */
+        case "qey:live-status": {
+          const event = message as Extract<OffscreenEvent, { type: "qey:live-status" }>;
+          const active = await activeItem.getValue();
+          if (active?.recordingId === event.recordingId) {
+            await activeItem.setValue({ ...active, live: event.state, liveError: event.error });
+            await pushState(active.tabId);
+          }
+          return true;
+        }
+        case "qey:live-text": {
+          const event = message as Extract<OffscreenEvent, { type: "qey:live-text" }>;
+          const active = await activeItem.getValue();
+          if (active?.recordingId !== event.recordingId) return true;
+          if (event.event.kind === "final" && event.event.text) {
+            const { itemId, text, start, end } = event.event;
+            void enqueue(() => appendChunk(event.recordingId, "live", [{ id: itemId, text, start, end }]));
+          }
+          await sendToTab(active.tabId, { type: "qey:live", event: event.event });
+          return true;
+        }
         case "qey:audio-started": {
           const event = message as Extract<OffscreenEvent, { type: "qey:audio-started" }>;
           await updateRecording(event.recordingId, (meta) => ({
