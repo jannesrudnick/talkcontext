@@ -15,7 +15,11 @@ export const DEFAULT_SETTINGS: Settings = {
     whisperModel: "onnx-community/whisper-base",
     openaiKey: "",
     auto: true,
+    live: true,
+    liveModel: "gpt-4o-transcribe",
   },
+  feedback: { contextMenu: true, screenshotOnError: true, penColor: "#ef4444" },
+  handoff: { endpoint: "http://127.0.0.1:4777", autoSend: true },
   openAfterStop: true,
   environments: [
     {
@@ -41,6 +45,8 @@ function withDefaults(value: Partial<Settings> | null | undefined): Settings {
     replay: { ...DEFAULT_SETTINGS.replay, ...v.replay },
     audio: { ...DEFAULT_SETTINGS.audio, ...v.audio },
     transcription: { ...DEFAULT_SETTINGS.transcription, ...v.transcription },
+    feedback: { ...DEFAULT_SETTINGS.feedback, ...v.feedback },
+    handoff: { ...DEFAULT_SETTINGS.handoff, ...v.handoff },
     environments: v.environments ?? DEFAULT_SETTINGS.environments,
   };
 }

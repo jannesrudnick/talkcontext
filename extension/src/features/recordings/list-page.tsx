@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangleIcon,
   AudioLinesIcon,
+  BotIcon,
   CircleDotIcon,
   ClockIcon,
   FlagIcon,
@@ -177,12 +178,13 @@ function RecordingRow({ recording }: { recording: RecordingMeta }) {
           <AlertTriangleIcon className="size-3.5" />
           {recording.counts.errors}
         </span>
-        {recording.counts.notes > 0 && (
-          <span className="flex items-center gap-1 text-warning" title="Notizen & Marker">
+        {(recording.counts.feedback ?? recording.counts.notes) > 0 && (
+          <span className="flex items-center gap-1 text-brand" title="Feedback-Punkte">
             <FlagIcon className="size-3.5" />
-            {recording.counts.notes}
+            {recording.counts.feedback ?? recording.counts.notes}
           </span>
         )}
+        {recording.sentAt && <BotIcon className="size-3.5 text-success" aria-label="An Claude gesendet" />}
         {recording.audio &&
           (recording.transcript ? (
             <AudioLinesIcon className="size-3.5 text-success" aria-label="Transkribiert" />
