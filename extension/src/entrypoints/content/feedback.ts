@@ -159,6 +159,8 @@ export class FeedbackManager {
   private pendingStrokes: Stroke[] = [];
   private lastClosed: FeedbackItem | null = null;
   private liveItemId = "";
+  /** Saetze ohne Punkt - werden beim naechsten Rechtsklick eingesammelt. */
+  private loose: Array<{ text: string; at: number }> = [];
 
   constructor(private deps: FeedbackDeps) {}
 
@@ -184,7 +186,7 @@ export class FeedbackManager {
       activeFrom: Date.now(),
       target: el ? describe(el, { captureHtml: this.deps.captureHtml }) : undefined,
       text: options.text ?? "",
-      speech: [],
+      speech: this.takeLoose(),
       screenshotIds: [],
       strokeIds: [],
     };
@@ -202,6 +204,13 @@ export class FeedbackManager {
     }
     if (options.screenshot !== false) void this.screenshot("feedback");
     return item;
+  }
+
+  /** Kuerzlich Gesagtes, das noch zu keinem Punkt gehoert (Reden, dann Rechtsklick). */
+  private takeLoose() {
+    const recent = this.loose.filter((entry) => Date.now() - entry.at < 10000).map((entry) => entry.text);
+    this.loose = [];
+    return recent;
   }
 
   close() {
@@ -262,6 +271,8 @@ export class FeedbackManager {
       this.lastClosed = { ...this.lastClosed, speech: [...this.lastClosed.speech, event.text] };
       this.deps.save(this.lastClosed);
     }
+
+    if (!target) this.loose.push({ text: event.text, at: Date.now() });
 
     const captions = [
       ...feedbackStore.getState().captions,

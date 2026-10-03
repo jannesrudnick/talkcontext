@@ -169,12 +169,6 @@ export class RecordingController {
     });
   }
 
-  /** Neuen Feedback-Punkt am zuletzt anvisierten Element (Notiz- und Bug-Button). */
-  beginAtCurrentTarget(source: "note" | "marker") {
-    const el = this.lastTarget?.isConnected ? this.lastTarget : null;
-    return this.feedback?.begin(el, source, { text: source === "marker" ? "Bug" : "" });
-  }
-
   onLive(event: LiveTextEvent) {
     this.feedback?.onLive(event);
   }

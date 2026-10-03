@@ -3,11 +3,9 @@ import {
   CameraIcon,
   CheckIcon,
   CrosshairIcon,
-  FlagIcon,
   GripVerticalIcon,
   ListVideoIcon,
   Loader2Icon,
-  MessageSquarePlusIcon,
   MicIcon,
   MicOffIcon,
   MousePointerClickIcon,
@@ -160,20 +158,8 @@ function RecordingControls({ controller }: { controller: RecordingController }) 
       <LiveBadge />
       {tab.environment && <EnvBadge name={tab.environment.name} color={tab.environment.color} />}
       <Divider />
-      <DockButton
-        title="Feedback zum Element (oder Rechtsklick auf das Element)"
-        onClick={() => void controller.beginAtCurrentTarget("note")}
-      >
-        <MessageSquarePlusIcon />
-      </DockButton>
-      <DockButton title="Bug markieren" onClick={() => void controller.beginAtCurrentTarget("marker")}>
-        <FlagIcon />
-      </DockButton>
       <DockButton title="Stift – auf der Seite markieren (Esc beendet)" active={pen} onClick={() => controller.feedback?.togglePen()}>
         <PenLineIcon />
-      </DockButton>
-      <DockButton title="Screenshot" onClick={() => void controller.feedback?.screenshot("manual")}>
-        <CameraIcon />
       </DockButton>
       <HighlightToggle />
       <Divider />
