@@ -1,8 +1,13 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import {
+  BotIcon,
   CheckCircle2Icon,
+  CopyIcon,
   DatabaseIcon,
+  Loader2Icon,
+  MessageSquareDotIcon,
+  PlugZapIcon,
   GlobeIcon,
   KeyRoundIcon,
   MicIcon,
@@ -34,6 +39,7 @@ import { useSettings } from "@/hooks/use-settings";
 import { navigate } from "@/hooks/use-hash-route";
 import { deleteRecording, estimateUsage, listRecordings } from "@/lib/db";
 import { formatBytes } from "@/lib/format";
+import { checkEndpoint, type EndpointHealth } from "@/lib/handoff/transport";
 import { WHISPER_MODELS } from "@/lib/transcription/transcribe";
 import type { Settings, TranscriptionEngine, WhisperModelId } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -44,7 +50,9 @@ const SECTIONS = [
   { id: "general", label: "Allgemein", icon: SlidersHorizontalIcon },
   { id: "environments", label: "Umgebungen", icon: GlobeIcon },
   { id: "recording", label: "Aufnahme", icon: VideoIcon },
+  { id: "feedback", label: "Feedback", icon: MessageSquareDotIcon },
   { id: "transcription", label: "Transkription", icon: SparklesIcon },
+  { id: "claude", label: "Claude Code", icon: BotIcon },
   { id: "data", label: "Daten", icon: DatabaseIcon },
 ] as const;
 
@@ -77,7 +85,9 @@ export function SettingsPage({ section }: { section?: string }) {
         {loaded && active === "general" && <GeneralSection settings={settings} update={update} />}
         {loaded && active === "environments" && <EnvironmentsSection settings={settings} update={update} />}
         {loaded && active === "recording" && <RecordingSection settings={settings} update={update} />}
+        {loaded && active === "feedback" && <FeedbackSection settings={settings} update={update} />}
         {loaded && active === "transcription" && <TranscriptionSection settings={settings} update={update} />}
+        {loaded && active === "claude" && <ClaudeSection settings={settings} update={update} />}
         {loaded && active === "data" && <DataSection />}
       </div>
     </div>
@@ -341,10 +351,43 @@ function TranscriptionSection({ settings, update }: SectionProps) {
   const [showKey, setShowKey] = useState(false);
 
   return (
-    <section>
+    <section className="space-y-10">
+      <div>
+        <SectionHeader
+          title="Live-Transkript"
+          description="Während der Aufnahme über OpenAI Realtime. Du siehst sofort, was verstanden wird und welchem Feedback-Punkt es zugeordnet ist – danach muss nichts mehr transkribiert werden."
+        />
+        <FieldGroup>
+          <SwitchField
+            label="Live-Transkript"
+            description={t.openaiKey ? "Braucht den OpenAI-API-Key unten." : "Erst einen OpenAI-API-Key hinterlegen (unten)."}
+            checked={t.live}
+            onChange={(value) => set({ live: value })}
+          />
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel>Modell</FieldLabel>
+              <FieldDescription>gpt-4o-transcribe ist genauer, die mini-Variante günstiger.</FieldDescription>
+            </FieldContent>
+            <Select items={LIVE_MODELS} value={t.liveModel} onValueChange={(value) => set({ liveModel: String(value) })}>
+              <SelectTrigger className="w-56">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LIVE_MODELS.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        </FieldGroup>
+      </div>
+      <div>
       <SectionHeader
-        title="Transkription"
-        description="Die Tonspur wird nach der Aufnahme in Text übersetzt und mit den Interaktionen verknüpft."
+        title="Nach der Aufnahme"
+        description="Falls kein Live-Transkript vorliegt, wird die Tonspur nach der Aufnahme in Text übersetzt."
       />
       <FieldGroup>
         <Field orientation="horizontal">
@@ -414,6 +457,152 @@ function TranscriptionSection({ settings, update }: SectionProps) {
           description="Sobald eine frische Aufnahme geöffnet wird."
           checked={t.auto}
           onChange={(value) => set({ auto: value })}
+        />
+      </FieldGroup>
+      </div>
+    </section>
+  );
+}
+
+const LIVE_MODELS = [
+  { value: "gpt-4o-transcribe", label: "gpt-4o-transcribe" },
+  { value: "gpt-4o-mini-transcribe", label: "gpt-4o-mini-transcribe" },
+];
+
+/* ----------------------------------------------------------------- Feedback */
+
+const PEN_COLORS = ["#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7"];
+
+function FeedbackSection({ settings, update }: SectionProps) {
+  const f = settings.feedback;
+  const set = (patch: Partial<Settings["feedback"]>) => update((s) => ({ ...s, feedback: { ...s.feedback, ...patch } }));
+  return (
+    <section>
+      <SectionHeader
+        title="Feedback"
+        description="Feedback-Punkte sind ausdrückliche Befunde: Element, Aussage, Screenshot und Kontext gebündelt – das, was der Agent zum Fixen braucht."
+      />
+      <FieldGroup>
+        <SwitchField
+          label="Rechtsklick startet einen Feedback-Punkt"
+          description="Während der Aufnahme. Alles, was du danach sagst oder tippst, hängt an diesem Element. Alt+Rechtsklick öffnet das normale Kontextmenü."
+          checked={f.contextMenu}
+          onChange={(value) => set({ contextMenu: value })}
+        />
+        <FieldSeparator />
+        <SwitchField
+          label="Screenshot bei Fehlern"
+          description="Bei Konsolenfehlern und fehlgeschlagenen Requests automatisch den sichtbaren Bereich festhalten."
+          checked={f.screenshotOnError}
+          onChange={(value) => set({ screenshotOnError: value })}
+        />
+        <FieldSeparator />
+        <Field orientation="horizontal">
+          <FieldContent>
+            <FieldLabel>Stiftfarbe</FieldLabel>
+            <FieldDescription>Nach jedem Strich entsteht ein Screenshot mit Markierung.</FieldDescription>
+          </FieldContent>
+          <div className="flex gap-2">
+            {PEN_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                aria-label={`Farbe ${color}`}
+                onClick={() => set({ penColor: color })}
+                className={cn(
+                  "size-6 rounded-full ring-offset-2 ring-offset-background transition",
+                  f.penColor === color ? "ring-2 ring-foreground/60" : "opacity-70 hover:opacity-100",
+                )}
+                style={{ background: color }}
+              />
+            ))}
+          </div>
+        </Field>
+      </FieldGroup>
+    </section>
+  );
+}
+
+/* -------------------------------------------------------------- Claude Code */
+
+function ClaudeSection({ settings, update }: SectionProps) {
+  const h = settings.handoff;
+  const set = (patch: Partial<Settings["handoff"]>) => update((s) => ({ ...s, handoff: { ...s.handoff, ...patch } }));
+  const [health, setHealth] = useState<EndpointHealth | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const test = async (endpoint = h.endpoint) => {
+    setChecking(true);
+    setHealth(await checkEndpoint(endpoint));
+    setChecking(false);
+  };
+  useEffect(() => {
+    void test();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const command = "claude mcp add qey -- node <pfad-zum-repo>/mcp/dist/index.js";
+
+  return (
+    <section>
+      <SectionHeader
+        title="Claude Code"
+        description="Aufnahmen gehen als Handoff (Feedback-Punkte, Screenshots, DOM, Logs) an einen lokalen MCP-Server. In Claude Code reicht dann: „Fix das letzte qey-Feedback“."
+      />
+      <FieldGroup>
+        <Field>
+          <FieldLabel>Einrichtung (einmalig)</FieldLabel>
+          <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 font-mono text-xs">
+            <span className="min-w-0 flex-1 truncate">{command}</span>
+            <Button
+              size="icon-xs"
+              variant="ghost"
+              aria-label="Kopieren"
+              onClick={() => {
+                void navigator.clipboard.writeText(command);
+                toast.success("Befehl kopiert");
+              }}
+            >
+              <CopyIcon />
+            </Button>
+          </div>
+          <FieldDescription>
+            Vorher im Repo <span className="font-mono">pnpm --filter qey-mcp build</span>. Der Server lauscht, solange Claude Code läuft, auf
+            dem Endpunkt unten und legt Aufnahmen unter <span className="font-mono">~/.qey/sessions</span> ab.
+          </FieldDescription>
+        </Field>
+        <FieldSeparator />
+        <Field>
+          <FieldLabel>Endpunkt</FieldLabel>
+          <div className="flex gap-2">
+            <Input
+              defaultValue={h.endpoint}
+              className="font-mono"
+              onBlur={(event) => {
+                const endpoint = event.target.value.trim() || "http://127.0.0.1:4777";
+                set({ endpoint });
+                void test(endpoint);
+              }}
+            />
+            <Button variant="outline" onClick={() => void test()} disabled={checking}>
+              {checking ? <Loader2Icon className="animate-spin" /> : <PlugZapIcon />}
+              Testen
+            </Button>
+          </div>
+          <FieldDescription>
+            {health === null
+              ? "…"
+              : health.ok
+                ? `Verbunden – qey-MCP ${health.version ?? ""}${health.dir ? ` · ${health.dir}` : ""}`
+                : `Nicht erreichbar (${health.error}). Läuft Claude Code mit dem qey-Server?`}
+          </FieldDescription>
+        </Field>
+        <FieldSeparator />
+        <SwitchField
+          label="Automatisch senden"
+          description="Nach dem Stoppen (und ggf. der Transkription) geht die Aufnahme direkt an Claude Code."
+          checked={h.autoSend}
+          onChange={(value) => set({ autoSend: value })}
         />
       </FieldGroup>
     </section>

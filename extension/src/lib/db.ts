@@ -104,6 +104,14 @@ export async function readTrack<K extends ChunkKind>(recordingId: string, kind: 
   return records.flatMap((record) => record.data as unknown[]) as ChunkPayloads[K];
 }
 
+/** Spuren mit Upserts (Feedback): pro ID gewinnt der zuletzt geschriebene Stand. */
+export async function readLatestById<K extends "feedback">(recordingId: string, kind: K): Promise<ChunkPayloads[K]> {
+  const all = await readTrack(recordingId, kind);
+  const byId = new Map<string, ChunkPayloads[K][number]>();
+  for (const item of all) byId.set(item.id, item);
+  return [...byId.values()] as ChunkPayloads[K];
+}
+
 export async function readAudio(recordingId: string, mimeType: string): Promise<Blob | null> {
   const parts = await readTrack(recordingId, "audio");
   return parts.length ? new Blob(parts, { type: mimeType }) : null;

@@ -9,6 +9,7 @@
  */
 import { appendChunk } from "@/lib/db";
 import type { OffscreenEvent, OffscreenRequest } from "@/lib/messages";
+import { LiveTranscriber } from "./live-transcriber";
 
 let recorder: MediaRecorder | null = null;
 let stream: MediaStream | null = null;
@@ -18,6 +19,7 @@ let currentId: string | null = null;
 let startedAt = 0;
 let size = 0;
 let writes: Promise<unknown> = Promise.resolve();
+let live: LiveTranscriber | null = null;
 
 const send = (event: OffscreenEvent) => browser.runtime.sendMessage(event).catch(() => undefined);
 
@@ -44,7 +46,7 @@ function startLevelMeter(source: MediaStream) {
   }, 150);
 }
 
-async function start(recordingId: string) {
+async function start(recordingId: string, liveConfig: Extract<OffscreenRequest, { type: "start-audio" }>["live"]) {
   if (recorder) return;
   currentId = recordingId;
   size = 0;
@@ -79,12 +81,30 @@ async function start(recordingId: string) {
   startedAt = Date.now();
   startLevelMeter(stream);
   void send({ type: "qey:audio-started", recordingId, startedAt, mimeType: recorder.mimeType || "audio/webm" });
+
+  if (liveConfig) {
+    live = new LiveTranscriber({
+      ...liveConfig,
+      onText: (event) => void send({ type: "qey:live-text", recordingId, event }),
+      onState: (state, error) => void send({ type: "qey:live-status", recordingId, state, error }),
+    });
+    live.start(stream).catch((error: unknown) => {
+      void send({
+        type: "qey:live-status",
+        recordingId,
+        state: "error",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
+  }
 }
 
 async function stop() {
   const id = currentId;
   if (!recorder || !id) return;
   const stopped = new Promise<void>((resolve) => recorder!.addEventListener("stop", () => resolve(), { once: true }));
+  await live?.stop();
+  live = null;
   recorder.stop();
   await stopped;
   await writes;
@@ -100,7 +120,7 @@ async function stop() {
 
 browser.runtime.onMessage.addListener((message: OffscreenRequest) => {
   if (message?.target !== "offscreen") return undefined;
-  if (message.type === "start-audio") void start(message.recordingId);
+  if (message.type === "start-audio") void start(message.recordingId, message.live);
   if (message.type === "stop-audio") void stop();
   return undefined;
 });

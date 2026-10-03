@@ -18,6 +18,8 @@ const eslintConfig = defineConfig([
     "public/ort/**",
     // Eigenes Paket mit eigenem Build (WXT), siehe extension/README.md.
     "extension/**",
+    // Eigenes Paket (qey-MCP-Server), siehe mcp/README.md.
+    "mcp/**",
   ]),
 ]);
 

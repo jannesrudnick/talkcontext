@@ -24,10 +24,10 @@ export interface OverlayState {
 
 type Listener = () => void;
 
-function createStore(init: (set: (partial: Partial<OverlayState>) => void, get: () => OverlayState) => OverlayState) {
-  let state: OverlayState;
+export function createStore<S>(init: (set: (partial: Partial<S>) => void, get: () => S) => S) {
+  let state: S;
   const listeners = new Set<Listener>();
-  const set = (partial: Partial<OverlayState>) => {
+  const set = (partial: Partial<S>) => {
     state = { ...state, ...partial };
     for (const listener of listeners) listener();
   };
@@ -38,12 +38,14 @@ function createStore(init: (set: (partial: Partial<OverlayState>) => void, get: 
     setState: set,
     subscribe(listener: Listener) {
       listeners.add(listener);
-      return () => listeners.delete(listener);
+      return () => {
+        listeners.delete(listener);
+      };
     },
   };
 }
 
-export const overlayStore = createStore((set, get) => {
+export const overlayStore = createStore<OverlayState>((set, get) => {
   const run = async (task: () => Promise<unknown>) => {
     set({ busy: true, error: null });
     try {
@@ -111,4 +113,8 @@ export const overlayStore = createStore((set, get) => {
 
 export function useOverlay<T>(selector: (state: OverlayState) => T): T {
   return useSyncExternalStore(overlayStore.subscribe, () => selector(overlayStore.getState()));
+}
+
+export function useStore<S, T>(store: ReturnType<typeof createStore<S>>, selector: (state: S) => T): T {
+  return useSyncExternalStore(store.subscribe, () => selector(store.getState()));
 }
