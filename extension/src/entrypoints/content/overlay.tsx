@@ -107,7 +107,6 @@ function DockContent({ controller }: { controller: RecordingController }) {
   return (
     <>
       <Logo />
-      {tab.environment && <EnvBadge name={tab.environment.name} color={tab.environment.color} />}
       <button
         type="button"
         disabled={busy || tab.busyElsewhere}
@@ -156,7 +155,6 @@ function RecordingControls({ controller }: { controller: RecordingController }) 
       </div>
       <AudioIndicator />
       <LiveBadge />
-      {tab.environment && <EnvBadge name={tab.environment.name} color={tab.environment.color} />}
       <Divider />
       <DockButton title="Stift – auf der Seite markieren (Esc beendet)" active={pen} onClick={() => controller.feedback?.togglePen()}>
         <PenLineIcon />
@@ -619,15 +617,6 @@ function Logo() {
       </span>
       <span className="text-[13px] font-semibold tracking-tight">qey</span>
     </div>
-  );
-}
-
-function EnvBadge({ name, color }: { name: string; color: string }) {
-  return (
-    <span className="inline-flex h-6 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2 text-[11px] font-medium text-zinc-300">
-      <span className="size-1.5 rounded-full" style={{ background: color }} />
-      {name}
-    </span>
   );
 }
 
