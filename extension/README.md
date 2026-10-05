@@ -5,6 +5,9 @@ Proxy, kein iframe: qey legt sich als Overlay über den Tab, du klickst dich dur
 erklärst laut – aufgezeichnet werden **Session-Replay (rrweb)**, das **semantische
 DOM-Protokoll** für Agenten, **Konsole**, **Netzwerk** und die **Tonspur**.
 
+Überblick, Installation ohne Web Store und Einrichtung von Claude Code: [README im Repo-Root](../README.md).
+Diese Seite geht tiefer in Bedienung, Architektur und Stolpersteine.
+
 ```
 Toolbar-Symbol / Alt+Shift+Q  →  Overlay  →  Aufnahme starten  →  durchklicken & reden
         Rechtsklick aufs Element / Stift  →  Feedback-Punkt (F1, F2 …) mit Sprache, Screenshot, Kontext
@@ -26,10 +29,10 @@ Der Kern des Handoffs: ausdrückliche Befunde statt einer Timeline, aus der der 
 
 | Wie | Was passiert |
 | --- | --- |
-| **Rechtsklick** auf ein Element (während der Aufnahme) | Neuer Punkt, Element bleibt markiert, Sprechblase zeigt live, was festgehalten wird. Alles Gesagte und Getippte gehört zu diesem Punkt, bis Enter/Esc, „Fertig“ oder der nächste Rechtsklick. Alt+Rechtsklick = normales Kontextmenü. |
+| **Rechtsklick** auf ein Element (während der Aufnahme) | Neuer Punkt, Element bleibt markiert, Sprechblase zeigt live, was festgehalten wird. Alles Gesagte und Getippte gehört zu diesem Punkt, bis Enter/Esc, „Fertig“ oder der nächste Rechtsklick. Was in den 10 Sekunden davor gesagt wurde und noch keinem Punkt gehört, wird übernommen. Alt+Rechtsklick = normales Kontextmenü. |
 | **Stift** in der Leiste | Auf der Seite zeichnen. Nach jedem Strich (bzw. einer Gruppe von Strichen) entsteht ein Screenshot mit Markierung; das umkreiste Element wird erkannt und zum Punkt. |
-| **Notiz / Bug** in der Leiste | Punkt am zuletzt anvisierten Element, Sprechblase zum Tippen. |
-| **Kamera** in der Leiste | Screenshot zwischendurch. Bei Konsolen-/Netzwerkfehlern passiert das automatisch. |
+
+Bei Konsolen-/Netzwerkfehlern entsteht automatisch ein zusätzlicher Screenshot.
 
 Jeder Punkt bekommt: Screenshot mit Zeitstempel (Bedienleiste ausgeblendet, Markierungen
 sichtbar), Selektor/XPath/Rolle/Name, **Komponentenkette** aus React- oder Vue-Dev-Builds
@@ -74,7 +77,7 @@ Manuell laden: `chrome://extensions` → Entwicklermodus → „Entpackte Erweit
 | --- | --- |
 | Overlay ein/aus | Klick aufs Toolbar-Symbol oder `Alt+Shift+Q` |
 | Aufnahme starten/stoppen | Button im Overlay oder `Alt+Shift+R` |
-| Feedback-Punkt | Rechtsklick aufs Element, Stift, oder Notiz-/Bug-Button |
+| Feedback-Punkt | Rechtsklick aufs Element oder Stift |
 | Stift beenden / Punkt abschließen | `Esc` |
 | Aufnahmen & Einstellungen | Rechtsklick aufs Symbol, oder Buttons im Overlay |
 
@@ -85,12 +88,14 @@ jedem Laden beim Background und setzt Replay und Protokoll fort).
 
 - **Aufnahmen** – Liste mit Suche und Umgebungs-Filter.
 - **Replay** – rrweb-Player mit Zeitleiste (Marker für Klicks, Fehler, Notizen, Navigation,
-  Sprache), Tempo, „Inaktivität überspringen“, synchroner Tonspur. Rechts: Aktivität
-  (inkl. zugeordneter Sprache und Element-Inspektor mit Hervorhebung im Replay), Konsole,
-  Netzwerk, Transkript. „Für Agent kopieren“ legt das Markdown-Protokoll in die Zwischenablage.
+  Sprache), Tempo, „Inaktivität überspringen“, synchroner Tonspur. Rechts: Feedback-Punkte,
+  Aktivität (inkl. zugeordneter Sprache und Element-Inspektor mit Hervorhebung im Replay),
+  Konsole, Netz, Sprache. Oben: „Kopieren“ (Markdown), „An Claude senden“, Export (Handoff-ZIP, Markdown, JSON, Replay, Tonspur).
 - **Einstellungen** – Sprache/Theme, **Umgebungen** (URL-Muster, Notizen für den Agenten,
   Variablen, geheime Werte werden nie exportiert), Aufnahme (Mikrofon-Freigabe, Protokoll,
-  Replay-Maskierung), Transkription (Whisper lokal oder OpenAI), Daten.
+  Replay-Maskierung), Feedback (Rechtsklick, Screenshot bei Fehlern, Stiftfarbe),
+  Transkription (Whisper lokal oder OpenAI, Live-Transkript), Claude Code (Endpunkt,
+  automatisch senden), Daten.
 
 ## Architektur
 
