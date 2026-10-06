@@ -7,7 +7,8 @@
 **Click through a web app, say out loud what bugs you – and Claude Code gets structured
 feedback instead of a video.**
 
-Chrome extension · live transcript · session replay · MCP server for Claude Code
+Visual UI feedback for AI coding agents · Chrome extension · live transcript · session replay ·
+MCP server for Claude Code
 
 </div>
 

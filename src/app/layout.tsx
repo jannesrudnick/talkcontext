@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
-import { REPO } from "./repo";
+import { DESCRIPTION, REPO, SITE_URL, TAGLINE } from "./site";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,9 +16,31 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TalkContext – QA feedback your coding agent can read",
-  description:
-    "Click through a web app, say out loud what bugs you – and Claude Code gets structured feedback instead of a video. Open-source Chrome extension with live transcript, session replay and an MCP server.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "TalkContext – visual UI feedback for AI coding agents",
+    template: "%s – TalkContext",
+  },
+  description: DESCRIPTION,
+  applicationName: "TalkContext",
+  keywords: [
+    "visual feedback for AI coding agents",
+    "Claude Code",
+    "MCP",
+    "Chrome extension",
+    "UI feedback",
+    "bug report",
+    "QA",
+    "session replay",
+    "voice feedback",
+  ],
+  openGraph: {
+    type: "website",
+    siteName: "TalkContext",
+    title: `TalkContext – ${TAGLINE}`,
+    description: DESCRIPTION,
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
