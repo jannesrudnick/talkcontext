@@ -3,5 +3,5 @@ node_modules
 .wxt
 stats.html
 web-ext.config.ts
-# Lokal kopierte ONNX-Runtime (siehe scripts/copy-ort-runtime.mjs)
+# ONNX runtime copied locally (see scripts/copy-ort-runtime.mjs)
 public/ort/

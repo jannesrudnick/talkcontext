@@ -18,7 +18,7 @@ import {
   WifiOffIcon,
   type LucideIcon,
 } from "lucide-react";
-import type { ElementRef, QaEvent } from "@shared/types";
+import type { ElementRef, QaEvent } from "@/lib/qa/types";
 
 export type EventCategory = "interaction" | "error" | "note" | "navigation" | "other";
 

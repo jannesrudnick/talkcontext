@@ -1,4 +1,4 @@
-import { buildJson, buildMarkdown, downloadFile, sessionFileBase } from "@shared/export";
+import { buildJson, buildMarkdown, downloadFile, sessionFileBase } from "@/lib/qa/export";
 import type { LoadedRecording } from "./load";
 import { toQaSession } from "./load";
 

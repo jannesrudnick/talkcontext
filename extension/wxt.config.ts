@@ -1,4 +1,3 @@
-import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import type { Plugin } from "vite";
 import { defineConfig } from "wxt";
@@ -27,11 +26,6 @@ function escapeNoncharacters(): Plugin {
 export default defineConfig({
   srcDir: "src",
   modules: ["@wxt-dev/module-react"],
-  alias: {
-    // The extension shares the data model, correlation and Markdown export with
-    // the Next app - one source, so both produce the same artifact.
-    "@shared": path.resolve(__dirname, "../src/lib/qa"),
-  },
   vite: () => ({
     plugins: [tailwindcss(), escapeNoncharacters()],
     worker: { format: "es" },

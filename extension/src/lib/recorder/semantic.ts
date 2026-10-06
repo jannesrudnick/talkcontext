@@ -3,7 +3,7 @@
  * afterwards - as text, not pixels. Runs in the isolated world of the
  * content script; console/network come from the MAIN world script.
  */
-import type { DomEffect, QaEventType, RawFrameEvent, RecorderConfig } from "@shared/types";
+import type { DomEffect, QaEventType, RawFrameEvent, RecorderConfig } from "@/lib/qa/types";
 import { describe, isSecret, meaningful, selectorFor, truncate } from "./describe";
 
 export interface SemanticRecorderOptions {

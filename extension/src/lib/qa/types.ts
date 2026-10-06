@@ -6,7 +6,7 @@
  * what was clicked and what the user said meanwhile.
  */
 
-export type QaMode = "proxy" | "bridge" | "extension";
+export type QaMode = "extension";
 
 /** Description of a DOM element, robust enough for an agent to find it again. */
 export interface ElementRef {
@@ -68,7 +68,7 @@ export interface QaEvent {
   /** Absolute timestamp (epoch ms). */
   ts: number;
   type: QaEventType;
-  /** Real URL of the page at the time of the event (proxy URLs are resolved). */
+  /** URL of the page at the time of the event. */
   url: string;
   target?: ElementRef;
   detail?: Record<string, unknown>;
@@ -124,16 +124,7 @@ export interface QaSession {
   audio?: { mimeType: string; durationMs: number; fileName: string };
 }
 
-/** Message recorder -> studio. */
-export type FrameMessage =
-  | { source: "qa-recorder"; type: "ready"; url: string; ts: number; mode: QaMode }
-  | { source: "qa-recorder"; type: "events"; events: RawFrameEvent[] }
-  | { source: "qa-recorder"; type: "cursor"; samples: Array<{ ts: number; x: number; y: number }> }
-  | { source: "qa-recorder"; type: "effect"; id: string; effect: DomEffect }
-  /** Targeted element outside of a running recording - display only. */
-  | { source: "qa-recorder"; type: "preview"; target?: ElementRef };
-
-/** Event as sent by the recorder - time as epoch ms, the studio converts it. */
+/** Event as emitted by the recorder - time as epoch ms, converted to recording time on load. */
 export interface RawFrameEvent {
   id: string;
   ts: number;

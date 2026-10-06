@@ -1,6 +1,6 @@
 import { CopyIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { QaEvent } from "@shared/types";
+import type { QaEvent } from "@/lib/qa/types";
 import { Button } from "@/components/ui/button";
 import { eventMeta } from "./event-meta";
 

@@ -118,17 +118,14 @@ src/entrypoints/
                          live-transcriber.ts streams to OpenAI Realtime in parallel
   options/               The app: recordings, replay, settings, getting started
 src/lib/
-  recorder/              Semantic recorder (port of public/qa-recorder.js)
+  qa/                    Data model of the semantic log, speech↔event correlation, Markdown/JSON export
+  recorder/              Semantic recorder: hover, click, input, navigation, DOM effects
   db.ts                  IndexedDB: recordings + chunks (rrweb, events, effects, cursor,
                          console, network, audio)
   transcription/         Whisper worker (transformers.js) and OpenAI
   handoff/               Build the handoff (Markdown, handoff.json, screenshots, DOM) + ZIP/MCP transport
 src/features/            The app's pages
 ```
-
-The data model, speech↔event correlation and the Markdown/JSON export come from
-`../src/lib/qa` (alias `@shared`) – the extension and the Next app produce the same
-`qa-recording/1` artifact.
 
 ### Why it's built this way
 
@@ -151,8 +148,8 @@ The data model, speech↔event correlation and the Markdown/JSON export come fro
   sets the font unlayered.
 - Chrome injects the same defaults (`font-size: 75%`) into the replay iframe – without a reset
   the replay would be smaller than the original and pen markup would be off (`player.tsx`).
-- The ONNX runtime for Whisper is copied from `node_modules` to `public/ort/` like in the Next
-  app (not in the repo, `scripts/copy-ort-runtime.mjs`).
+- The ONNX runtime for Whisper is copied from `node_modules` to `public/ort/` (not in the
+  repo, `scripts/copy-ort-runtime.mjs`).
 
 ## Open / next steps
 
