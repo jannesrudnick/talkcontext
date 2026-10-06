@@ -1,14 +1,14 @@
 {
-  "name": "qey-mcp",
+  "name": "talkcontext-mcp",
   "version": "0.1.0",
-  "description": "MCP server through which Claude Code reads the QA recordings of the qey extension",
+  "description": "MCP server through which Claude Code reads the QA recordings of the TalkContext extension",
   "private": true,
   "type": "module",
   "engines": {
     "node": ">=22"
   },
   "bin": {
-    "qey-mcp": "dist/index.js"
+    "talkcontext-mcp": "dist/index.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -23,5 +23,6 @@
   "devDependencies": {
     "@types/node": "^22.20.4",
     "typescript": "5.9.3"
-  }
+  },
+  "license": "MIT"
 }

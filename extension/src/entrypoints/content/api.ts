@@ -12,7 +12,7 @@ export async function request<T = unknown>(message: ContentRequest): Promise<T> 
 
 export async function hello(): Promise<TabState | null> {
   try {
-    return await request<TabState | null>({ type: "qey:hello" });
+    return await request<TabState | null>({ type: "talkcontext:hello" });
   } catch {
     return null;
   }

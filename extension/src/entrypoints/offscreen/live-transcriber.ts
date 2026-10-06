@@ -54,7 +54,7 @@ export class LiveTranscriber {
 
     this.context = new AudioContext({ sampleRate: SAMPLE_RATE });
     await this.context.audioWorklet.addModule(browser.runtime.getURL("/pcm-worklet.js"));
-    this.node = new AudioWorkletNode(this.context, "qey-pcm-capture");
+    this.node = new AudioWorkletNode(this.context, "talkcontext-pcm-capture");
     this.node.port.onmessage = (event: MessageEvent<ArrayBuffer>) => this.onAudio(event.data);
     this.context.createMediaStreamSource(stream).connect(this.node);
 

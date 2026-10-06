@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
-import { REPO } from "./repo";
+import { DESCRIPTION, REPO, SITE_URL, TAGLINE } from "./site";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,9 +16,31 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "qey – QA feedback your coding agent can read",
-  description:
-    "Click through a web app, say out loud what bugs you – and Claude Code gets structured feedback instead of a video. Open-source Chrome extension with live transcript, session replay and an MCP server.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "TalkContext – visual UI feedback for AI coding agents",
+    template: "%s – TalkContext",
+  },
+  description: DESCRIPTION,
+  applicationName: "TalkContext",
+  keywords: [
+    "visual feedback for AI coding agents",
+    "Claude Code",
+    "MCP",
+    "Chrome extension",
+    "UI feedback",
+    "bug report",
+    "QA",
+    "session replay",
+    "voice feedback",
+  ],
+  openGraph: {
+    type: "website",
+    siteName: "TalkContext",
+    title: `TalkContext – ${TAGLINE}`,
+    description: DESCRIPTION,
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -29,7 +51,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <header className="flex items-center justify-between py-5">
             <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight">
               <Image src="/icon.svg" alt="" width={28} height={28} />
-              qey
+              TalkContext
             </Link>
             <a href={REPO} className="text-sm text-zinc-600 hover:text-zinc-900">
               GitHub →
@@ -39,7 +61,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
 
           <footer className="flex flex-wrap items-center justify-between gap-4 py-10 text-sm text-zinc-500">
-            <span>qey – open source QA recorder for coding agents</span>
+            <span>TalkContext – open source QA recorder for coding agents</span>
             <nav className="flex gap-5">
               <a href={REPO} className="hover:text-zinc-900">
                 GitHub

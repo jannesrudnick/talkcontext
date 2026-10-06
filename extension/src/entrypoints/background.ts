@@ -30,11 +30,11 @@ export default defineBackground(() => {
 
   const ports = new Map<number, Browser.runtime.Port>();
   const pendingFlushes = new Map<string, () => void>();
-  let pendingAudioStop: ((event: Extract<OffscreenEvent, { type: "qey:audio-stopped" }>) => void) | null = null;
+  let pendingAudioStop: ((event: Extract<OffscreenEvent, { type: "talkcontext:audio-stopped" }>) => void) | null = null;
   // All writes run serially - so everything is guaranteed to be on disk when stopping.
   let writeChain: Promise<unknown> = Promise.resolve();
   const enqueue = (task: () => Promise<unknown>) => {
-    writeChain = writeChain.then(task).catch((error) => console.error("[qey] Write failed", error));
+    writeChain = writeChain.then(task).catch((error) => console.error("[talkcontext] Write failed", error));
     return writeChain;
   };
 
@@ -53,7 +53,7 @@ export default defineBackground(() => {
   async function pushState(tabId: number) {
     try {
       const tab = await browser.tabs.get(tabId);
-      const message: TabMessage = { type: "qey:state", state: await tabState(tabId, tab.url ?? "") };
+      const message: TabMessage = { type: "talkcontext:state", state: await tabState(tabId, tab.url ?? "") };
       await browser.tabs.sendMessage(tabId, message);
     } catch {
       /* Tab without content script (chrome://, Web Store, ...) */
@@ -220,7 +220,7 @@ export default defineBackground(() => {
 
   async function stopAudio(recordingId: string, audioState: ActiveRecording["audio"]) {
     if (audioState !== "on" && audioState !== "starting") return;
-    const stopped = await new Promise<Extract<OffscreenEvent, { type: "qey:audio-stopped" }> | null>((resolve) => {
+    const stopped = await new Promise<Extract<OffscreenEvent, { type: "talkcontext:audio-stopped" }> | null>((resolve) => {
       const timer = setTimeout(() => resolve(null), 7000);
       pendingAudioStop = (event) => {
         clearTimeout(timer);
@@ -348,7 +348,7 @@ export default defineBackground(() => {
     await pushState(active.tabId);
 
     if (!discard) {
-      await sendToTab(active.tabId, { type: "qey:saved", recordingId: active.recordingId });
+      await sendToTab(active.tabId, { type: "talkcontext:saved", recordingId: active.recordingId });
       const settings = await getSettings();
       if (settings.openAfterStop) await openPage("recordings", active.recordingId);
     }
@@ -363,7 +363,7 @@ export default defineBackground(() => {
 
   async function toggleOverlay(tab: Browser.tabs.Tab | undefined) {
     if (tab?.id == null) return;
-    const reached = await sendToTab(tab.id, { type: "qey:toggle-overlay" });
+    const reached = await sendToTab(tab.id, { type: "talkcontext:toggle-overlay" });
     // No content script (browser pages, Web Store): show the recordings instead.
     if (!reached) await openPage("recordings");
   }
@@ -371,14 +371,14 @@ export default defineBackground(() => {
   /* --------------------------------------------------------- Listeners */
 
   browser.runtime.onInstalled.addListener(async ({ reason }) => {
-    browser.contextMenus.create({ id: "qey-recordings", title: "Open recordings", contexts: ["action"] });
-    browser.contextMenus.create({ id: "qey-settings", title: "Settings", contexts: ["action"] });
+    browser.contextMenus.create({ id: "talkcontext-recordings", title: "Open recordings", contexts: ["action"] });
+    browser.contextMenus.create({ id: "talkcontext-settings", title: "Settings", contexts: ["action"] });
     if (reason === "install") await openPage("welcome");
   });
 
   browser.contextMenus.onClicked.addListener((info) => {
-    if (info.menuItemId === "qey-recordings") void openPage("recordings");
-    if (info.menuItemId === "qey-settings") void openPage("settings");
+    if (info.menuItemId === "talkcontext-recordings") void openPage("recordings");
+    if (info.menuItemId === "talkcontext-settings") void openPage("settings");
   });
 
   browser.action.onClicked.addListener((tab) => void toggleOverlay(tab));
@@ -387,7 +387,7 @@ export default defineBackground(() => {
     const target = tab ?? (await browser.tabs.query({ active: true, currentWindow: true }))[0];
     if (command === "toggle-overlay") await toggleOverlay(target);
     if (command === "toggle-recording" && target?.id != null) {
-      await sendToTab(target.id, { type: "qey:toggle-recording" });
+      await sendToTab(target.id, { type: "talkcontext:toggle-recording" });
     }
   });
 
@@ -443,41 +443,41 @@ export default defineBackground(() => {
     const handle = async (): Promise<unknown> => {
       const tab = sender.tab;
       switch ((message as { type: string }).type) {
-        case "qey:hello":
+        case "talkcontext:hello":
           return tab?.id != null ? tabState(tab.id, tab.url ?? "") : null;
-        case "qey:start": {
+        case "talkcontext:start": {
           if (!tab) throw new Error("No tab");
-          const request = message as Extract<ContentRequest, { type: "qey:start" }>;
+          const request = message as Extract<ContentRequest, { type: "talkcontext:start" }>;
           await startRecording(tab, request.viewport, request.pageTitle);
           return tabState(tab.id!, tab.url ?? "");
         }
-        case "qey:stop":
+        case "talkcontext:stop":
           return stopRecording();
-        case "qey:discard":
+        case "talkcontext:discard":
           return stopRecording({ discard: true });
-        case "qey:overlay":
+        case "talkcontext:overlay":
           if (tab?.id != null) await setOverlay(tab.id, (message as { visible: boolean }).visible);
           return true;
-        case "qey:open": {
-          const request = message as Extract<ContentRequest, { type: "qey:open" }>;
+        case "talkcontext:open": {
+          const request = message as Extract<ContentRequest, { type: "talkcontext:open" }>;
           await openPage(request.page, request.recordingId);
           return true;
         }
-        case "qey:capture": {
+        case "talkcontext:capture": {
           const active = await activeItem.getValue();
           if (!active || tab?.id !== active.tabId) throw new Error("No recording in this tab");
-          const request = message as Extract<ContentRequest, { type: "qey:capture" }>;
+          const request = message as Extract<ContentRequest, { type: "talkcontext:capture" }>;
           return capture(active.recordingId, tab, request.reason, request.feedbackId);
         }
-        case "qey:next-feedback-index": {
+        case "talkcontext:next-feedback-index": {
           const active = await activeItem.getValue();
           if (!active) return 1;
           await activeItem.setValue({ ...active, nextFeedbackIndex: active.nextFeedbackIndex + 1 });
           return active.nextFeedbackIndex;
         }
         /* ---- Offscreen ---- */
-        case "qey:live-status": {
-          const event = message as Extract<OffscreenEvent, { type: "qey:live-status" }>;
+        case "talkcontext:live-status": {
+          const event = message as Extract<OffscreenEvent, { type: "talkcontext:live-status" }>;
           const active = await activeItem.getValue();
           if (active?.recordingId === event.recordingId) {
             await activeItem.setValue({ ...active, live: event.state, liveError: event.error });
@@ -485,19 +485,19 @@ export default defineBackground(() => {
           }
           return true;
         }
-        case "qey:live-text": {
-          const event = message as Extract<OffscreenEvent, { type: "qey:live-text" }>;
+        case "talkcontext:live-text": {
+          const event = message as Extract<OffscreenEvent, { type: "talkcontext:live-text" }>;
           const active = await activeItem.getValue();
           if (active?.recordingId !== event.recordingId) return true;
           if (event.event.kind === "final" && event.event.text) {
             const { itemId, text, start, end } = event.event;
             void enqueue(() => appendChunk(event.recordingId, "live", [{ id: itemId, text, start, end }]));
           }
-          await sendToTab(active.tabId, { type: "qey:live", event: event.event });
+          await sendToTab(active.tabId, { type: "talkcontext:live", event: event.event });
           return true;
         }
-        case "qey:audio-started": {
-          const event = message as Extract<OffscreenEvent, { type: "qey:audio-started" }>;
+        case "talkcontext:audio-started": {
+          const event = message as Extract<OffscreenEvent, { type: "talkcontext:audio-started" }>;
           await updateRecording(event.recordingId, (meta) => ({
             ...meta,
             audio: { mimeType: event.mimeType, startedAt: event.startedAt, durationMs: 0, size: 0 },
@@ -509,8 +509,8 @@ export default defineBackground(() => {
           }
           return true;
         }
-        case "qey:audio-error": {
-          const event = message as Extract<OffscreenEvent, { type: "qey:audio-error" }>;
+        case "talkcontext:audio-error": {
+          const event = message as Extract<OffscreenEvent, { type: "talkcontext:audio-error" }>;
           await updateRecording(event.recordingId, (meta) => ({ ...meta, audioError: event.message }));
           const active = await activeItem.getValue();
           if (active?.recordingId === event.recordingId) {
@@ -520,13 +520,13 @@ export default defineBackground(() => {
           await closeOffscreen();
           return true;
         }
-        case "qey:audio-level": {
+        case "talkcontext:audio-level": {
           const active = await activeItem.getValue();
-          if (active) await sendToTab(active.tabId, { type: "qey:audio-level", level: (message as { level: number }).level });
+          if (active) await sendToTab(active.tabId, { type: "talkcontext:audio-level", level: (message as { level: number }).level });
           return true;
         }
-        case "qey:audio-stopped":
-          pendingAudioStop?.(message as Extract<OffscreenEvent, { type: "qey:audio-stopped" }>);
+        case "talkcontext:audio-stopped":
+          pendingAudioStop?.(message as Extract<OffscreenEvent, { type: "talkcontext:audio-stopped" }>);
           return true;
         default:
           return undefined;

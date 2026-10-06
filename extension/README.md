@@ -1,7 +1,7 @@
-# qey – browser extension
+# TalkContext – browser extension
 
 The QA recorder as a Chrome extension (Manifest V3). No script in the target app, no proxy, no
-iframe: qey sits as an overlay on top of the tab, you click through and explain out loud – it
+iframe: TalkContext sits as an overlay on top of the tab, you click through and explain out loud – it
 records a **session replay (rrweb)**, the **semantic DOM log** for agents, **console**,
 **network** and the **audio track**.
 
@@ -12,7 +12,7 @@ This page goes deeper into usage, architecture and gotchas.
 Toolbar icon / Alt+Shift+Q  →  overlay  →  Start recording  →  click through & talk
       Right-click an element / pen  →  feedback point (F1, F2 …) with speech, screenshot, context
                                                                                   ↓ Stop
-      Replay like PostHog/Sentry + feedback tab  →  "Send to Claude"  →  Claude Code (qey MCP)
+      Replay like PostHog/Sentry + feedback tab  →  "Send to Claude"  →  Claude Code (TalkContext MCP)
 ```
 
 | Right-click → feedback point with live transcript | Pen: circle → screenshot with markup |
@@ -53,7 +53,7 @@ The spoken language is set under Settings → General → Transcription language
 ## Handoff to Claude Code
 
 "Send to Claude" (or automatically after stopping) sends the recording to the local
-[qey MCP server](../mcp/README.md). Claude Code then reads it via tools – screenshots included
+[TalkContext MCP server](../mcp/README.md). Claude Code then reads it via tools – screenshots included
 as real images. Alternatively:
 
 - **Handoff package (.zip)**: `feedback.md`, `handoff.json`, `session.json`, `screenshots/`, `dom/`
@@ -65,9 +65,9 @@ Requires **Node ≥ 22** (WXT uses `util.parseEnv`), see `.nvmrc` – e.g. `nvm 
 
 ```bash
 pnpm install            # in the repo root or here – the package is part of the pnpm workspace
-pnpm --filter qey-extension dev     # launches Chrome with the extension loaded (HMR)
-pnpm --filter qey-extension build   # → extension/.output/chrome-mv3
-pnpm --filter qey-extension typecheck
+pnpm --filter talkcontext-extension dev     # launches Chrome with the extension loaded (HMR)
+pnpm --filter talkcontext-extension build   # → extension/.output/chrome-mv3
+pnpm --filter talkcontext-extension typecheck
 ```
 
 Load manually: `chrome://extensions` → Developer mode → "Load unpacked" →

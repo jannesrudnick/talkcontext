@@ -14,7 +14,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Separate package with its own build (WXT), see extension/README.md.
     "extension/**",
-    // Separate package (qey MCP server), see mcp/README.md.
+    // Separate package (TalkContext MCP server), see mcp/README.md.
     "mcp/**",
   ]),
 ]);

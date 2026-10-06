@@ -15,13 +15,13 @@ export function WelcomePage() {
       <div className="space-y-4">
         <Badge variant="secondary" className="gap-1.5">
           <span className="size-1.5 rounded-full bg-brand" />
-          Welcome to qey
+          Welcome to TalkContext
         </Badge>
         <h1 className="text-4xl font-semibold tracking-tight text-balance">
           Click through, explain out loud – the agent gets a log instead of a video.
         </h1>
         <p className="max-w-2xl text-lg text-muted-foreground text-pretty">
-          qey sits as an overlay on top of any web app. Every session is saved as a replay – with DOM
+          TalkContext sits as an overlay on top of any web app. Every session is saved as a replay – with DOM
           elements, console errors, requests and your explanation on one timeline.
         </p>
       </div>
@@ -31,7 +31,7 @@ export function WelcomePage() {
           index={1}
           icon={<PuzzleIcon />}
           title="Pin the extension"
-          description="Puzzle icon in the Chrome toolbar → pin qey. Clicking it shows the overlay."
+          description="Puzzle icon in the Chrome toolbar → pin TalkContext. Clicking it shows the overlay."
         />
         <Step
           index={2}

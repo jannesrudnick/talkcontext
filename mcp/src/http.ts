@@ -63,7 +63,7 @@ export function startHttp(port: number, version: string, log: (message: string) 
   return new Promise((resolve) => {
     server.once("error", (error: NodeJS.ErrnoException) => {
       // Another Claude Code session already holds the port - it writes to the same folder.
-      if (error.code === "EADDRINUSE") log(`Port ${port} in use – another qey MCP instance is already receiving.`);
+      if (error.code === "EADDRINUSE") log(`Port ${port} in use – another TalkContext MCP instance is already receiving.`);
       else log(`HTTP server not started: ${error.message}`);
       resolve(null);
     });

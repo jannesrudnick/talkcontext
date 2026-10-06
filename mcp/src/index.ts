@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * qey MCP: gives Claude Code access to the QA recordings of the qey extension.
+ * TalkContext MCP: gives Claude Code access to the QA recordings of the TalkContext extension.
  *
- *   claude mcp add qey -- node /path/to/qey/mcp/dist/index.js
+ *   claude mcp add talkcontext -- node /path/to/talkcontext/mcp/dist/index.js
  *
  * Two jobs in one process:
  *  1. MCP server over stdio - tools for reading feedback, screenshots, logs
@@ -17,16 +17,16 @@ import { startHttp } from "./http.js";
 import { getSession, listSessions, readSessionFile, type SessionSummary } from "./store.js";
 
 const VERSION = "0.1.0";
-const PORT = Number(process.env.QEY_PORT ?? 4777);
-const log = (message: string) => process.stderr.write(`[qey-mcp] ${message}\n`);
+const PORT = Number(process.env.TALKCONTEXT_PORT ?? 4777);
+const log = (message: string) => process.stderr.write(`[talkcontext-mcp] ${message}\n`);
 
 const server = new McpServer(
-  { name: "qey", version: VERSION },
+  { name: "talkcontext", version: VERSION },
   {
     instructions:
-      "qey delivers QA feedback from the browser: feedback points (F1, F2, …) with the tester's statement, " +
+      "TalkContext delivers QA feedback from the browser: feedback points (F1, F2, …) with the tester's statement, " +
       "element selector, component chain, screenshots, DOM snippet and errors. Start with " +
-      "qey_get_session, then get details and screenshots per point with qey_get_feedback.",
+      "talkcontext_get_session, then get details and screenshots per point with talkcontext_get_feedback.",
   },
 );
 
@@ -50,10 +50,10 @@ const sessionArg = z
   .describe('Recording ID, or "latest" (default) for the most recently received one');
 
 server.registerTool(
-  "qey_list_sessions",
+  "talkcontext_list_sessions",
   {
-    title: "List qey recordings",
-    description: "Lists the QA recordings most recently received from the qey extension.",
+    title: "List TalkContext recordings",
+    description: "Lists the QA recordings most recently received from the TalkContext extension.",
     inputSchema: { limit: z.number().int().min(1).max(50).optional().describe("Number of recordings, default 10") },
   },
   async ({ limit }) => {
@@ -77,11 +77,11 @@ server.registerTool(
 );
 
 server.registerTool(
-  "qey_get_session",
+  "talkcontext_get_session",
   {
-    title: "Read qey handoff",
+    title: "Read TalkContext handoff",
     description:
-      "Returns the full handoff of a QA recording as Markdown: context, environment, all feedback points with statement, element, component, steps and errors, plus flow and transcript. Screenshots are referenced as paths – use qey_get_feedback for the images.",
+      "Returns the full handoff of a QA recording as Markdown: context, environment, all feedback points with statement, element, component, steps and errors, plus flow and transcript. Screenshots are referenced as paths – use talkcontext_get_feedback for the images.",
     inputSchema: { session: sessionArg },
   },
   async ({ session }) => {
@@ -96,9 +96,9 @@ server.registerTool(
 );
 
 server.registerTool(
-  "qey_get_feedback",
+  "talkcontext_get_feedback",
   {
-    title: "qey feedback point with screenshots",
+    title: "TalkContext feedback point with screenshots",
     description:
       "Details for one feedback point (e.g. F3): statement, element, component, errors, styles, DOM snippet and the screenshots as images. Without `item`, all points.",
     inputSchema: {
@@ -138,9 +138,9 @@ server.registerTool(
 );
 
 server.registerTool(
-  "qey_get_screenshot",
+  "talkcontext_get_screenshot",
   {
-    title: "qey screenshot",
+    title: "TalkContext screenshot",
     description: "A single screenshot of a recording, path as in the handoff (e.g. screenshots/f1-1-00-12-3.jpg).",
     inputSchema: { session: sessionArg, path: z.string().describe("Path relative to the recording") },
   },
@@ -155,9 +155,9 @@ server.registerTool(
 );
 
 server.registerTool(
-  "qey_get_logs",
+  "talkcontext_get_logs",
   {
-    title: "qey console & network",
+    title: "TalkContext console & network",
     description: "Console output or requests of a recording, errors only by default – including request/response bodies of failed requests.",
     inputSchema: {
       session: sessionArg,
@@ -187,8 +187,8 @@ server.registerTool(
 server.registerPrompt(
   "fix_feedback",
   {
-    title: "Fix qey feedback",
-    description: "Works through the QA feedback of the latest (or a specific) qey recording in the current project.",
+    title: "Fix TalkContext feedback",
+    description: "Works through the QA feedback of the latest (or a specific) TalkContext recording in the current project.",
     argsSchema: { session: z.string().optional().describe('Recording ID or "latest"') },
   },
   ({ session }) => ({
@@ -198,13 +198,13 @@ server.registerPrompt(
         content: {
           type: "text",
           text: [
-            `Work through the QA feedback from qey (recording: ${session ?? "latest"}).`,
+            `Work through the QA feedback from TalkContext (recording: ${session ?? "latest"}).`,
             "",
-            "1. Read the handoff with qey_get_session.",
-            "2. For each feedback point, get the screenshots and the DOM snippet with qey_get_feedback.",
+            "1. Read the handoff with talkcontext_get_session.",
+            "2. For each feedback point, get the screenshots and the DOM snippet with talkcontext_get_feedback.",
             "3. Find the code via the component chain/source file, otherwise via selector, data-testid and texts.",
             "4. Fix the points one by one and state per point (F1, F2, …) what you changed.",
-            "5. For failed requests, check the bodies with qey_get_logs before guessing.",
+            "5. For failed requests, check the bodies with talkcontext_get_logs before guessing.",
             "Ask when a statement is ambiguous instead of guessing.",
           ].join("\n"),
         },

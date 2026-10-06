@@ -53,7 +53,7 @@
     --tw-space-y-reverse: 0;
     --tw-outline-style: solid;
   }
-  .qey-root {
+  .talkcontext-root {
     font-family: var(--font-sans);
     font-size: 13px;
     line-height: 1.4;
@@ -62,7 +62,7 @@
   }
 }
 
-@keyframes qey-pulse {
+@keyframes talkcontext-pulse {
   0%,
   100% {
     opacity: 1;
@@ -74,6 +74,6 @@
   }
 }
 
-.qey-pulse {
-  animation: qey-pulse 1.4s ease-in-out infinite;
+.talkcontext-pulse {
+  animation: talkcontext-pulse 1.4s ease-in-out infinite;
 }

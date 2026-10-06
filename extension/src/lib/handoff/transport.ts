@@ -1,6 +1,6 @@
 /**
  * Ways to get a handoff to the agent: ZIP download or directly to the
- * local qey MCP server (see mcp/), which Claude Code uses as a tool.
+ * local TalkContext MCP server (see mcp/), which Claude Code uses as a tool.
  */
 import { strToU8, zipSync } from "fflate";
 import type { Handoff } from "./build";
@@ -56,8 +56,8 @@ export async function sendHandoff(endpoint: string, handoff: Handoff): Promise<{
       signal: AbortSignal.timeout(30_000),
     });
   } catch {
-    throw new Error("qey MCP server unreachable – is Claude Code running with the qey server? (Settings → Claude Code)");
+    throw new Error("TalkContext MCP server unreachable – is Claude Code running with the TalkContext server? (Settings → Claude Code)");
   }
-  if (!response.ok) throw new Error(`qey MCP server responded with ${response.status}: ${await response.text()}`);
+  if (!response.ok) throw new Error(`TalkContext MCP server responded with ${response.status}: ${await response.text()}`);
   return (await response.json()) as { path?: string };
 }

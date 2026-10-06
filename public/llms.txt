@@ -1,0 +1,21 @@
+# TalkContext
+
+> Open-source Chrome extension for giving visual UI/UX feedback to AI coding agents. You click through any web app, right-click elements and talk; TalkContext turns that into structured feedback points (your words, CSS selector, React/Vue component chain, computed styles, DOM snippet, screenshot, console and network errors) and hands them to Claude Code via a local MCP server.
+
+Use it when an AI coding agent needs to understand which UI element you mean and what's wrong with it – instead of screenshots and long explanations. Typical prompt in Claude Code after recording: "Fix the latest TalkContext feedback".
+
+Key facts:
+- Works on any web page (localhost, staging, production); no script in the target app
+- Feedback points via right-click or a pen; everything said while a point is open belongs to it
+- Live transcription via OpenAI Realtime (optional, your own key) or local Whisper in the browser; English, German, French or Spanish
+- Session replay (rrweb), console and network capture, React/Vue component detection
+- Local-first: recordings stay in the browser; the MCP server listens on 127.0.0.1 only
+- MCP tools: talkcontext_list_sessions, talkcontext_get_session, talkcontext_get_feedback, talkcontext_get_screenshot, talkcontext_get_logs; prompt: fix_feedback
+- Standard MCP (stdio) server – built for Claude Code, usable from any MCP client
+- MIT licensed; install from source (Chrome developer mode, "Load unpacked")
+
+## Docs
+
+- [README – overview, installation, usage, technical details](https://github.com/jannesrudnick/talkcontext#readme)
+- [Extension architecture](https://github.com/jannesrudnick/talkcontext/blob/main/extension/README.md)
+- [MCP server – setup and tools](https://github.com/jannesrudnick/talkcontext/blob/main/mcp/README.md)

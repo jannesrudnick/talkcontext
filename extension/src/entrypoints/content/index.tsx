@@ -51,22 +51,22 @@ export default defineContentScript({
 
     browser.runtime.onMessage.addListener((message: TabMessage) => {
       switch (message.type) {
-        case "qey:state":
+        case "talkcontext:state":
           overlayStore.setState({ tab: message.state });
           break;
-        case "qey:toggle-overlay":
+        case "talkcontext:toggle-overlay":
           overlayStore.getState().actions.toggleOverlay();
           break;
-        case "qey:toggle-recording":
+        case "talkcontext:toggle-recording":
           overlayStore.getState().actions.toggleRecording();
           break;
-        case "qey:audio-level":
+        case "talkcontext:audio-level":
           overlayStore.setState({ audioLevel: message.level });
           break;
-        case "qey:saved":
+        case "talkcontext:saved":
           overlayStore.setState({ savedId: message.recordingId });
           break;
-        case "qey:live":
+        case "talkcontext:live":
           controller.onLive(message.event);
           break;
       }

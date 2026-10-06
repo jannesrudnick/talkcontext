@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image, { type StaticImageData } from "next/image";
 import feedbackBubble from "../../extension/docs/feedback-bubble.png";
 import feedbackTab from "../../extension/docs/feedback-tab.png";
@@ -5,12 +6,14 @@ import liveCaptions from "../../extension/docs/live-captions.png";
 import pen from "../../extension/docs/pen.png";
 import replay from "../../extension/docs/replay.png";
 
-import { REPO } from "./repo";
+import { DESCRIPTION, REPO, SITE_URL } from "./site";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 const STEPS = [
   {
     title: "Click through and talk",
-    text: "Use the app like you normally would and say what's good or bad. qey transcribes you live and records every hover, click, input, console error and failed request on the same timeline.",
+    text: "Use the app like you normally would and say what's good or bad. TalkContext transcribes you live and records every hover, click, input, console error and failed request on the same timeline.",
   },
   {
     title: "Right-click what's wrong",
@@ -18,7 +21,7 @@ const STEPS = [
   },
   {
     title: "Claude fetches the feedback",
-    text: "When you stop, the recording goes to a local MCP server. In Claude Code you just say “Fix the latest qey feedback” – screenshots included, as images.",
+    text: "When you stop, the recording goes to a local MCP server. In Claude Code you just say “Fix the latest TalkContext feedback” – screenshots included, as images.",
   },
 ];
 
@@ -37,6 +40,55 @@ const FEATURES = [
   ["Whisper or realtime", "Live transcript via OpenAI Realtime, or local Whisper in the browser after recording."],
   ["English or German", "Pick the language you speak – both work for live and post-recording transcription."],
 ];
+
+const FAQ = [
+  [
+    "How do I give Claude Code feedback on my UI?",
+    "Install the TalkContext extension, start a recording on your app and right-click the element you mean while you talk. When you stop, the local MCP server hands Claude Code each feedback point with selector, component, styles, screenshot and errors. Then just ask Claude to fix the latest feedback.",
+  ],
+  [
+    "Does it work with Cursor, Codex or other agents?",
+    "The handoff is a standard MCP server (stdio), so any MCP-capable agent can read it. It's built and tested with Claude Code.",
+  ],
+  [
+    "Do I need to add a script or SDK to my app?",
+    "No. TalkContext is a browser extension and works on any page – localhost, staging or production.",
+  ],
+  [
+    "Does my data leave my machine?",
+    "Recordings stay in your browser and go to an MCP server on 127.0.0.1. Audio is only sent to OpenAI if you add your own API key; otherwise Whisper transcribes locally in the browser.",
+  ],
+  [
+    "Which frameworks are supported?",
+    "Any web app. For React and Vue dev builds TalkContext also captures the component chain, including source files when available.",
+  ],
+  ["Is it free?", "Yes. TalkContext is open source under the MIT license."],
+];
+
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      name: "TalkContext",
+      description: DESCRIPTION,
+      url: SITE_URL,
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Chrome",
+      license: "https://opensource.org/licenses/MIT",
+      codeRepository: REPO,
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: FAQ.map(([question, answer]) => ({
+        "@type": "Question",
+        name: question,
+        acceptedAnswer: { "@type": "Answer", text: answer },
+      })),
+    },
+  ],
+};
 
 const HANDOFF = `## F1 · [00:16.5] button "Place order" – /
 
@@ -58,8 +110,13 @@ Computed styles
 export default function Home() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        // Escaped as in the Next.js JSON-LD guide, so the payload can't close the script tag.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD).replace(/</g, "\\u003c") }}
+      />
       <section className="pt-12 pb-10 text-center sm:pt-20">
-        <p className="text-sm font-medium text-brand">Open source · Chrome extension · MCP server for Claude Code</p>
+        <p className="text-sm font-medium text-brand">Visual UI feedback for AI coding agents · open source · MCP for Claude Code</p>
         <h1 className="mx-auto mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
           QA feedback your coding agent can actually read
         </h1>
@@ -127,7 +184,7 @@ export default function Home() {
         <div>
           <h2 className="text-3xl font-semibold tracking-tight">What Claude receives</h2>
           <p className="mt-4 leading-relaxed text-zinc-600">
-            No screenshots to interpret, no guessing which button you meant. The qey MCP server hands Claude Code
+            No screenshots to interpret, no guessing which button you meant. The TalkContext MCP server hands Claude Code
             each feedback point as text – your comment, a stable selector, the component chain, the steps before
             and the errors in that time window – plus the screenshots as images.
           </p>
@@ -148,16 +205,28 @@ export default function Home() {
         </dl>
       </section>
 
+      <section className="border-t border-zinc-200 py-20 sm:py-28">
+        <h2 className="text-3xl font-semibold tracking-tight">FAQ</h2>
+        <dl className="mt-10 grid gap-x-12 gap-y-8 lg:grid-cols-2">
+          {FAQ.map(([question, answer]) => (
+            <div key={question}>
+              <dt className="font-semibold">{question}</dt>
+              <dd className="mt-2 text-sm leading-relaxed text-zinc-600">{answer}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
       <section className="rounded-2xl bg-zinc-900 px-6 py-12 text-center text-white sm:px-12">
         <h2 className="text-3xl font-semibold tracking-tight">Try it in five minutes</h2>
         <p className="mx-auto mt-4 max-w-xl text-zinc-300">
-          qey isn&apos;t in the Chrome Web Store yet. Build it, load it unpacked in developer mode and connect
+          TalkContext isn&apos;t in the Chrome Web Store yet. Build it, load it unpacked in developer mode and connect
           Claude Code with one command.
         </p>
         <pre className="mx-auto mt-8 max-w-xl overflow-x-auto rounded-lg bg-black/40 p-4 text-left font-mono text-[13px] text-zinc-200">
-          {`git clone ${REPO}.git && cd qey
-pnpm install && pnpm --filter qey-extension build
-claude mcp add qey -- node "$(pwd)/mcp/dist/index.js"`}
+          {`git clone ${REPO}.git && cd talkcontext
+pnpm install && pnpm --filter talkcontext-extension build
+claude mcp add talkcontext -- node "$(pwd)/mcp/dist/index.js"`}
         </pre>
         <a
           href={`${REPO}#installation-without-the-chrome-web-store`}

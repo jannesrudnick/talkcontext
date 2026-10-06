@@ -20,7 +20,7 @@ export function exportJson(recording: LoadedRecording) {
 export function exportReplay(recording: LoadedRecording) {
   const session = toQaSession(recording);
   const payload = {
-    version: "qey-replay/1",
+    version: "talkcontext-replay/1",
     meta: recording.meta,
     rrweb: recording.rrweb,
     console: recording.console,

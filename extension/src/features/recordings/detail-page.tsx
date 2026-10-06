@@ -229,7 +229,7 @@ function RecordingView({
         const next = await updateRecording(meta.id, (current) => ({ ...current, sentAt: Date.now() }));
         if (next) onChange({ ...recording, meta: next });
         toast.success("Sent to Claude Code", {
-          description: `In Claude Code: “Fix the qey feedback” – ${handoff.manifest.items.length} points${result.path ? ` · ${result.path}` : ""}`,
+          description: `In Claude Code: “Fix the TalkContext feedback” – ${handoff.manifest.items.length} points${result.path ? ` · ${result.path}` : ""}`,
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

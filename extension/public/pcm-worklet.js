@@ -26,4 +26,4 @@ class PcmCapture extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor("qey-pcm-capture", PcmCapture);
+registerProcessor("talkcontext-pcm-capture", PcmCapture);

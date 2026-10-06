@@ -7,13 +7,13 @@
  * DOM snippet. The detailed timeline stays as an appendix.
  *
  * The result is a file tree that is downloaded as a ZIP, sent to the local
- * qey MCP server or (Markdown only) copied to the clipboard:
+ * TalkContext MCP server or (Markdown only) copied to the clipboard:
  *
  *   feedback.md        Handoff for reading
  *   handoff.json       Structured, separate Markdown per point (for MCP tools)
  *   session.json       Full log (qa-recording/1) plus console/network
  *   screenshots/*.jpg  With timestamp in the name
- *   dom/f<n>.html      DOM snippet, target marked with data-qey-target
+ *   dom/f<n>.html      DOM snippet, target marked with data-talkcontext-target
  */
 import { buildJson, describeElement, eventHeadline, formatDuration, formatTimecode } from "@/lib/qa/export";
 import type { QaEvent } from "@/lib/qa/types";
@@ -25,7 +25,7 @@ import {
 } from "@/features/recordings/load";
 import type { ConsoleEntry, FeedbackItem, NetworkEntry, Screenshot } from "@/lib/types";
 
-export const HANDOFF_VERSION = "qey-handoff/1";
+export const HANDOFF_VERSION = "talkcontext-handoff/1";
 
 export interface HandoffFile {
   path: string;
@@ -273,7 +273,7 @@ export async function buildHandoff(recording: LoadedRecording): Promise<Handoff>
     if (item.dom) {
       domPath = `dom/f${item.index}.html`;
       files.push({ path: domPath, data: item.dom });
-      lines.push("", `**DOM snippet:** \`${domPath}\` (target marked with \`data-qey-target\`)`);
+      lines.push("", `**DOM snippet:** \`${domPath}\` (target marked with \`data-talkcontext-target\`)`);
     }
 
     items.push({ key, title, markdown: lines.join("\n"), screenshots: shots, dom: domPath });
@@ -288,7 +288,7 @@ export async function buildHandoff(recording: LoadedRecording): Promise<Handoff>
   out.push(
     quote(
       [
-        "Recorded with qey. The feedback points (F1, F2, …) are explicit findings by the tester:",
+        "Recorded with TalkContext. The feedback points (F1, F2, …) are explicit findings by the tester:",
         "made by right-clicking an element, marking with the pen or as a note. Whatever was said meanwhile",
         "is attached directly to the point. Screenshots are in `screenshots/`, DOM snippets in `dom/`.",
       ].join("\n"),

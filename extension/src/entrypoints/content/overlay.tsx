@@ -38,7 +38,7 @@ export function Overlay({ controller }: { controller: RecordingController }) {
   const recording = Boolean(tab.recording && !tab.recording.stopping);
 
   return (
-    <div className="qey-root dark">
+    <div className="talkcontext-root dark">
       {recording && !active && !pen && (
         <TargetHighlight controller={controller} enabled={tab.settings.recorder.highlight} />
       )}
@@ -150,7 +150,7 @@ function RecordingControls({ controller }: { controller: RecordingController }) 
   return (
     <>
       <div className="flex items-center gap-2 pr-1 pl-1.5">
-        <span className="qey-pulse size-2.5 rounded-full bg-[var(--recording)] shadow-[0_0_0_4px_color-mix(in_oklch,var(--recording)_25%,transparent)]" />
+        <span className="talkcontext-pulse size-2.5 rounded-full bg-[var(--recording)] shadow-[0_0_0_4px_color-mix(in_oklch,var(--recording)_25%,transparent)]" />
         <Timer since={recording.startedAt} />
       </div>
       <AudioIndicator />
@@ -613,9 +613,9 @@ function Logo() {
   return (
     <div className="flex items-center gap-1.5 pr-1 pl-0.5">
       <span className="flex size-6 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--brand)] to-fuchsia-500 text-[12px] font-bold text-white">
-        q
+        T
       </span>
-      <span className="text-[13px] font-semibold tracking-tight">qey</span>
+      <span className="text-[13px] font-semibold tracking-tight">TalkContext</span>
     </div>
   );
 }
@@ -708,7 +708,7 @@ function HighlightToggle() {
       onClick={() => {
         highlightOverride = !on;
         setOn(!on);
-        window.dispatchEvent(new CustomEvent("qey:highlight", { detail: !on }));
+        window.dispatchEvent(new CustomEvent("talkcontext:highlight", { detail: !on }));
       }}
     >
       <CrosshairIcon />
@@ -724,8 +724,8 @@ function TargetHighlight({ controller, enabled }: { controller: RecordingControl
   useEffect(() => controller.onTarget(setTarget), [controller]);
   useEffect(() => {
     const listener = (event: Event) => setOn((event as CustomEvent<boolean>).detail);
-    window.addEventListener("qey:highlight", listener);
-    return () => window.removeEventListener("qey:highlight", listener);
+    window.addEventListener("talkcontext:highlight", listener);
+    return () => window.removeEventListener("talkcontext:highlight", listener);
   }, []);
 
   if (capturing || !on || !target || (!target.rect.width && !target.rect.height)) return null;
