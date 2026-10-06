@@ -1,6 +1,6 @@
 {
   "name": "qey-extension",
-  "description": "qey – QA-Recorder als Browser-Extension",
+  "description": "qey – QA recorder as a browser extension",
   "version": "0.1.0",
   "private": true,
   "engines": {

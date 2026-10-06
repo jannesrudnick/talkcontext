@@ -1,7 +1,7 @@
 {
   "name": "qey-mcp",
   "version": "0.1.0",
-  "description": "MCP-Server, über den Claude Code die QA-Aufnahmen der qey-Extension liest",
+  "description": "MCP server through which Claude Code reads the QA recordings of the qey extension",
   "private": true,
   "type": "module",
   "engines": {

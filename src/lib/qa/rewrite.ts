@@ -1,9 +1,9 @@
 /**
- * HTML/CSS-Rewriting fuer den Frame-Proxy.
+ * HTML/CSS rewriting for the frame proxy.
  *
- * Ziel: Das Dokument wird von *unserer* Origin ausgeliefert, damit das
- * Recorder-Skript vollen DOM-Zugriff hat. Damit die Seite trotzdem laedt,
- * werden alle URLs auf den Proxy umgebogen.
+ * Goal: the document is served from *our* origin so the recorder script has
+ * full DOM access. So that the page still loads, all URLs are redirected
+ * to the proxy.
  */
 import { toProxyPath } from "./proxy-url";
 
@@ -45,10 +45,10 @@ export function rewriteCss(css: string, baseUrl: string): string {
 
 const URL_ATTRS = new Set(["src", "href", "action", "formaction", "poster", "data-src", "data-href"]);
 
-/** Attribute innerhalb eines einzelnen Tags umschreiben. */
+/** Rewrite attributes within a single tag. */
 function rewriteTag(tag: string, baseUrl: string): string {
   let result = tag
-    // Subresource Integrity passt nach dem Rewriting nicht mehr.
+    // Subresource integrity no longer matches after rewriting.
     .replace(/\s+integrity\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
     .replace(/\s+crossorigin\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
     .replace(/\s+crossorigin(?=[\s>])/gi, "");
@@ -70,7 +70,7 @@ function rewriteTag(tag: string, baseUrl: string): string {
     },
   );
 
-  // Inline-Styles koennen url(...) enthalten.
+  // Inline styles can contain url(...).
   result = result.replace(/(\sstyle\s*=\s*)("[^"]*"|'[^']*')/gi, (match, prefix: string, quoted: string) => {
     const quote = quoted[0];
     const value = quoted.slice(1, -1);
@@ -81,16 +81,16 @@ function rewriteTag(tag: string, baseUrl: string): string {
 }
 
 interface RewriteOptions {
-  /** Reale URL des Dokuments - Basis fuer relative URLs. */
+  /** Real URL of the document - base for relative URLs. */
   baseUrl: string;
-  /** Markup, das so frueh wie moeglich in den <head> injiziert wird. */
+  /** Markup that is injected into the <head> as early as possible. */
   injection: string;
 }
 
 export function rewriteHtml(html: string, options: RewriteOptions): string {
   const { baseUrl, injection } = options;
 
-  // Ein vorhandenes <base href> aendert die Aufloesung relativer URLs.
+  // An existing <base href> changes how relative URLs resolve.
   const baseMatch = html.match(/<base[^>]+href\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
   let effectiveBase = baseUrl;
   if (baseMatch) {
@@ -98,12 +98,12 @@ export function rewriteHtml(html: string, options: RewriteOptions): string {
     try {
       effectiveBase = new URL(raw, baseUrl).toString();
     } catch {
-      /* ungueltige base - Dokument-URL behalten */
+      /* invalid base - keep the document URL */
     }
   }
 
-  // Script- und Style-Bloecke herausnehmen, damit der Tag-Scan nicht in
-  // JavaScript-Quelltext hineinlaeuft.
+  // Take out script and style blocks so the tag scan doesn't run into
+  // JavaScript source code.
   const blocks: string[] = [];
   let working = html.replace(
     /<script\b[^>]*>[\s\S]*?<\/script>|<style\b[^>]*>[\s\S]*?<\/style>/gi,
@@ -123,15 +123,15 @@ export function rewriteHtml(html: string, options: RewriteOptions): string {
   );
 
   working = working
-    // <base> entfernen: Der Proxy-Pfad spiegelt den Zielpfad bereits.
+    // Remove <base>: the proxy path already mirrors the target path.
     .replace(/<base\b[^>]*>/gi, "")
-    // CSP und Referrer-Policy wuerden Injection bzw. Referer-Fallback brechen.
+    // CSP and referrer policy would break injection and the referer fallback, respectively.
     .replace(/<meta\b[^>]*http-equiv\s*=\s*["']?content-security-policy["']?[^>]*>/gi, "")
     .replace(/<meta\b[^>]*name\s*=\s*["']?referrer["']?[^>]*>/gi, "");
 
   working = working.replace(/<[a-zA-Z!/][^>]*>/g, (tag) => rewriteTag(tag, effectiveBase));
 
-  // Meta-Refresh auf den Proxy umbiegen.
+  // Redirect meta refresh to the proxy.
   working = working.replace(
     /(<meta\b[^>]*http-equiv\s*=\s*["']?refresh["']?[^>]*content\s*=\s*")([^"]*)(")/gi,
     (match, prefix: string, content: string, suffix: string) => {
@@ -145,7 +145,7 @@ export function rewriteHtml(html: string, options: RewriteOptions): string {
 
   working = working.replace(/ QABLOCK(\d+)QABLOCK /g, (match, index: string) => blocks[Number(index)]);
 
-  // So frueh wie moeglich injizieren, damit Patches vor App-Code greifen.
+  // Inject as early as possible so patches take effect before app code.
   if (/<head[^>]*>/i.test(working)) {
     return working.replace(/<head[^>]*>/i, (tag) => `${tag}\n${injection}`);
   }

@@ -12,13 +12,13 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Browser-Skript, das in der Zielseite laeuft - kein Teil des App-Builds.
+    // Browser script that runs in the target page - not part of the app build.
     "public/qa-recorder.js",
-    // Aus node_modules kopierte ONNX-Runtime, siehe scripts/copy-ort-runtime.mjs.
+    // ONNX runtime copied from node_modules, see scripts/copy-ort-runtime.mjs.
     "public/ort/**",
-    // Eigenes Paket mit eigenem Build (WXT), siehe extension/README.md.
+    // Separate package with its own build (WXT), see extension/README.md.
     "extension/**",
-    // Eigenes Paket (qey-MCP-Server), siehe mcp/README.md.
+    // Separate package (qey MCP server), see mcp/README.md.
     "mcp/**",
   ]),
 ]);

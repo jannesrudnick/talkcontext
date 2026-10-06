@@ -1,11 +1,11 @@
 /**
- * Kopiert die WASM-Runtime von onnxruntime-web nach public/ort/.
+ * Copies the onnxruntime-web WASM runtime to public/ort/.
  *
- * transformers.js laedt diese Dateien sonst zur Laufzeit von einem CDN. Das
- * waere eine externe Abhaengigkeit fuer ein Werkzeug, das ausdruecklich lokal
- * arbeitet - und in Umgebungen ohne freien Netzzugang schlicht kaputt.
- * Die Dateien sind gross und generiert, deshalb liegen sie nicht im Repo,
- * sondern werden bei install/dev/build aus node_modules kopiert.
+ * Otherwise transformers.js loads these files from a CDN at runtime. That
+ * would be an external dependency for a tool that explicitly works locally -
+ * and simply broken in environments without open network access.
+ * The files are large and generated, so they are not in the repo but are
+ * copied from node_modules on install/dev/build.
  */
 import { copyFile, mkdir, readdir, stat } from "node:fs/promises";
 import path from "node:path";
@@ -15,14 +15,14 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const target = path.join(root, "public", "ort");
 
-// require.resolve statt fest verdrahtetem node_modules-Pfad: pnpm hoisted
-// onnxruntime-web (transitive Dependency von @huggingface/transformers) nicht
-// nach node_modules/, sondern nur in den .pnpm-Store.
+// require.resolve instead of a hard-wired node_modules path: pnpm does not hoist
+// onnxruntime-web (transitive dependency of @huggingface/transformers) into
+// node_modules/, only into the .pnpm store.
 const require = createRequire(import.meta.url);
 let source;
 try {
-  // "package.json" ist im exports-Feld von onnxruntime-web nicht freigegeben,
-  // deshalb ueber den Haupteinstieg aufloesen statt ueber require.resolve("onnxruntime-web/package.json").
+  // "package.json" is not exposed in onnxruntime-web's exports field, so resolve
+  // via the main entry instead of require.resolve("onnxruntime-web/package.json").
   const entry = require.resolve("onnxruntime-web");
   const marker = `${path.sep}onnxruntime-web${path.sep}`;
   const cut = entry.lastIndexOf(marker);
@@ -36,7 +36,7 @@ const NEEDED = /^ort-wasm-simd-threaded.*\.(mjs|wasm)$/;
 
 async function main() {
   if (!source) {
-    console.warn("[ort] onnxruntime-web nicht gefunden - uebersprungen.");
+    console.warn("[ort] onnxruntime-web not found - skipped.");
     return;
   }
 
@@ -44,7 +44,7 @@ async function main() {
   try {
     entries = await readdir(source);
   } catch {
-    console.warn("[ort] onnxruntime-web nicht gefunden - uebersprungen.");
+    console.warn("[ort] onnxruntime-web not found - skipped.");
     return;
   }
 
@@ -58,7 +58,7 @@ async function main() {
     await copyFile(from, to);
     copied += 1;
   }
-  console.log(`[ort] ${copied} Datei(en) nach public/ort kopiert.`);
+  console.log(`[ort] ${copied} file(s) copied to public/ort.`);
 }
 
 await main();

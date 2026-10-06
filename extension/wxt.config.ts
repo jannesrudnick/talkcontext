@@ -4,16 +4,16 @@ import type { Plugin } from "vite";
 import { defineConfig } from "wxt";
 
 /**
- * Chrome verweigert Content-Scripts, die Unicode-Nichtzeichen (U+FFFE, U+FFFF,
- * U+FDD0-FDEF) literal enthalten ("isn't UTF-8 encoded"). postcss - via rrweb
- * gebuendelt - vergleicht gegen ein literales U+FFFE. Als Escape ist es harmlos.
+ * Chrome rejects content scripts that contain Unicode noncharacters (U+FFFE, U+FFFF,
+ * U+FDD0-FDEF) literally ("isn't UTF-8 encoded"). postcss - bundled via rrweb -
+ * compares against a literal U+FFFE. As an escape it is harmless.
  */
 function escapeNoncharacters(): Plugin {
   const pattern = /[\uFDD0-\uFDEF\uFFFE\uFFFF]/g;
   return {
     name: "qey:escape-noncharacters",
     enforce: "post",
-    // Erst nach der Minifizierung - die wuerde Escapes sonst wieder aufloesen.
+    // Only after minification - it would otherwise resolve the escapes again.
     generateBundle(_options, bundle) {
       for (const file of Object.values(bundle)) {
         if (file.type !== "chunk") continue;
@@ -28,8 +28,8 @@ export default defineConfig({
   srcDir: "src",
   modules: ["@wxt-dev/module-react"],
   alias: {
-    // Datenmodell, Korrelation und Markdown-Export teilt sich die Extension mit
-    // der Next-App - eine Quelle, damit beide dasselbe Artefakt erzeugen.
+    // The extension shares the data model, correlation and Markdown export with
+    // the Next app - one source, so both produce the same artifact.
     "@shared": path.resolve(__dirname, "../src/lib/qa"),
   },
   vite: () => ({
@@ -41,22 +41,22 @@ export default defineConfig({
     name: "qey – QA Recorder",
     short_name: "qey",
     description:
-      "Nimmt manuelle QA-Sessions als Session-Replay plus DOM-Protokoll und Sprache auf – ohne Skript in der Zielanwendung.",
+      "Records manual QA sessions as session replay plus DOM log and voice – no script needed in the target app.",
     permissions: ["storage", "unlimitedStorage", "offscreen", "scripting", "tabs", "contextMenus"],
     host_permissions: ["<all_urls>"],
-    action: { default_title: "qey – Overlay ein-/ausblenden" },
+    action: { default_title: "qey – Show/hide overlay" },
     commands: {
       "toggle-overlay": {
         suggested_key: { default: "Alt+Shift+Q" },
-        description: "Overlay ein-/ausblenden",
+        description: "Show/hide overlay",
       },
       "toggle-recording": {
         suggested_key: { default: "Alt+Shift+R" },
-        description: "Aufnahme starten/stoppen",
+        description: "Start/stop recording",
       },
     },
     content_security_policy: {
-      // Whisper laeuft lokal als WASM (onnxruntime-web).
+      // Whisper runs locally as WASM (onnxruntime-web).
       extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
     },
     web_accessible_resources: [

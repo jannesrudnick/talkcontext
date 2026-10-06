@@ -1,8 +1,8 @@
 /**
- * Steuert die Aufnahme im Tab: rrweb fuer das Replay, der semantische Recorder
- * fuer das Agenten-Protokoll, dazu Konsole/Netzwerk aus der MAIN world.
- * Alles wird gepuffert und sekundenweise ueber einen Port an den Background
- * geschickt, der es in IndexedDB schreibt.
+ * Drives the recording in the tab: rrweb for the replay, the semantic recorder
+ * for the agent log, plus console/network from the MAIN world.
+ * Everything is buffered and sent every second over a port to the background,
+ * which writes it to IndexedDB.
  */
 import { record } from "rrweb";
 import { injectScript } from "#imports";
@@ -22,13 +22,13 @@ import type { ChunkKind, ChunkPayloads, ComponentInfo, FeedbackItem, Settings } 
 import { FeedbackManager } from "./feedback";
 import type { ElementRef } from "@shared/types";
 
-/** Alles, was zum Overlay gehoert, taucht weder im Replay noch im Protokoll auf. */
+/** Anything belonging to the overlay shows up neither in the replay nor in the log. */
 export const OVERLAY_TAG = "qey-overlay";
 
 /**
- * Gehoert der Knoten zum Overlay? Events aus dem Shadow Root werden auf den
- * Host umgelenkt, `closest` endet aber an der Shadow-Grenze - deshalb ueber
- * den Root-Knoten gehen.
+ * Does the node belong to the overlay? Events from the shadow root are retargeted
+ * to the host, but `closest` stops at the shadow boundary - so go through
+ * the root node.
  */
 export function isOverlayNode(node: EventTarget | Node | null): boolean {
   if (!(node instanceof Node)) return false;
@@ -79,7 +79,7 @@ export class RecordingController {
     return this.running;
   }
 
-  /** So frueh wie moeglich - damit Konsole/Netzwerk ab dem ersten Request mitlaufen. */
+  /** As early as possible - so console/network are captured from the first request. */
   injectMainWorld() {
     if (this.mainWorldInjected) return;
     this.mainWorldInjected = true;
@@ -143,7 +143,7 @@ export class RecordingController {
 
   private listenForFeedback(settings: Settings) {
     const onContextMenu = (event: MouseEvent) => {
-      // Alt+Rechtsklick laesst das normale Kontextmenue durch.
+      // Alt+right-click lets the native context menu through.
       if (!settings.feedback.contextMenu || event.altKey) return;
       const target = event.composedPath()[0] ?? event.target;
       if (isOverlayNode(target as Node) || !(event.target instanceof Element)) return;
@@ -206,7 +206,7 @@ export class RecordingController {
     if (!this.settings?.feedback.screenshotOnError || !this.feedback) return;
     if (Date.now() - this.lastErrorShot < 4000) return;
     this.lastErrorShot = Date.now();
-    // Der Fehler wird oft erst kurz danach sichtbar (Toast, Meldung).
+    // The error often only becomes visible shortly after (toast, message).
     window.setTimeout(() => void this.feedback?.screenshot("error"), 500);
   }
 
@@ -231,7 +231,7 @@ export class RecordingController {
     this.flush();
   }
 
-  /** Beschreibung des Elements, an das eine Notiz jetzt gehaengt wuerde. */
+  /** Description of the element a note would be attached to right now. */
   currentTarget(): ElementRef | undefined {
     return this.lastTarget?.isConnected ? describe(this.lastTarget, { captureHtml: false, html: false }) : undefined;
   }
@@ -243,7 +243,7 @@ export class RecordingController {
     };
   }
 
-  /* ------------------------------------------------------------- intern */
+  /* ----------------------------------------------------------- internal */
 
   private setTarget(el: Element | null) {
     if (el) this.lastTarget = el;
@@ -308,7 +308,7 @@ export class RecordingController {
 
   private push<K extends ChunkKind>(kind: K, item: ChunkPayloads[K][number]) {
     (this.buffers[kind] as unknown[]).push(item);
-    // Grosse Snapshots nicht unnoetig im Speicher halten.
+    // Don't keep large snapshots in memory longer than needed.
     if (kind === "rrweb" && this.buffers.rrweb.length > 400) this.flush();
   }
 
@@ -329,7 +329,7 @@ export class RecordingController {
     });
     this.port.onDisconnect.addListener(() => {
       this.port = null;
-      // Service Worker wurde neu gestartet - neu verbinden, solange wir aufnehmen.
+      // Service worker was restarted - reconnect while we are recording.
       if (this.running) window.setTimeout(() => this.connect(), 200);
     });
   }

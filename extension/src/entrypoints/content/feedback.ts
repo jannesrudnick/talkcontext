@@ -1,11 +1,11 @@
 /**
- * Feedback-Punkte: ausdrueckliche Befunde statt geratener Zuordnung.
+ * Feedback points: explicit findings instead of guessed assignment.
  *
- * Ein Punkt entsteht per Rechtsklick auf ein Element, mit dem Stift, oder ueber
- * die Notiz-/Bug-Buttons. Solange er aktiv ist, gehoert alles Gesagte (Live-
- * Transkript), Getippte und Gezeichnete zu ihm. Jeder Punkt bekommt einen
- * Screenshot, die Komponentenkette (React/Vue), berechnete Styles und einen
- * DOM-Ausschnitt - genug Kontext, damit ein Agent ohne Rueckfrage loslegen kann.
+ * A point is created by right-clicking an element or with the pen.
+ * While it is active, everything said (live
+ * transcript), typed and drawn belongs to it. Each point gets a
+ * screenshot, the component chain (React/Vue), computed styles and a
+ * DOM snippet - enough context for an agent to get going without follow-up questions.
  */
 import type { LiveTextEvent } from "@/lib/messages";
 import { describe, meaningful } from "@/lib/recorder/describe";
@@ -17,21 +17,21 @@ import { createStore } from "./store";
 export interface Caption {
   id: string;
   text: string;
-  /** Zu welchem Punkt der Satz gezaehlt wurde. */
+  /** Which point the sentence was counted towards. */
   feedback: string | null;
   at: number;
 }
 
 export interface FeedbackState {
   active: FeedbackItem | null;
-  /** Laufender, noch nicht finaler Satz aus dem Live-Transkript. */
+  /** Current, not yet final sentence from the live transcript. */
   partial: string;
   captions: Caption[];
   pen: boolean;
   penColor: string;
-  /** Sichtbare Striche (aktiver Punkt und noch nicht zugeordnete). */
+  /** Visible strokes (active point and not yet assigned ones). */
   strokes: Stroke[];
-  /** Waehrend eines Screenshots wird die eigene Oberflaeche ausgeblendet. */
+  /** Our own UI is hidden while a screenshot is taken. */
   capturing: boolean;
 }
 
@@ -48,7 +48,7 @@ export const feedbackStore = createStore<FeedbackState>(() => ({
 export interface FeedbackDeps {
   save: (item: FeedbackItem) => void;
   saveStrokes: (strokes: Stroke[]) => void;
-  /** Notiz ins semantische Protokoll schreiben (fuer die Timeline). */
+  /** Write a note to the semantic log (for the timeline). */
   logNote: (item: FeedbackItem) => void;
   probeComponent: (el: Element) => Promise<ComponentInfo | null>;
   captureHtml: boolean;
@@ -86,7 +86,7 @@ const STYLE_PROPS = [
 
 const DEFAULTISH = new Set(["none", "normal", "auto", "0px", "visible", "static", "rgba(0, 0, 0, 0)", "1", "0px none rgb(0, 0, 0)"]);
 
-/** Werte, die nur in bestimmten Layouts etwas bedeuten. */
+/** Values that only mean something in certain layouts. */
 const ONLY_IF: Record<string, (computed: CSSStyleDeclaration) => boolean> = {
   "flex-direction": (c) => c.display.includes("flex"),
   "justify-content": (c) => c.display.includes("flex") || c.display.includes("grid"),
@@ -107,21 +107,21 @@ function stylesOf(el: Element): Record<string, string> {
     if (ONLY_IF[prop] && !ONLY_IF[prop](computed)) continue;
     styles[prop] = value.length > 120 ? `${value.slice(0, 120)}…` : value;
   }
-  // Abgeschnittener Inhalt ist einer der haeufigsten Layout-Befunde.
+  // Clipped content is one of the most common layout findings.
   if (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) {
-    styles["(overflow)"] = `Inhalt ${el.scrollWidth}×${el.scrollHeight} > sichtbar ${el.clientWidth}×${el.clientHeight}`;
+    styles["(overflow)"] = `content ${el.scrollWidth}×${el.scrollHeight} > visible ${el.clientWidth}×${el.clientHeight}`;
   }
   return styles;
 }
 
 const CONTAINER = "form,section,article,dialog,[role=dialog],main,nav,header,footer,li,tr,[class*=card]";
 
-/** DOM-Ausschnitt um das Element, das Ziel mit `data-qey-target` markiert. */
+/** DOM snippet around the element, with the target marked by `data-qey-target`. */
 function domSnippet(el: Element): string {
   let container = el.closest(CONTAINER) ?? el.parentElement?.parentElement ?? el;
   if (container === document.body || container === document.documentElement) container = el.parentElement ?? el;
 
-  // Pfad vom Container zum Ziel merken, um die Kopie zu markieren - das Original bleibt unangetastet.
+  // Remember the path from container to target to mark the clone - the original stays untouched.
   const path: number[] = [];
   for (let node: Element | null = el; node && node !== container; node = node.parentElement) {
     if (!node.parentElement) break;
@@ -159,7 +159,7 @@ export class FeedbackManager {
   private pendingStrokes: Stroke[] = [];
   private lastClosed: FeedbackItem | null = null;
   private liveItemId = "";
-  /** Saetze ohne Punkt - werden beim naechsten Rechtsklick eingesammelt. */
+  /** Sentences without a point - collected on the next right-click. */
   private loose: Array<{ text: string; at: number }> = [];
 
   constructor(private deps: FeedbackDeps) {}
@@ -168,7 +168,7 @@ export class FeedbackManager {
     return feedbackStore.getState().active;
   }
 
-  /* --------------------------------------------------------- Lebenszyklus */
+  /* ------------------------------------------------------------ Lifecycle */
 
   async begin(
     el: Element | null,
@@ -206,7 +206,7 @@ export class FeedbackManager {
     return item;
   }
 
-  /** Kuerzlich Gesagtes, das noch zu keinem Punkt gehoert (Reden, dann Rechtsklick). */
+  /** Recently said speech not yet tied to a point (talk, then right-click). */
   private takeLoose() {
     const recent = this.loose.filter((entry) => Date.now() - entry.at < 10000).map((entry) => entry.text);
     this.loose = [];
@@ -237,13 +237,13 @@ export class FeedbackManager {
     this.update({ text });
   }
 
-  /** Beim Seitenwechsel oder Stoppen: alles Offene abschliessen. */
+  /** On navigation or stop: close everything still open. */
   finish() {
     this.close();
     window.clearTimeout(this.saveTimer);
   }
 
-  /* ------------------------------------------------------------- Sprache */
+  /* --------------------------------------------------------------- Speech */
 
   onLive(event: LiveTextEvent) {
     if (event.kind === "delta") {
@@ -258,8 +258,8 @@ export class FeedbackManager {
     feedbackStore.setState({ partial: "" });
     if (!event.text) return;
 
-    // Zum aktiven Punkt, oder zum gerade geschlossenen, wenn der Satz noch
-    // waehrend dessen Aktivzeit begonnen hat.
+    // To the active point, or to the one just closed if the sentence
+    // started while it was still active.
     let target: FeedbackItem | null = null;
     const active = this.active;
     if (active && event.end >= active.activeFrom - 1500) target = active;
@@ -281,7 +281,7 @@ export class FeedbackManager {
     feedbackStore.setState({ captions });
   }
 
-  /* ---------------------------------------------------------------- Stift */
+  /* ------------------------------------------------------------------ Pen */
 
   togglePen(on?: boolean) {
     const pen = on ?? !feedbackStore.getState().pen;
@@ -293,7 +293,7 @@ export class FeedbackManager {
     feedbackStore.setState({ penColor });
   }
 
-  /** Ein Strich ist fertig - kurz warten, ob weitere zur selben Markierung gehoeren. */
+  /** A stroke is done - wait briefly in case more belong to the same marking. */
   addStroke(stroke: Omit<Stroke, "feedbackId">) {
     const pending = { ...stroke, feedbackId: this.active?.id ?? "" };
     this.pendingStrokes.push(pending);
@@ -308,7 +308,7 @@ export class FeedbackManager {
     void this.commitStrokes();
   }
 
-  /** Offene Striche ohne Screenshot direkt an den aktiven Punkt haengen. */
+  /** Attach pending strokes to the active point directly, without a screenshot. */
   private attachPendingStrokes() {
     const item = this.active;
     if (!item || !this.pendingStrokes.length) return;
@@ -338,7 +338,7 @@ export class FeedbackManager {
     await this.screenshot("stroke");
   }
 
-  /** Das umkreiste/markierte Element: bestes Ueberlappungsverhaeltnis mit dem Umriss. */
+  /** The circled/marked element: best overlap ratio with the outline. */
   private elementForStrokes(strokes: Stroke[]): Element | null {
     const xs = strokes.flatMap((stroke) => stroke.points.map((point) => point[0]));
     const ys = strokes.flatMap((stroke) => stroke.points.map((point) => point[1]));
@@ -378,13 +378,13 @@ export class FeedbackManager {
         this.update({ screenshotIds: [...current.screenshotIds, shot.id] });
       }
     } catch {
-      /* Screenshot ist nett, aber nie wichtiger als die Aufnahme */
+      /* A screenshot is nice, but never more important than the recording */
     } finally {
       feedbackStore.setState({ capturing: false });
     }
   }
 
-  /* --------------------------------------------------------------- intern */
+  /* ------------------------------------------------------------- internal */
 
   private setActive(item: FeedbackItem | null) {
     feedbackStore.setState({ active: item });

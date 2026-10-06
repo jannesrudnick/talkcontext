@@ -9,7 +9,7 @@ export function ElementInspector({ event, onClose }: { event: QaEvent; onClose: 
   const meta = eventMeta(event);
   const copy = (value: string) => {
     void navigator.clipboard.writeText(value);
-    toast.success("Kopiert");
+    toast.success("Copied");
   };
 
   return (
@@ -19,17 +19,17 @@ export function ElementInspector({ event, onClose }: { event: QaEvent; onClose: 
           <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Element</p>
           <p className="truncate text-sm font-medium">{meta.label}</p>
         </div>
-        <Button size="icon-xs" variant="ghost" onClick={onClose} aria-label="Schließen">
+        <Button size="icon-xs" variant="ghost" onClick={onClose} aria-label="Close">
           <XIcon />
         </Button>
       </div>
       {ref ? (
         <dl className="grid grid-cols-[72px_1fr] gap-x-2 gap-y-1.5">
-          <Row label="Selektor" value={ref.selector} onCopy={copy} mono />
+          <Row label="Selector" value={ref.selector} onCopy={copy} mono />
           <Row label="XPath" value={ref.xpath} onCopy={copy} mono />
-          {ref.role && <Row label="Rolle" value={ref.role} />}
+          {ref.role && <Row label="Role" value={ref.role} />}
           {ref.name && <Row label="Name" value={ref.name} />}
-          {ref.path?.length ? <Row label="Pfad" value={ref.path.join(" › ")} mono /> : null}
+          {ref.path?.length ? <Row label="Path" value={ref.path.join(" › ")} mono /> : null}
           {ref.attrs &&
             Object.entries(ref.attrs).map(([key, value]) => <Row key={key} label={key} value={value} mono />)}
           {ref.html && (
@@ -44,7 +44,7 @@ export function ElementInspector({ event, onClose }: { event: QaEvent; onClose: 
           )}
         </dl>
       ) : (
-        <p className="text-muted-foreground">Kein Element zu diesem Ereignis.</p>
+        <p className="text-muted-foreground">No element for this event.</p>
       )}
     </div>
   );
@@ -71,7 +71,7 @@ function Row({
             type="button"
             onClick={() => onCopy(value)}
             className="opacity-0 transition group-hover:opacity-100"
-            aria-label="Kopieren"
+            aria-label="Copy"
           >
             <CopyIcon className="size-3 text-muted-foreground" />
           </button>

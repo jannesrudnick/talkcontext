@@ -5,28 +5,28 @@ import type { TranscriptSegment } from "@/lib/qa/types";
 import type { WhisperModelId, WhisperRequest, WhisperResponse } from "@/lib/qa/whisper.worker";
 
 export interface TranscriptionProgress {
-  /** 0..1 ueber alle Modelldateien hinweg. */
+  /** 0..1 across all model files. */
   ratio: number;
   label: string;
 }
 
-/** Groessen sind die realen Download-Summen der genutzten Quantisierung. */
+/** Sizes are the real download totals of the quantization used. */
 export const WHISPER_MODELS: Array<{ id: WhisperModelId; label: string; size: string }> = [
   { id: "onnx-community/whisper-tiny", label: "Tiny", size: "96 MB" },
   { id: "onnx-community/whisper-base", label: "Base", size: "146 MB" },
   { id: "onnx-community/whisper-small", label: "Small", size: "325 MB" },
 ];
 
-/** Audio-Blob zu 16-kHz-Mono dekodieren - das Format, das Whisper erwartet. */
+/** Decode an audio blob to 16 kHz mono - the format Whisper expects. */
 async function decodeTo16kMono(blob: Blob): Promise<Float32Array> {
   const buffer = await blob.arrayBuffer();
-  // Die Ziel-Samplerate am AudioContext laesst den Browser gleich beim
-  // Dekodieren resamplen.
+  // Setting the target sample rate on the AudioContext makes the browser
+  // resample while decoding.
   const context = new AudioContext({ sampleRate: 16000 });
   try {
     const decoded = await context.decodeAudioData(buffer);
     if (decoded.numberOfChannels === 1) return decoded.getChannelData(0).slice();
-    // Kanaele mitteln statt nur den ersten zu nehmen.
+    // Average the channels instead of taking only the first.
     const left = decoded.getChannelData(0);
     const right = decoded.getChannelData(1);
     const mono = new Float32Array(left.length);
@@ -38,10 +38,10 @@ async function decodeTo16kMono(blob: Blob): Promise<Float32Array> {
 }
 
 /**
- * Transkribiert die aufgenommene Tonspur lokal im Browser mit Whisper.
+ * Transcribes the recorded audio track locally in the browser with Whisper.
  *
- * Gegenueber der Web Speech API: laeuft in jedem Browser mit WebGPU oder WASM,
- * liefert echte Zeitstempel pro Abschnitt und schickt nichts an einen Server.
+ * Compared to the Web Speech API: runs in any browser with WebGPU or WASM,
+ * delivers real timestamps per segment and sends nothing to a server.
  */
 export function useTranscription() {
   const [running, setRunning] = useState(false);
@@ -63,14 +63,14 @@ export function useTranscription() {
     async (audio: Blob, model: WhisperModelId, language: string): Promise<TranscriptSegment[] | null> => {
       setError(null);
       setRunning(true);
-      setProgress({ ratio: 0, label: "Audio wird vorbereitet" });
+      setProgress({ ratio: 0, label: "Preparing audio" });
       fileSizes.current.clear();
 
       let samples: Float32Array;
       try {
         samples = await decodeTo16kMono(audio);
       } catch (decodeError) {
-        setError(decodeError instanceof Error ? decodeError.message : "Audio nicht dekodierbar");
+        setError(decodeError instanceof Error ? decodeError.message : "Audio could not be decoded");
         setRunning(false);
         setProgress(null);
         return null;
@@ -91,7 +91,7 @@ export function useTranscription() {
           if (data.type === "status") {
             setProgress({
               ratio: data.stage === "run" ? 1 : 0,
-              label: data.stage === "run" ? "Transkribiert" : "Modell wird geladen",
+              label: data.stage === "run" ? "Transcribing" : "Loading model",
             });
             return;
           }
@@ -105,7 +105,7 @@ export function useTranscription() {
             }
             setProgress({
               ratio: total > 0 ? loaded / total : 0,
-              label: `Modell wird geladen (${Math.round(loaded / 1e6)} / ${Math.round(total / 1e6)} MB)`,
+              label: `Loading model (${Math.round(loaded / 1e6)} / ${Math.round(total / 1e6)} MB)`,
             });
             return;
           }

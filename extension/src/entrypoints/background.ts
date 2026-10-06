@@ -1,10 +1,10 @@
 /**
- * Service Worker: haelt den Aufnahmezustand, nimmt die Datenspuren der
- * Content-Scripts entgegen, schreibt sie in IndexedDB und steuert das
- * Offscreen-Dokument fuer das Mikrofon.
+ * Service worker: holds the recording state, receives the data tracks from the
+ * content scripts, writes them to IndexedDB and controls the
+ * offscreen document for the microphone.
  *
- * Der Zustand liegt in `storage.session`, nicht in Variablen - der Service
- * Worker kann jederzeit beendet und neu gestartet werden.
+ * State lives in `storage.session`, not in variables - the service
+ * worker can be terminated and restarted at any time.
  */
 import { storage } from "#imports";
 import { appendChunk, deleteRecording, putRecording, readLatestById, readTrack, updateRecording } from "@/lib/db";
@@ -26,15 +26,15 @@ const overlayItem = storage.defineItem<Record<string, boolean>>("session:overlay
 const OFFSCREEN_PATH = "/offscreen.html";
 
 export default defineBackground(() => {
-  /* ------------------------------------------------------------ Helfer */
+  /* ----------------------------------------------------------- Helpers */
 
   const ports = new Map<number, Browser.runtime.Port>();
   const pendingFlushes = new Map<string, () => void>();
   let pendingAudioStop: ((event: Extract<OffscreenEvent, { type: "qey:audio-stopped" }>) => void) | null = null;
-  // Alle Schreibzugriffe laufen seriell - so ist beim Stoppen garantiert alles auf der Platte.
+  // All writes run serially - so everything is guaranteed to be on disk when stopping.
   let writeChain: Promise<unknown> = Promise.resolve();
   const enqueue = (task: () => Promise<unknown>) => {
-    writeChain = writeChain.then(task).catch((error) => console.error("[qey] Schreiben fehlgeschlagen", error));
+    writeChain = writeChain.then(task).catch((error) => console.error("[qey] Write failed", error));
     return writeChain;
   };
 
@@ -56,7 +56,7 @@ export default defineBackground(() => {
       const message: TabMessage = { type: "qey:state", state: await tabState(tabId, tab.url ?? "") };
       await browser.tabs.sendMessage(tabId, message);
     } catch {
-      /* Tab ohne Content-Script (chrome://, Web Store, ...) */
+      /* Tab without content script (chrome://, Web Store, ...) */
     }
   }
 
@@ -86,7 +86,7 @@ export default defineBackground(() => {
     await browser.offscreen.createDocument({
       url,
       reasons: ["USER_MEDIA" as Browser.offscreen.Reason],
-      justification: "Mikrofon-Aufnahme fuer die gesprochene Erklaerung waehrend einer QA-Session",
+      justification: "Microphone recording for spoken explanations during a QA session",
     });
   }
 
@@ -94,20 +94,20 @@ export default defineBackground(() => {
     try {
       await browser.offscreen.closeDocument();
     } catch {
-      /* war schon zu */
+      /* already closed */
     }
   }
 
-  /* ---------------------------------------------------------- Aufnahme */
+  /* --------------------------------------------------------- Recording */
 
   function titleFor(url: string, startedAt: number) {
     let host = url;
     try {
       host = new URL(url).host || url;
     } catch {
-      /* URL bleibt wie sie ist */
+      /* keep URL as is */
     }
-    const date = new Date(startedAt).toLocaleString("de-DE", {
+    const date = new Date(startedAt).toLocaleString("en-US", {
       day: "2-digit",
       month: "2-digit",
       hour: "2-digit",
@@ -122,8 +122,8 @@ export default defineBackground(() => {
     pageTitle: string,
   ): Promise<ActiveRecording> {
     const current = await activeItem.getValue();
-    if (current) throw new Error("Es laeuft bereits eine Aufnahme in einem anderen Tab.");
-    if (tab.id == null) throw new Error("Tab ohne ID");
+    if (current) throw new Error("A recording is already running in another tab.");
+    if (tab.id == null) throw new Error("Tab has no ID");
 
     const settings = await getSettings();
     const url = tab.url ?? "";
@@ -134,7 +134,7 @@ export default defineBackground(() => {
           name: env.name,
           color: env.color,
           notes: env.notes,
-          // Geheime Werte gar nicht erst in die Aufnahme kopieren.
+          // Don't copy secret values into the recording in the first place.
           variables: env.variables.map((v) => ({ key: v.key, value: v.secret ? "••••••" : v.value, secret: v.secret })),
         }
       : undefined;
@@ -181,7 +181,7 @@ export default defineBackground(() => {
       try {
         await ensureOffscreen();
         const request: OffscreenRequest = { target: "offscreen", type: "start-audio", recordingId, live: liveConfig };
-        // Das frisch erzeugte Dokument registriert seinen Listener evtl. erst einen Tick spaeter.
+        // The freshly created document may register its listener a tick later.
         for (let attempt = 0; ; attempt++) {
           try {
             await browser.runtime.sendMessage(request);
@@ -241,7 +241,7 @@ export default defineBackground(() => {
 
   /* ------------------------------------------------------- Screenshots */
 
-  // Chrome erlaubt nur ~2 captureVisibleTab-Aufrufe pro Sekunde.
+  // Chrome only allows ~2 captureVisibleTab calls per second.
   let lastCapture = 0;
   let captureChain: Promise<unknown> = Promise.resolve();
 
@@ -255,10 +255,10 @@ export default defineBackground(() => {
       const wait = lastCapture + 600 - Date.now();
       if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
       lastCapture = Date.now();
-      // captureVisibleTab fotografiert den aktiven Tab des Fensters - ist das
-      // nicht der Aufnahme-Tab, lieber gar kein Bild als ein falsches.
+      // captureVisibleTab captures the window's active tab - if that is not
+      // the recording tab, better no image than a wrong one.
       const current = await browser.tabs.get(tab.id!);
-      if (!current.active) throw new Error("Aufnahme-Tab ist nicht im Vordergrund");
+      if (!current.active) throw new Error("Recording tab is not in the foreground");
       const dataUrl = await browser.tabs.captureVisibleTab(current.windowId, { format: "jpeg", quality: 85 });
       const blob = await (await fetch(dataUrl)).blob();
       const bitmap = await createImageBitmap(blob);
@@ -297,8 +297,8 @@ export default defineBackground(() => {
       status: "ready",
       endedAt,
       durationMs: endedAt - meta.startedAt,
-      // Das Live-Transkript ist bereits ein vollwertiges Transkript - dann
-      // muss nach dem Stoppen nichts mehr nachtranskribiert werden.
+      // The live transcript is already a complete transcript - then
+      // nothing needs to be transcribed after stopping.
       transcript:
         meta.transcript ??
         (live.length && meta.audio
@@ -364,15 +364,15 @@ export default defineBackground(() => {
   async function toggleOverlay(tab: Browser.tabs.Tab | undefined) {
     if (tab?.id == null) return;
     const reached = await sendToTab(tab.id, { type: "qey:toggle-overlay" });
-    // Kein Content-Script (Browser-Seiten, Web Store): stattdessen die Aufnahmen zeigen.
+    // No content script (browser pages, Web Store): show the recordings instead.
     if (!reached) await openPage("recordings");
   }
 
-  /* --------------------------------------------------------- Listener */
+  /* --------------------------------------------------------- Listeners */
 
   browser.runtime.onInstalled.addListener(async ({ reason }) => {
-    browser.contextMenus.create({ id: "qey-recordings", title: "Aufnahmen öffnen", contexts: ["action"] });
-    browser.contextMenus.create({ id: "qey-settings", title: "Einstellungen", contexts: ["action"] });
+    browser.contextMenus.create({ id: "qey-recordings", title: "Open recordings", contexts: ["action"] });
+    browser.contextMenus.create({ id: "qey-settings", title: "Settings", contexts: ["action"] });
     if (reason === "install") await openPage("welcome");
   });
 
@@ -401,7 +401,7 @@ export default defineBackground(() => {
     }
   });
 
-  // Aufnahmen, die beim Browser-Neustart noch "liefen", sauber abschliessen.
+  // Cleanly finalize recordings that were still "running" when the browser restarted.
   browser.runtime.onStartup.addListener(async () => {
     const active = await activeItem.getValue();
     if (active) {
@@ -420,7 +420,7 @@ export default defineBackground(() => {
     });
     port.onMessage.addListener(async (message: PortUpMessage) => {
       if (message.type === "flushed") {
-        // Erst nach allen vorher eingereihten Schreibvorgaengen melden.
+        // Only report once all previously queued writes are done.
         void writeChain.then(() => pendingFlushes.get(message.token)?.());
         return;
       }
@@ -446,7 +446,7 @@ export default defineBackground(() => {
         case "qey:hello":
           return tab?.id != null ? tabState(tab.id, tab.url ?? "") : null;
         case "qey:start": {
-          if (!tab) throw new Error("Kein Tab");
+          if (!tab) throw new Error("No tab");
           const request = message as Extract<ContentRequest, { type: "qey:start" }>;
           await startRecording(tab, request.viewport, request.pageTitle);
           return tabState(tab.id!, tab.url ?? "");
@@ -465,7 +465,7 @@ export default defineBackground(() => {
         }
         case "qey:capture": {
           const active = await activeItem.getValue();
-          if (!active || tab?.id !== active.tabId) throw new Error("Keine Aufnahme in diesem Tab");
+          if (!active || tab?.id !== active.tabId) throw new Error("No recording in this tab");
           const request = message as Extract<ContentRequest, { type: "qey:capture" }>;
           return capture(active.recordingId, tab, request.reason, request.feedbackId);
         }
@@ -540,7 +540,7 @@ export default defineBackground(() => {
     return true;
   });
 
-  // Wenn sich die Einstellungen aendern (z.B. Umgebungen), offene Overlays aktualisieren.
+  // When settings change (e.g. environments), update open overlays.
   storage.watch("local:settings", async () => {
     const tabs = await browser.tabs.query({});
     const overlay = await overlayItem.getValue();

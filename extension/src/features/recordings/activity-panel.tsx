@@ -33,7 +33,7 @@ export function ActivityPanel({
 
   const items = useMemo<Item[]>(() => {
     const list: Item[] = events
-      // Hover-Enden und kurze Hover sind Rauschen in der Liste.
+      // Hover ends and short hovers are noise in the list.
       .filter((event) => !(event.type === "hover" && event.detail?.phase === "end"))
       .map((event) => ({ kind: "event" as const, t: event.t, event }));
     for (const segment of unmatchedSpeech) list.push({ kind: "speech", t: segment.t, segment });
@@ -71,17 +71,17 @@ export function ActivityPanel({
           size="sm"
           variant="outline"
         >
-          <ToggleGroupItem value="all">Alle</ToggleGroupItem>
-          <ToggleGroupItem value="interaction">Aktionen</ToggleGroupItem>
-          <ToggleGroupItem value="error">Fehler</ToggleGroupItem>
-          <ToggleGroupItem value="note">Notizen</ToggleGroupItem>
-          <ToggleGroupItem value="speech">Sprache</ToggleGroupItem>
+          <ToggleGroupItem value="all">All</ToggleGroupItem>
+          <ToggleGroupItem value="interaction">Actions</ToggleGroupItem>
+          <ToggleGroupItem value="error">Errors</ToggleGroupItem>
+          <ToggleGroupItem value="note">Notes</ToggleGroupItem>
+          <ToggleGroupItem value="speech">Speech</ToggleGroupItem>
         </ToggleGroup>
         <Button
           size="icon-sm"
           variant={follow ? "secondary" : "ghost"}
           className="ml-auto"
-          title="Wiedergabe folgen"
+          title="Follow playback"
           onClick={() => setFollow((value) => !value)}
         >
           <LocateFixedIcon />
@@ -89,7 +89,7 @@ export function ActivityPanel({
       </div>
       <ScrollArea className="min-h-0 flex-1">
         <div ref={listRef} className="p-1.5">
-          {items.length === 0 && <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nichts in dieser Ansicht.</p>}
+          {items.length === 0 && <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nothing in this view.</p>}
           {items.map((item, index) => {
             const past = index <= activeIndex;
             const current = index === activeIndex;
@@ -110,7 +110,7 @@ export function ActivityPanel({
                     {formatClock(item.t)}
                   </span>
                   <AudioLinesIcon className="mt-0.5 size-4 shrink-0 text-success" />
-                  <span className="text-sm italic text-foreground/90">„{item.segment.text}“</span>
+                  <span className="text-sm italic text-foreground/90">“{item.segment.text}”</span>
                 </button>
               );
             }
@@ -152,14 +152,14 @@ export function ActivityPanel({
                   )}
                   {event.spokenContext?.length ? (
                     <span className="mt-1 flex gap-1.5 text-xs text-muted-foreground italic">
-                      <AudioLinesIcon className="mt-0.5 size-3 shrink-0 text-success" />„{event.spokenContext.join(" ")}“
+                      <AudioLinesIcon className="mt-0.5 size-3 shrink-0 text-success" />“{event.spokenContext.join(" ")}”
                     </span>
                   ) : null}
                   {event.effect && (event.effect.dialogOpened || event.effect.alert || event.effect.urlChanged) && (
                     <span className="mt-1 flex flex-wrap gap-1">
-                      {event.effect.dialogOpened && <EffectChip>Dialog geöffnet</EffectChip>}
-                      {event.effect.alert && <EffectChip>Meldung: {event.effect.alert}</EffectChip>}
-                      {event.effect.urlChanged && <EffectChip>URL gewechselt</EffectChip>}
+                      {event.effect.dialogOpened && <EffectChip>Dialog opened</EffectChip>}
+                      {event.effect.alert && <EffectChip>Alert: {event.effect.alert}</EffectChip>}
+                      {event.effect.urlChanged && <EffectChip>URL changed</EffectChip>}
                     </span>
                   )}
                 </span>

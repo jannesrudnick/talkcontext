@@ -1,11 +1,11 @@
 import type { NextRequest } from "next/server";
 
 /**
- * Tatsaechliche Origin des eingehenden Requests.
+ * Actual origin of the incoming request.
  *
- * `request.nextUrl.origin` liefert im Dev-Server die konfigurierte Origin
- * (localhost) - auch wenn der Browser ueber 127.0.0.1 kommt. Fuer den
- * Referer-Abgleich und postMessage muss es aber der real genutzte Host sein.
+ * `request.nextUrl.origin` returns the configured origin in the dev server
+ * (localhost) - even if the browser comes via 127.0.0.1. For the referer
+ * check and postMessage it has to be the host actually used.
  */
 export function requestOrigin(request: NextRequest): string {
   const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");

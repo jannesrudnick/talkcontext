@@ -39,14 +39,14 @@ export function ConsolePanel({
           size="sm"
           variant="outline"
         >
-          <ToggleGroupItem value="all">Alle</ToggleGroupItem>
-          <ToggleGroupItem value="error">Fehler</ToggleGroupItem>
-          <ToggleGroupItem value="warn">Warnungen</ToggleGroupItem>
+          <ToggleGroupItem value="all">All</ToggleGroupItem>
+          <ToggleGroupItem value="error">Errors</ToggleGroupItem>
+          <ToggleGroupItem value="warn">Warnings</ToggleGroupItem>
         </ToggleGroup>
       </div>
       <ScrollArea className="min-h-0 flex-1">
         {filtered.length === 0 ? (
-          <p className="px-3 py-8 text-center text-sm text-muted-foreground">Keine Konsolenausgaben.</p>
+          <p className="px-3 py-8 text-center text-sm text-muted-foreground">No console output.</p>
         ) : (
           <div className="divide-y font-mono text-xs">
             {filtered.map((entry) => {
@@ -68,7 +68,7 @@ export function ConsolePanel({
                     {entry.source && <span className="block truncate text-muted-foreground">{entry.source}</span>}
                     {entry.stack && (
                       <details className="mt-1 text-muted-foreground" onClick={(event) => event.stopPropagation()}>
-                        <summary className="cursor-pointer select-none">Stacktrace</summary>
+                        <summary className="cursor-pointer select-none">Stack trace</summary>
                         <pre className="mt-1 whitespace-pre-wrap">{entry.stack}</pre>
                       </details>
                     )}

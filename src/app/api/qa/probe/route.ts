@@ -1,6 +1,6 @@
 /**
- * Prueft, ob eine Ziel-URL erreichbar und direkt einbettbar ist. Daraus leitet
- * das Studio die Empfehlung Proxy- oder Bridge-Modus ab.
+ * Checks whether a target URL is reachable and directly embeddable. The studio
+ * derives its proxy vs. bridge mode recommendation from this.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeTargetUrl } from "@/lib/qa/proxy-url";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const raw = request.nextUrl.searchParams.get("url");
   const target = raw ? normalizeTargetUrl(raw) : null;
-  if (!target) return NextResponse.json({ error: "url fehlt oder ist ungueltig" }, { status: 400 });
+  if (!target) return NextResponse.json({ error: "url is missing or invalid" }, { status: 400 });
 
   try {
     const response = await fetch(target, {
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       contentType: response.headers.get("content-type"),
       xFrameOptions: xfo,
       frameAncestors,
-      /** Direkte Einbettung (Bridge-Modus) moeglich? */
+      /** Direct embedding (bridge mode) possible? */
       embeddable: !blocksEmbedding,
       recommendedMode: blocksEmbedding ? "proxy" : "bridge",
     });

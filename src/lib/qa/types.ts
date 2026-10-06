@@ -1,32 +1,32 @@
 /**
- * Datenmodell der QA-Aufnahme.
+ * Data model of the QA recording.
  *
- * Das Artefakt ist bewusst textuell/strukturiert statt ein Video: ein Agent soll
- * ohne Screenshot verstehen koennen, auf welchem DOM-Element die Maus stand,
- * was geklickt wurde und was der Nutzer dabei gesagt hat.
+ * The artifact is deliberately textual/structured instead of a video: an agent
+ * should understand without a screenshot which DOM element the mouse was on,
+ * what was clicked and what the user said meanwhile.
  */
 
 export type QaMode = "proxy" | "bridge" | "extension";
 
-/** Beschreibung eines DOM-Elements, robust genug zum Wiederfinden durch einen Agenten. */
+/** Description of a DOM element, robust enough for an agent to find it again. */
 export interface ElementRef {
-  /** Bevorzugt data-testid / #id / [aria-label], sonst ein kurzer CSS-Pfad. */
+  /** Prefers data-testid / #id / [aria-label], otherwise a short CSS path. */
   selector: string;
   xpath: string;
   tag: string;
   id?: string;
   classes?: string[];
   role?: string;
-  /** Accessible Name (aria-label, label, alt, title, Textinhalt). */
+  /** Accessible name (aria-label, label, alt, title, text content). */
   name?: string;
   text?: string;
   attrs?: Record<string, string>;
   rect?: { x: number; y: number; w: number; h: number };
-  /** Vorfahrenkette von oben nach unten, z.B. ["main", "form#login", "button.primary"]. */
+  /** Ancestor chain from top to bottom, e.g. ["main", "form#login", "button.primary"]. */
   path?: string[];
-  /** Gekuerztes outerHTML - Text, kein Screenshot. */
+  /** Truncated outerHTML - text, not a screenshot. */
   html?: string;
-  /** Exaktes Element unter dem Cursor, falls `selector` auf einen Vorfahren zeigt. */
+  /** Exact element under the cursor, if `selector` points to an ancestor. */
   leaf?: string;
 }
 
@@ -48,36 +48,36 @@ export type QaEventType =
   | "note"
   | "marker";
 
-/** Zusammenfassung dessen, was sich nach einer Interaktion im DOM geaendert hat. */
+/** Summary of what changed in the DOM after an interaction. */
 export interface DomEffect {
   urlChanged?: { from: string; to: string };
   added?: number;
   removed?: number;
   dialogOpened?: boolean;
   alert?: string;
-  /** Neu erschienener, sichtbarer Text (gekuerzt). */
+  /** Newly appeared visible text (truncated). */
   newText?: string;
-  /** Geaenderte Attribute an bestehenden Elementen. */
+  /** Changed attributes on existing elements. */
   attrChanges?: Array<{ selector: string; attr: string; value: string | null }>;
 }
 
 export interface QaEvent {
   id: string;
-  /** Millisekunden seit Aufnahmestart. */
+  /** Milliseconds since the start of the recording. */
   t: number;
-  /** Absoluter Zeitstempel (epoch ms). */
+  /** Absolute timestamp (epoch ms). */
   ts: number;
   type: QaEventType;
-  /** Reale URL der Seite zum Zeitpunkt des Events (Proxy-URLs sind aufgeloest). */
+  /** Real URL of the page at the time of the event (proxy URLs are resolved). */
   url: string;
   target?: ElementRef;
   detail?: Record<string, unknown>;
   effect?: DomEffect;
-  /** Gesprochener Text aus dem Zeitfenster dieses Events - siehe correlate.ts. */
+  /** Spoken text from this event's time window - see correlate.ts. */
   spokenContext?: string[];
 }
 
-/** Grob abgetastete Cursorbahn - fuer Replay, haelt den Event-Log semantisch. */
+/** Coarsely sampled cursor path - for replay, keeps the event log semantic. */
 export interface CursorSample {
   t: number;
   x: number;
@@ -102,15 +102,15 @@ export interface QaSessionMeta {
   viewport: { width: number; height: number; dpr: number };
   userAgent: string;
   language: string;
-  /** Woher das Transkript stammt. */
+  /** Where the transcript came from. */
   transcriptSource?: "webspeech" | "whisper" | "openai" | "openai-live" | "none";
-  /** Modell, falls lokal mit Whisper oder ueber OpenAI transkribiert wurde. */
+  /** Model, if transcribed locally with Whisper or via OpenAI. */
   transcriptModel?: string;
-  /** Umgebung (z.B. "Staging"), in der aufgenommen wurde - nur Extension. */
+  /** Environment (e.g. "Staging") the recording was made in - extension only. */
   environment?: {
     name: string;
     notes?: string;
-    /** Geheime Werte sind hier bereits maskiert. */
+    /** Secret values are already masked here. */
     variables?: Array<{ key: string; value: string }>;
   };
 }
@@ -124,16 +124,16 @@ export interface QaSession {
   audio?: { mimeType: string; durationMs: number; fileName: string };
 }
 
-/** Nachricht Recorder -> Studio. */
+/** Message recorder -> studio. */
 export type FrameMessage =
   | { source: "qa-recorder"; type: "ready"; url: string; ts: number; mode: QaMode }
   | { source: "qa-recorder"; type: "events"; events: RawFrameEvent[] }
   | { source: "qa-recorder"; type: "cursor"; samples: Array<{ ts: number; x: number; y: number }> }
   | { source: "qa-recorder"; type: "effect"; id: string; effect: DomEffect }
-  /** Anvisiertes Element ausserhalb einer laufenden Aufnahme - nur zur Anzeige. */
+  /** Targeted element outside of a running recording - display only. */
   | { source: "qa-recorder"; type: "preview"; target?: ElementRef };
 
-/** Event wie es der Recorder schickt - Zeit als epoch ms, Studio rechnet um. */
+/** Event as sent by the recorder - time as epoch ms, the studio converts it. */
 export interface RawFrameEvent {
   id: string;
   ts: number;
@@ -143,7 +143,7 @@ export interface RawFrameEvent {
   detail?: Record<string, unknown>;
 }
 
-/** Nachricht Studio -> Recorder. */
+/** Message studio -> recorder. */
 export type ControlMessage =
   | { source: "qa-studio"; type: "start" }
   | { source: "qa-studio"; type: "stop" }
@@ -151,17 +151,17 @@ export type ControlMessage =
   | { source: "qa-studio"; type: "highlight"; selector: string | null };
 
 export interface RecorderConfig {
-  /** Overlay um das gerade anvisierte Element zeichnen. */
+  /** Draw an overlay around the currently targeted element. */
   highlight: boolean;
-  /** Mindest-Verweildauer in ms, ab der ein Hover protokolliert wird. */
+  /** Minimum dwell time in ms before a hover is logged. */
   hoverDwellMs: number;
-  /** outerHTML des Ziels mitschneiden (gekuerzt). */
+  /** Record the target's outerHTML (truncated). */
   captureHtml: boolean;
-  /** Eingabewerte mitschneiden (Passwortfelder bleiben immer maskiert). */
+  /** Record input values (password fields always stay masked). */
   captureInputValues: boolean;
-  /** console.error/warn der Zielseite mitschneiden. */
+  /** Record console.error/warn of the target page. */
   captureConsole: boolean;
-  /** Fehlgeschlagene Requests (>=400) mitschneiden. */
+  /** Record failed requests (>=400). */
   captureNetwork: boolean;
 }
 

@@ -1,8 +1,8 @@
 /**
- * Export der Aufnahme in agentenfreundliche Formate.
+ * Export of the recording in agent-friendly formats.
  *
- * JSON = vollstaendige Daten, Markdown = lesbare Timeline, in der Sprache und
- * DOM-Interaktion verschraenkt sind. Beides kommt ohne Screenshot aus.
+ * JSON = complete data, Markdown = readable timeline in which speech and
+ * DOM interaction are interleaved. Neither needs a screenshot.
  */
 import { correlate, type CorrelatedEvent } from "./correlate";
 import type { ElementRef, QaEvent, QaSession } from "./types";
@@ -20,9 +20,9 @@ export function formatDuration(ms: number): string {
   return minutes > 0 ? `${minutes}m ${seconds % 60}s` : `${seconds}s`;
 }
 
-/** Kurzbeschreibung eines Elements fuer die Timeline. */
+/** Short description of an element for the timeline. */
 export function describeElement(ref: ElementRef | undefined): string {
-  if (!ref) return "(kein Element)";
+  if (!ref) return "(no element)";
   const role = ref.role ?? ref.tag;
   const name = ref.name ?? ref.text;
   return name ? `${role} "${name}"` : `${role} \`${ref.selector}\``;
@@ -79,49 +79,49 @@ export function summarize(session: QaSession): SessionSummary {
   return { clicks, hovers, inputs, navigations, errors, notes, elements: elements.size };
 }
 
-/** Menschen- und agentenlesbare Zeile fuer ein einzelnes Event. */
+/** Human- and agent-readable line for a single event. */
 export function eventHeadline(event: QaEvent): string {
   const target = describeElement(event.target);
   const detail = event.detail ?? {};
 
   switch (event.type) {
     case "click":
-      return `KLICK auf ${target}`;
+      return `CLICK on ${target}`;
     case "dblclick":
-      return `DOPPELKLICK auf ${target}`;
+      return `DOUBLE-CLICK on ${target}`;
     case "contextmenu":
-      return `RECHTSKLICK auf ${target}`;
+      return `RIGHT-CLICK on ${target}`;
     case "hover": {
       const duration = typeof detail.durationMs === "number" ? ` (${(detail.durationMs / 1000).toFixed(1)}s)` : "";
-      return detail.phase === "end" ? `HOVER-ENDE ${target}${duration}` : `HOVER auf ${target}`;
+      return detail.phase === "end" ? `HOVER END ${target}${duration}` : `HOVER on ${target}`;
     }
     case "input":
-      return `EINGABE in ${target}: "${String(detail.value ?? "")}"`;
+      return `INPUT in ${target}: "${String(detail.value ?? "")}"`;
     case "change":
-      return `AUSWAHL in ${target}: "${String(detail.label ?? detail.value ?? "")}"`;
+      return `SELECTION in ${target}: "${String(detail.label ?? detail.value ?? "")}"`;
     case "key":
-      return `TASTE ${String(detail.key ?? "")}${event.target ? ` in ${target}` : ""}`;
+      return `KEY ${String(detail.key ?? "")}${event.target ? ` in ${target}` : ""}`;
     case "submit":
-      return `FORMULAR abgeschickt (${String(detail.method ?? "GET")} ${String(detail.action ?? "")})`;
+      return `FORM submitted (${String(detail.method ?? "GET")} ${String(detail.action ?? "")})`;
     case "scroll":
       return detail.scope === "page"
-        ? `SCROLL Seite auf ${String(detail.percent ?? 0)}%`
-        : `SCROLL in ${target} auf ${String(detail.top ?? 0)}px`;
+        ? `SCROLL page to ${String(detail.percent ?? 0)}%`
+        : `SCROLL in ${target} to ${String(detail.top ?? 0)}px`;
     case "navigate":
-      if (detail.kind === "start") return `START auf ${String(detail.to ?? "")}`;
-      // Die Extension meldet jeden vollstaendigen Seitenaufruf mit kind "load".
-      if (detail.kind === "load") return `SEITE GELADEN ${String(detail.to ?? "")}`;
+      if (detail.kind === "start") return `START on ${String(detail.to ?? "")}`;
+      // The extension reports every full page load with kind "load".
+      if (detail.kind === "load") return `PAGE LOADED ${String(detail.to ?? "")}`;
       return `NAVIGATION ${String(detail.from ?? "")} -> ${String(detail.to ?? "")}`;
     case "resize":
       return `VIEWPORT ${String(detail.width ?? "")}x${String(detail.height ?? "")}`;
     case "select":
-      return `TEXT MARKIERT: "${String(detail.text ?? "")}"`;
+      return `TEXT SELECTED: "${String(detail.text ?? "")}"`;
     case "console":
-      return `KONSOLE ${String(detail.level ?? "log").toUpperCase()}: ${String(detail.message ?? "")}`;
+      return `CONSOLE ${String(detail.level ?? "log").toUpperCase()}: ${String(detail.message ?? "")}`;
     case "network":
       return `REQUEST ${String(detail.method ?? "GET")} ${String(detail.url ?? "")} -> ${String(detail.status ?? 0)}`;
     case "note":
-      return `NOTIZ: ${String(detail.text ?? "")}`;
+      return `NOTE: ${String(detail.text ?? "")}`;
     case "marker":
       return `MARKER: ${String(detail.text ?? "")}`;
     default:
@@ -134,20 +134,20 @@ function effectLines(event: QaEvent): string[] {
   if (!effect) return [];
   const parts: string[] = [];
   if (effect.urlChanged) parts.push(`URL: ${effect.urlChanged.from} -> ${effect.urlChanged.to}`);
-  if (effect.dialogOpened) parts.push("Dialog geoeffnet");
-  if (effect.alert) parts.push(`Meldung: "${effect.alert}"`);
-  if (effect.newText) parts.push(`Neuer Text: "${effect.newText}"`);
+  if (effect.dialogOpened) parts.push("Dialog opened");
+  if (effect.alert) parts.push(`Message: "${effect.alert}"`);
+  if (effect.newText) parts.push(`New text: "${effect.newText}"`);
   if (effect.added || effect.removed) {
-    parts.push(`DOM: +${effect.added ?? 0} / -${effect.removed ?? 0} Knoten`);
+    parts.push(`DOM: +${effect.added ?? 0} / -${effect.removed ?? 0} nodes`);
   }
   if (effect.attrChanges?.length) {
     parts.push(
-      `Attribute: ${effect.attrChanges
+      `Attributes: ${effect.attrChanges
         .map((change) => `${change.selector}[${change.attr}=${change.value ?? "null"}]`)
         .join(", ")}`,
     );
   }
-  return parts.length ? [`  - Wirkung: ${parts.join("; ")}`] : [];
+  return parts.length ? [`  - Effect: ${parts.join("; ")}`] : [];
 }
 
 type TimelineItem =
@@ -155,11 +155,11 @@ type TimelineItem =
   | { t: number; kind: "speech"; text: string };
 
 /**
- * Sprache und Interaktion in eine gemeinsame, sortierte Timeline mischen.
- * Sprache, die sich einem Event zuordnen liess, haengt schon an dessen
- * `spokenContext` (siehe correlate.ts) und wird hier nicht nochmal einzeln
- * aufgefuehrt - nur was uebrig bleibt (Pausen, freies Nachdenken) wird als
- * eigene Zeile eingemischt.
+ * Merge speech and interaction into one shared, sorted timeline.
+ * Speech that could be assigned to an event already hangs off its
+ * `spokenContext` (see correlate.ts) and is not listed separately again here -
+ * only what is left over (pauses, thinking aloud) is mixed in as a line
+ * of its own.
  */
 function buildTimeline(session: QaSession): TimelineItem[] {
   const { events, unmatched } = correlate(session);
@@ -179,30 +179,30 @@ export function buildMarkdown(session: QaSession): string {
   const summary = summarize(session);
   const lines: string[] = [];
 
-  lines.push(`# QA-Aufnahme: ${session.meta.title}`);
+  lines.push(`# QA recording: ${session.meta.title}`);
   lines.push("");
   lines.push(
-    "> Maschinenlesbares Protokoll einer manuellen QA-Session. Statt eines Videos enthaelt es",
-    "> die DOM-Elemente, auf denen die Maus stand bzw. geklickt wurde, samt gesprochener Erklaerung.",
+    "> Machine-readable log of a manual QA session. Instead of a video it contains",
+    "> the DOM elements the mouse was on or clicked, together with the spoken explanation.",
   );
   lines.push("");
-  lines.push("## Kontext");
+  lines.push("## Context");
   lines.push("");
-  lines.push(`- Ziel: ${session.meta.initialUrl}`);
+  lines.push(`- Target: ${session.meta.initialUrl}`);
   lines.push(`- Start: ${session.meta.startedAt}`);
-  lines.push(`- Dauer: ${formatDuration(session.meta.durationMs)}`);
+  lines.push(`- Duration: ${formatDuration(session.meta.durationMs)}`);
   lines.push(`- Viewport: ${session.meta.viewport.width}x${session.meta.viewport.height} @${session.meta.viewport.dpr}x`);
-  lines.push(`- Aufnahmemodus: ${session.meta.mode}`);
-  if (session.meta.environment) lines.push(`- Umgebung: ${session.meta.environment.name}`);
+  lines.push(`- Recording mode: ${session.meta.mode}`);
+  if (session.meta.environment) lines.push(`- Environment: ${session.meta.environment.name}`);
   lines.push(
-    `- Umfang: ${summary.clicks} Klicks, ${summary.hovers} Hovers, ${summary.inputs} Eingaben, ` +
-      `${summary.navigations} Navigationen, ${summary.errors} Fehler, ${summary.notes} Notizen`,
+    `- Scope: ${summary.clicks} clicks, ${summary.hovers} hovers, ${summary.inputs} inputs, ` +
+      `${summary.navigations} navigations, ${summary.errors} errors, ${summary.notes} notes`,
   );
   lines.push("");
 
   const environment = session.meta.environment;
   if (environment && (environment.notes || environment.variables?.length)) {
-    lines.push(`## Umgebung: ${environment.name}`);
+    lines.push(`## Environment: ${environment.name}`);
     lines.push("");
     if (environment.notes) {
       lines.push(environment.notes);
@@ -216,7 +216,7 @@ export function buildMarkdown(session: QaSession): string {
 
   const notes = session.events.filter((event) => event.type === "note" || event.type === "marker");
   if (notes.length) {
-    lines.push("## Markierte Befunde");
+    lines.push("## Marked findings");
     lines.push("");
     for (const note of notes) {
       lines.push(`- **[${formatTimecode(note.t)}]** ${String(note.detail?.text ?? "")}`);
@@ -229,16 +229,16 @@ export function buildMarkdown(session: QaSession): string {
   lines.push("");
   for (const item of buildTimeline(session)) {
     if (item.kind === "speech") {
-      lines.push(`- **[${formatTimecode(item.t)}]** GESPROCHEN: "${item.text}"`);
+      lines.push(`- **[${formatTimecode(item.t)}]** SPOKEN: "${item.text}"`);
       continue;
     }
     const { event } = item;
     lines.push(`- **[${formatTimecode(event.t)}]** ${eventHeadline(event)}`);
     if (event.target?.selector) {
-      lines.push(`  - Selektor: \`${event.target.selector}\``);
+      lines.push(`  - Selector: \`${event.target.selector}\``);
     }
     if (event.spokenContext?.length) {
-      lines.push(`  - Gesagt: "${event.spokenContext.join(" ")}"`);
+      lines.push(`  - Said: "${event.spokenContext.join(" ")}"`);
     }
     lines.push(...effectLines(event));
   }
@@ -251,18 +251,18 @@ export function buildMarkdown(session: QaSession): string {
     }
   }
   if (elements.size) {
-    lines.push("## Beruehrte Elemente");
+    lines.push("## Touched elements");
     lines.push("");
     for (const ref of elements.values()) {
       lines.push(`### \`${ref.selector}\``);
       lines.push("");
-      lines.push(`- Tag: \`${ref.tag}\`${ref.role ? ` / Rolle: \`${ref.role}\`` : ""}`);
+      lines.push(`- Tag: \`${ref.tag}\`${ref.role ? ` / Role: \`${ref.role}\`` : ""}`);
       if (ref.name) lines.push(`- Name: "${ref.name}"`);
-      if (ref.path?.length) lines.push(`- Pfad: ${ref.path.join(" > ")}`);
+      if (ref.path?.length) lines.push(`- Path: ${ref.path.join(" > ")}`);
       lines.push(`- XPath: \`${ref.xpath}\``);
       if (ref.attrs && Object.keys(ref.attrs).length) {
         lines.push(
-          `- Attribute: ${Object.entries(ref.attrs)
+          `- Attributes: ${Object.entries(ref.attrs)
             .map(([key, value]) => `\`${key}="${value}"\``)
             .join(", ")}`,
         );
@@ -283,7 +283,7 @@ export function buildMarkdown(session: QaSession): string {
     .filter(Boolean)
     .join(" ");
   if (fullTranscript) {
-    lines.push("## Transkript am Stueck");
+    lines.push("## Full transcript");
     lines.push("");
     lines.push(fullTranscript);
     lines.push("");

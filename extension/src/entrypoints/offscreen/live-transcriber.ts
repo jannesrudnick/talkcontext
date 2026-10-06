@@ -1,19 +1,19 @@
 /**
- * Live-Transkript ueber OpenAI Realtime (Transcription-Session per WebSocket).
+ * Live transcript via OpenAI Realtime (transcription session over WebSocket).
  *
- * Browser koennen WebSockets keine Header mitgeben - der API-Key geht deshalb
- * als Subprotokoll `openai-insecure-api-key.<key>` mit. Das ist in Ordnung,
- * weil der Key ohnehin nur lokal in der Extension liegt und die Verbindung
- * direkt zu api.openai.com geht.
+ * Browsers can't send headers with WebSockets - so the API key goes along
+ * as the subprotocol `openai-insecure-api-key.<key>`. That's fine,
+ * because the key only lives locally in the extension anyway and the connection
+ * goes directly to api.openai.com.
  *
- * Zeitstempel: OpenAI meldet `audio_start_ms`/`audio_end_ms` relativ zum
- * Beginn des gesendeten Audiostroms. Wir merken uns, wann das erste Paket
- * aufgenommen wurde, und rechnen daraus epoch ms.
+ * Timestamps: OpenAI reports `audio_start_ms`/`audio_end_ms` relative to the
+ * start of the sent audio stream. We remember when the first packet
+ * was recorded and derive epoch ms from that.
  */
 import type { LiveTextEvent } from "@/lib/messages";
 import type { LiveState } from "@/lib/types";
 
-// Fuer Tests gegen einen Mock-Server beim Build ueberschreibbar (WXT_REALTIME_URL).
+// Overridable at build time for tests against a mock server (WXT_REALTIME_URL).
 const REALTIME_URL: string =
   (import.meta.env.WXT_REALTIME_URL as string | undefined) || "wss://api.openai.com/v1/realtime?intent=transcription";
 const SAMPLE_RATE = 24000;
@@ -42,7 +42,7 @@ export class LiveTranscriber {
   private pending: string[] = [];
   private ready = false;
   private closed = false;
-  /** epoch ms, zu dem das erste gesendete Sample aufgenommen wurde. */
+  /** epoch ms at which the first sent sample was recorded. */
   private streamStart = 0;
   private starts = new Map<string, number>();
   private ends = new Map<string, number>();
@@ -80,16 +80,16 @@ export class LiveTranscriber {
     });
     this.socket.addEventListener("message", (event) => this.onServerEvent(String(event.data)));
     this.socket.addEventListener("error", () => {
-      if (!this.closed) this.options.onState("error", "Verbindung zu OpenAI Realtime fehlgeschlagen");
+      if (!this.closed) this.options.onState("error", "Connection to OpenAI Realtime failed");
     });
     this.socket.addEventListener("close", (event) => {
       if (this.closed) return;
       this.ready = false;
-      this.options.onState("error", event.reason || `Verbindung geschlossen (${event.code})`);
+      this.options.onState("error", event.reason || `Connection closed (${event.code})`);
     });
   }
 
-  /** Beendet die Aufnahme und wartet kurz auf ausstehende Abschnitte. */
+  /** Stops capturing and briefly waits for pending segments. */
   async stop(): Promise<void> {
     this.closed = true;
     this.node?.disconnect();
@@ -99,8 +99,8 @@ export class LiveTranscriber {
       socket?.close();
       return;
     }
-    // Den Rest im Puffer noch transkribieren lassen - aber nur, wenn gerade
-    // gesprochen wurde oder ein Abschnitt noch aussteht.
+    // Let the rest of the buffer be transcribed - but only if someone was
+    // just speaking or a segment is still pending.
     if (this.starts.size > 0) {
       this.send({ type: "input_audio_buffer.commit" });
       const deadline = Date.now() + 3000;
@@ -121,7 +121,7 @@ export class LiveTranscriber {
     if (this.ready && this.socket?.readyState === WebSocket.OPEN) {
       this.socket.send(chunk);
     } else if (this.pending.length < 300) {
-      // Bis die Session steht (~30 s max) puffern, damit nichts verloren geht.
+      // Buffer until the session is up (~30 s max) so nothing gets lost.
       this.pending.push(chunk);
     }
   }
@@ -165,7 +165,7 @@ export class LiveTranscriber {
       }
       case "error": {
         const error = event.error as { message?: string } | undefined;
-        this.options.onState("error", error?.message ?? "Unbekannter Fehler von OpenAI Realtime");
+        this.options.onState("error", error?.message ?? "Unknown error from OpenAI Realtime");
         return;
       }
       default:

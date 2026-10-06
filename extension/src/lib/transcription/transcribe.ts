@@ -1,8 +1,8 @@
 /**
- * Transkription der Tonspur - lokal mit Whisper (Web Worker) oder ueber OpenAI.
+ * Transcription of the audio track - locally with Whisper (web worker) or via OpenAI.
  *
- * Anders als in der Next-App braucht OpenAI hier keinen Durchreich-Endpoint:
- * Extension-Seiten mit Host-Berechtigung unterliegen keiner CORS-Sperre.
+ * Unlike in the Next app, OpenAI needs no pass-through endpoint here:
+ * extension pages with host permission are not subject to CORS restrictions.
  */
 import type { TranscriptSegment, WhisperModelId } from "@/lib/types";
 import type { WhisperRequest, WhisperResponse } from "./whisper.worker";
@@ -18,7 +18,7 @@ export interface TranscriptionProgress {
   label: string;
 }
 
-/** Audio-Blob zu 16-kHz-Mono dekodieren - das Format, das Whisper erwartet. */
+/** Decode an audio blob to 16 kHz mono - the format Whisper expects. */
 async function decodeTo16kMono(blob: Blob): Promise<Float32Array> {
   const context = new AudioContext({ sampleRate: 16000 });
   try {
@@ -42,7 +42,7 @@ export async function transcribeWithWhisper(
   language: string,
   onProgress: (progress: TranscriptionProgress) => void,
 ): Promise<TranscriptSegment[]> {
-  onProgress({ ratio: 0, label: "Audio wird vorbereitet" });
+  onProgress({ ratio: 0, label: "Preparing audio" });
   const samples = await decodeTo16kMono(audio);
 
   worker ??= new Worker(new URL("./whisper.worker.ts", import.meta.url), { type: "module" });
@@ -55,7 +55,7 @@ export async function transcribeWithWhisper(
       if (data.type === "status") {
         onProgress({
           ratio: data.stage === "run" ? 1 : 0,
-          label: data.stage === "run" ? "Transkribiert …" : "Modell wird geladen",
+          label: data.stage === "run" ? "Transcribing …" : "Loading model",
         });
       } else if (data.type === "progress") {
         files.set(data.file, { loaded: data.loaded, total: data.total });
@@ -67,7 +67,7 @@ export async function transcribeWithWhisper(
         }
         onProgress({
           ratio: total > 0 ? loaded / total : 0,
-          label: `Modell wird geladen (${Math.round(loaded / 1e6)} / ${Math.round(total / 1e6)} MB)`,
+          label: `Loading model (${Math.round(loaded / 1e6)} / ${Math.round(total / 1e6)} MB)`,
         });
       } else if (data.type === "error") {
         active.removeEventListener("message", onMessage);
@@ -93,15 +93,15 @@ export async function transcribeWithWhisper(
 const MAX_OPENAI_BYTES = 25 * 1024 * 1024;
 
 export async function transcribeWithOpenAi(audio: Blob, apiKey: string, language: string): Promise<TranscriptSegment[]> {
-  if (!apiKey.trim()) throw new Error("Kein OpenAI-API-Key hinterlegt (Einstellungen → Transkription).");
+  if (!apiKey.trim()) throw new Error("No OpenAI API key configured (Settings → Transcription).");
   if (audio.size > MAX_OPENAI_BYTES) {
-    throw new Error(`Audio zu groß (${Math.round(audio.size / 1e6)} MB) – OpenAI erlaubt maximal 25 MB.`);
+    throw new Error(`Audio too large (${Math.round(audio.size / 1e6)} MB) – OpenAI allows at most 25 MB.`);
   }
   const form = new FormData();
   form.set("file", audio, "audio.webm");
   form.set("model", "whisper-1");
   form.set("response_format", "verbose_json");
-  form.set("language", language.split("-")[0] ?? "de");
+  form.set("language", language.split("-")[0] ?? "en");
 
   const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
     method: "POST",
@@ -109,12 +109,12 @@ export async function transcribeWithOpenAi(audio: Blob, apiKey: string, language
     body: form,
   });
   if (!response.ok) {
-    let message = `OpenAI antwortete mit Status ${response.status}`;
+    let message = `OpenAI responded with status ${response.status}`;
     try {
       const body = (await response.json()) as { error?: { message?: string } };
       if (body.error?.message) message = body.error.message;
     } catch {
-      /* kein JSON */
+      /* not JSON */
     }
     throw new Error(message);
   }

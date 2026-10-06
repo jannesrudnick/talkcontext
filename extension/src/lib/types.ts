@@ -1,9 +1,9 @@
 /**
- * Datenmodell der Extension.
+ * Data model of the extension.
  *
- * Das semantische Protokoll (QaEvent, ElementRef, ...) kommt unveraendert aus
- * der Next-App (`@shared`), damit Markdown-/JSON-Export identisch bleiben.
- * Neu ist das Session-Replay (rrweb) sowie Konsole und Netzwerk als eigene Spuren.
+ * The semantic log (QaEvent, ElementRef, ...) comes unchanged from the
+ * Next app (`@shared`), so the Markdown/JSON export stays identical.
+ * New are the session replay (rrweb) plus console and network as separate tracks.
  */
 import type {
   CursorSample,
@@ -16,27 +16,27 @@ import type {
 
 export type { CursorSample, DomEffect, ElementRef, RawFrameEvent, RecorderConfig, TranscriptSegment };
 
-/* ------------------------------------------------------------ Einstellungen */
+/* ------------------------------------------------------------ Settings */
 
 export interface EnvVariable {
   id: string;
   key: string;
   value: string;
-  /** Wird im Export maskiert und in der Oberflaeche verdeckt angezeigt. */
+  /** Masked in the export and hidden in the UI. */
   secret: boolean;
 }
 
 export interface Environment {
   id: string;
   name: string;
-  /** Tailwind-unabhaengiger Farbwert fuer Badge und Overlay. */
+  /** Tailwind-independent color value for badge and overlay. */
   color: string;
   /**
-   * URL-Muster, z.B. `http://localhost:3000/*` oder `https://*.staging.example.com/*`.
-   * `*` steht fuer beliebig viele Zeichen.
+   * URL patterns, e.g. `http://localhost:3000/*` or `https://*.staging.example.com/*`.
+   * `*` matches any number of characters.
    */
   patterns: string[];
-  /** Freitext fuer den Agenten: Testnutzer, Feature-Flags, Besonderheiten. */
+  /** Free text for the agent: test users, feature flags, quirks. */
   notes: string;
   variables: EnvVariable[];
 }
@@ -51,27 +51,27 @@ export type TranscriptionEngine = "none" | "whisper" | "openai";
 export type ThemePreference = "system" | "light" | "dark";
 
 export interface ReplayConfig {
-  /** Alle Eingabefelder im Replay maskieren (Passwoerter sind es immer). */
+  /** Mask all input fields in the replay (passwords always are). */
   maskAllInputs: boolean;
-  /** Canvas-Inhalte mitschneiden - teuer, deshalb standardmaessig aus. */
+  /** Record canvas contents - expensive, so off by default. */
   recordCanvas: boolean;
-  /** Zusaetzliche CSS-Selektoren, die im Replay ausgeblendet werden. */
+  /** Additional CSS selectors that are hidden in the replay. */
   blockSelector: string;
 }
 
 export interface FeedbackConfig {
-  /** Rechtsklick auf ein Element startet einen Feedback-Punkt (Alt+Rechtsklick = normales Menue). */
+  /** Right-clicking an element starts a feedback point (Alt+right-click = normal menu). */
   contextMenu: boolean;
-  /** Bei Konsolen-/Netzwerkfehlern automatisch einen Screenshot machen. */
+  /** Automatically take a screenshot on console/network errors. */
   screenshotOnError: boolean;
-  /** Farbe des Stifts. */
+  /** Pen color. */
   penColor: string;
 }
 
 export interface HandoffConfig {
-  /** Lokaler qey-MCP-Server, an den Aufnahmen fuer Claude Code geschickt werden. */
+  /** Local qey MCP server that recordings are sent to for Claude Code. */
   endpoint: string;
-  /** Nach dem Stoppen (und ggf. Transkribieren) automatisch senden. */
+  /** Send automatically after stopping (and transcribing, if enabled). */
   autoSend: boolean;
 }
 
@@ -85,21 +85,21 @@ export interface Settings {
     engine: TranscriptionEngine;
     whisperModel: WhisperModelId;
     openaiKey: string;
-    /** Direkt nach dem Stoppen transkribieren (beim Oeffnen der Aufnahme). */
+    /** Transcribe right after stopping (when the recording is opened). */
     auto: boolean;
-    /** Live-Transkript waehrend der Aufnahme ueber OpenAI Realtime. */
+    /** Live transcript during the recording via OpenAI Realtime. */
     live: boolean;
-    /** Modell fuer das Live-Transkript. */
+    /** Model for the live transcript. */
     liveModel: string;
   };
   feedback: FeedbackConfig;
   handoff: HandoffConfig;
-  /** Nach dem Stoppen die Aufnahme in einem neuen Tab oeffnen. */
+  /** Open the recording in a new tab after stopping. */
   openAfterStop: boolean;
   environments: Environment[];
 }
 
-/* ------------------------------------------------------------- Aufnahme */
+/* ------------------------------------------------------------- Recording */
 
 export interface ConsoleEntry {
   id: string;
@@ -119,23 +119,23 @@ export interface NetworkEntry {
   status: number;
   durationMs: number;
   error?: string;
-  /** Nur bei fehlgeschlagenen Requests, gekuerzt und mit maskierten Geheimnissen. */
+  /** Only for failed requests, truncated and with secrets masked. */
   requestBody?: string;
   responseBody?: string;
 }
 
 /* --------------------------------------------------------- Feedback */
 
-/** Komponenten-Herkunft eines Elements (React/Vue Dev-Builds). */
+/** Component origin of an element (React/Vue dev builds). */
 export interface ComponentInfo {
   framework: "react" | "vue";
-  /** Von aussen nach innen, z.B. ["CheckoutPage", "CheckoutForm", "SubmitButton"]. */
+  /** Outermost to innermost, e.g. ["CheckoutPage", "CheckoutForm", "SubmitButton"]. */
   chain: string[];
-  /** Quelldatei, falls der Dev-Build sie verraet (Vue `__file`, React `_debugSource`). */
+  /** Source file, if the dev build exposes it (Vue `__file`, React `_debugSource`). */
   file?: string;
 }
 
-/** Ein Strich mit dem Stift - Koordinaten relativ zum Viewport beim Zeichnen. */
+/** A pen stroke - coordinates relative to the viewport at drawing time. */
 export interface Stroke {
   id: string;
   ts: number;
@@ -160,13 +160,13 @@ export interface Screenshot {
 }
 
 /**
- * Ein ausdruecklicher Befund: angelegt per Rechtsklick, Stift, Notiz oder Marker.
- * Ersetzt das Raten ueber Zeitfenster - alles, was waehrend `activeFrom..activeTo`
- * gesagt wird, gehoert zu diesem Punkt.
+ * An explicit finding: created via right-click, pen, note or marker.
+ * Replaces guessing by time window - everything said during `activeFrom..activeTo`
+ * belongs to this point.
  */
 export interface FeedbackItem {
   id: string;
-  /** Laufende Nummer innerhalb der Aufnahme (F1, F2, ...). */
+  /** Sequential number within the recording (F1, F2, ...). */
   index: number;
   source: "contextmenu" | "pen" | "note" | "marker";
   url: string;
@@ -175,13 +175,13 @@ export interface FeedbackItem {
   activeTo?: number;
   target?: ElementRef;
   component?: ComponentInfo;
-  /** Ausgewaehlte berechnete Styles des Elements - fuer Layout-Feedback. */
+  /** Selected computed styles of the element - for layout feedback. */
   styles?: Record<string, string>;
-  /** Gekuerzter DOM-Ausschnitt um das Element zum Zeitpunkt des Feedbacks. */
+  /** Truncated DOM snippet around the element at the time of the feedback. */
   dom?: string;
-  /** Getippter Text. */
+  /** Typed text. */
   text: string;
-  /** Live mitgeschriebene Sprache (finale Abschnitte). */
+  /** Live-transcribed speech (final segments). */
   speech: string[];
   screenshotIds: string[];
   strokeIds: string[];
@@ -196,9 +196,9 @@ export interface LiveSegment {
   text: string;
 }
 
-/** Die Spuren einer Aufnahme - jede wird in Stuecken (Chunks) gespeichert. */
+/** The tracks of a recording - each is stored in chunks. */
 export interface ChunkPayloads {
-  /** rrweb `eventWithTime` - bewusst `unknown`, rrweb-Typen bleiben im Replay. */
+  /** rrweb `eventWithTime` - deliberately `unknown`, rrweb types stay in the replay. */
   rrweb: unknown[];
   events: RawFrameEvent[];
   effects: Array<{ id: string; effect: DomEffect }>;
@@ -206,7 +206,7 @@ export interface ChunkPayloads {
   console: ConsoleEntry[];
   network: NetworkEntry[];
   audio: Blob[];
-  /** Upserts - der letzte Stand pro ID gewinnt. */
+  /** Upserts - the latest state per ID wins. */
   feedback: FeedbackItem[];
   strokes: Stroke[];
   screenshots: Screenshot[];
@@ -248,11 +248,11 @@ export interface RecordingMeta {
     feedback?: number;
     screenshots?: number;
   };
-  /** Zuletzt an den qey-MCP-Server geschickt. */
+  /** Last sent to the qey MCP server. */
   sentAt?: number;
   audio?: {
     mimeType: string;
-    /** epoch ms, zu dem die Tonspur beginnt. */
+    /** epoch ms at which the audio track starts. */
     startedAt: number;
     durationMs: number;
     size: number;
@@ -261,13 +261,13 @@ export interface RecordingMeta {
   transcript?: {
     source: "whisper" | "openai" | "openai-live";
     model: string;
-    /** Zeiten relativ zum Beginn der Tonspur. */
+    /** Times relative to the start of the audio track. */
     segments: TranscriptSegment[];
     createdAt: number;
   };
 }
 
-/* ------------------------------------------------------------ Laufzeit */
+/* ------------------------------------------------------------ Runtime */
 
 export type AudioState = "off" | "starting" | "on" | "denied" | "error";
 
@@ -282,15 +282,15 @@ export interface ActiveRecording {
   live: LiveState;
   liveError?: string;
   stopping?: boolean;
-  /** Naechste Feedback-Nummer - ueberlebt Seitenwechsel. */
+  /** Next feedback number - survives page navigations. */
   nextFeedbackIndex: number;
 }
 
-/** Was das Overlay fuer seinen Tab wissen muss. */
+/** What the overlay needs to know for its tab. */
 export interface TabState {
   overlayVisible: boolean;
   recording: ActiveRecording | null;
-  /** Laeuft gerade eine Aufnahme in einem anderen Tab? */
+  /** Is a recording currently running in another tab? */
   busyElsewhere: boolean;
   environment: Environment | null;
   settings: Settings;

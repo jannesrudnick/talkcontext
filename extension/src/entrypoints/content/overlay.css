@@ -4,9 +4,9 @@
 @import "../../assets/theme.css";
 
 /*
- * Das Overlay lebt in einem Shadow Root auf fremden Seiten:
- *  - rem-Werte haengen an der font-size der Seite -> hier alles in px.
- *  - @font-face greift im Shadow DOM nicht -> Systemschrift.
+ * The overlay lives in a shadow root on third-party pages:
+ *  - rem values depend on the page's font-size -> everything in px here.
+ *  - @font-face doesn't apply in the shadow DOM -> system font.
  */
 @theme {
   --spacing: 4px;
@@ -26,8 +26,8 @@
 
 @layer base {
   /*
-   * Tailwind v4 initialisiert --tw-* ueber @property - das wird in Shadow
-   * Roots ignoriert. Ohne diese Defaults fehlen Schatten, Ringe und Transforms.
+   * Tailwind v4 initializes --tw-* via @property - which is ignored in shadow
+   * roots. Without these defaults, shadows, rings and transforms are missing.
    */
   *,
   ::before,

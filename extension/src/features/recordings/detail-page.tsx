@@ -78,9 +78,9 @@ export function RecordingDetailPage({ id }: { id: string }) {
   if (recording === null) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3">
-        <p className="text-muted-foreground">Aufnahme nicht gefunden.</p>
+        <p className="text-muted-foreground">Recording not found.</p>
         <Button variant="outline" onClick={() => navigate("recordings")}>
-          Zur Übersicht
+          Back to recordings
         </Button>
       </div>
     );
@@ -178,12 +178,12 @@ function RecordingView({
         },
       }));
       if (next) onChange({ ...recording, meta: next });
-      toast.success(`Transkript fertig – ${segments.length} Abschnitte`);
+      toast.success(`Transcript ready – ${segments.length} segments`);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       setTranscriptError(
         message === "Failed to fetch"
-          ? "Modell bzw. API nicht erreichbar – Netzwerkverbindung prüfen."
+          ? "Model or API unreachable – check your network connection."
           : message,
       );
     } finally {
@@ -192,7 +192,7 @@ function RecordingView({
     }
   }, [effectiveChoice, meta.id, onChange, recording, settings, transcribing]);
 
-  // Direkt nach dem Stoppen oeffnet sich diese Seite - dann gleich transkribieren.
+  // This page opens right after stopping - transcribe straight away.
   useEffect(() => {
     if (!settingsLoaded || autoStarted.current) return;
     autoStarted.current = true;
@@ -210,8 +210,8 @@ function RecordingView({
   const copyMarkdown = async () => {
     const handoff = await buildHandoff(recording);
     await navigator.clipboard.writeText(handoff.markdown);
-    toast.success("Markdown kopiert", {
-      description: "Screenshots sind nur im Paket bzw. über „An Claude senden“ enthalten.",
+    toast.success("Markdown copied", {
+      description: "Screenshots are only included in the package or via “Send to Claude”.",
     });
   };
 
@@ -228,13 +228,13 @@ function RecordingView({
         const result = await sendHandoff(settings.handoff.endpoint, handoff);
         const next = await updateRecording(meta.id, (current) => ({ ...current, sentAt: Date.now() }));
         if (next) onChange({ ...recording, meta: next });
-        toast.success("An Claude Code gesendet", {
-          description: `In Claude Code: „Fix das qey-Feedback“ – ${handoff.manifest.items.length} Punkte${result.path ? ` · ${result.path}` : ""}`,
+        toast.success("Sent to Claude Code", {
+          description: `In Claude Code: “Fix the qey feedback” – ${handoff.manifest.items.length} points${result.path ? ` · ${result.path}` : ""}`,
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        if (silent) toast.info("Nicht automatisch gesendet", { description: message });
-        else toast.error("Senden fehlgeschlagen", { description: message });
+        if (silent) toast.info("Not sent automatically", { description: message });
+        else toast.error("Sending failed", { description: message });
       } finally {
         setSending(false);
       }
@@ -242,7 +242,7 @@ function RecordingView({
     [meta.id, onChange, recording, settings.handoff.endpoint],
   );
 
-  // Frische Aufnahme: nach der Transkription automatisch an Claude Code schicken.
+  // Fresh recording: send to Claude Code automatically after transcription.
   useEffect(() => {
     if (!settingsLoaded || autoSent.current || !settings.handoff.autoSend || meta.sentAt || transcribing) return;
     const fresh = meta.endedAt && Date.now() - meta.endedAt < 10 * 60_000;
@@ -259,9 +259,9 @@ function RecordingView({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Kopfzeile */}
+      {/* Header */}
       <header className="flex items-center gap-3 border-b px-5 py-3">
-        <Button size="icon" variant="ghost" onClick={() => navigate("recordings")} aria-label="Zurück">
+        <Button size="icon" variant="ghost" onClick={() => navigate("recordings")} aria-label="Back">
           <ArrowLeftIcon />
         </Button>
         <div className="min-w-0 flex-1">
@@ -294,11 +294,11 @@ function RecordingView({
         </div>
         <Button variant="outline" onClick={() => void copyMarkdown()}>
           <ClipboardCopyIcon />
-          Kopieren
+          Copy
         </Button>
-        <Button onClick={() => void send()} disabled={sending} title={meta.sentAt ? `Zuletzt gesendet ${formatRelative(meta.sentAt)}` : undefined}>
+        <Button onClick={() => void send()} disabled={sending} title={meta.sentAt ? `Last sent ${formatRelative(meta.sentAt)}` : undefined}>
           {sending ? <Loader2Icon className="animate-spin" /> : <SendIcon />}
-          {meta.sentAt ? "Erneut an Claude" : "An Claude senden"}
+          {meta.sentAt ? "Resend to Claude" : "Send to Claude"}
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button variant="outline" />}>
@@ -308,57 +308,57 @@ function RecordingView({
           <DropdownMenuContent align="end" className="w-60">
             <DropdownMenuItem onClick={() => void downloadPackage()}>
               <PackageIcon />
-              Handoff-Paket (.zip)
+              Handoff package (.zip)
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => exportMarkdown(recording)}>
               <FileTextIcon />
-              Timeline-Markdown (.md)
+              Timeline Markdown (.md)
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => exportJson(recording)}>
               <FileJsonIcon />
-              Protokoll (qa-recording/1)
+              Log (qa-recording/1)
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => exportReplay(recording)}>
               <PlayCircleIcon />
-              Replay inkl. rrweb
+              Replay incl. rrweb
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem disabled={!recording.audio} onClick={() => exportAudio(recording)}>
               <MusicIcon />
-              Tonspur (.webm)
+              Audio track (.webm)
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <AlertDialog>
-          <AlertDialogTrigger render={<Button size="icon" variant="ghost" aria-label="Löschen" />}>
+          <AlertDialogTrigger render={<Button size="icon" variant="ghost" aria-label="Delete" />}>
             <Trash2Icon />
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Aufnahme löschen?</AlertDialogTitle>
+              <AlertDialogTitle>Delete recording?</AlertDialogTitle>
               <AlertDialogDescription>
-                Replay, Protokoll und Tonspur werden endgültig aus dem Browser entfernt.
+                Replay, log and audio track will be permanently removed from the browser.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
                 variant="destructive"
                 onClick={async () => {
                   await deleteRecording(meta.id);
-                  toast.success("Aufnahme gelöscht");
+                  toast.success("Recording deleted");
                   navigate("recordings");
                 }}
               >
-                Löschen
+                Delete
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </header>
 
-      {/* Inhalt */}
+      {/* Content */}
       <div className="flex min-h-0 flex-1">
         <section className="flex min-w-0 flex-1 flex-col p-5">
           <div className="mb-3 flex h-8 items-center gap-2 rounded-lg border bg-muted/40 px-3 text-xs">
@@ -388,17 +388,17 @@ function RecordingView({
                   Feedback
                   {recording.feedback.length > 0 && <CountBadge tone="brand">{recording.feedback.length}</CountBadge>}
                 </TabsTrigger>
-                <TabsTrigger value="activity">Aktivität</TabsTrigger>
+                <TabsTrigger value="activity">Activity</TabsTrigger>
                 <TabsTrigger value="console">
-                  Konsole
+                  Console
                   {errorCount > 0 && <CountBadge tone="error">{errorCount}</CountBadge>}
                 </TabsTrigger>
                 <TabsTrigger value="network">
-                  Netz
+                  Network
                   {failedRequests > 0 && <CountBadge tone="error">{failedRequests}</CountBadge>}
                 </TabsTrigger>
                 <TabsTrigger value="transcript">
-                  Sprache
+                  Speech
                   {transcribing && <Loader2Icon className="size-3 animate-spin" />}
                 </TabsTrigger>
               </TabsList>

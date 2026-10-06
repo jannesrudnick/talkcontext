@@ -3,9 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 export type MicPermission = "granted" | "denied" | "prompt" | "unknown";
 
 /**
- * Mikrofon-Freigabe fuer die Origin der Extension. Das Offscreen-Dokument kann
- * selbst nicht nachfragen - deshalb wird sie hier, auf einer sichtbaren Seite,
- * einmalig eingeholt.
+ * Microphone permission for the extension's origin. The offscreen document can't
+ * prompt for it itself - so it's requested once here, on a visible page.
  */
 export function useMicPermission() {
   const [state, setState] = useState<MicPermission>("unknown");

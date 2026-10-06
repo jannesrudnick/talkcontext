@@ -1,19 +1,18 @@
 /**
- * Reiner Durchreich-Endpoint zu OpenAIs Transkriptions-API.
+ * Pure pass-through endpoint to OpenAI's transcription API.
  *
- * Der Grund, dass das ueberhaupt durch unseren Server muss: OpenAI setzt keine
- * CORS-Header auf api.openai.com, ein Browser kann den Key also nicht direkt
- * gegen die API schicken. Der Key kommt hier nur als Teil des einen Requests
- * an, wird an OpenAI weitergereicht und danach nirgends abgelegt - keine DB,
- * kein Log mit Body. Persistiert wird er ausschliesslich im Browser
- * (localStorage, siehe use-openai-key.ts).
+ * Why this has to go through our server at all: OpenAI sets no CORS headers
+ * on api.openai.com, so a browser cannot send the key to the API directly.
+ * The key arrives here only as part of the single request, is passed on to
+ * OpenAI and stored nowhere afterwards - no DB, no log with the body. It is
+ * persisted exclusively in the browser (localStorage, see use-openai-key.ts).
  */
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// OpenAIs eigenes Limit fuer /v1/audio/transcriptions.
+// OpenAI's own limit for /v1/audio/transcriptions.
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
 
 interface OpenAiTranscriptionSegment {
@@ -32,7 +31,7 @@ export async function POST(request: NextRequest) {
   try {
     form = await request.formData();
   } catch {
-    return NextResponse.json({ error: "Ungueltiger Request-Body" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
   const apiKey = form.get("apiKey");
@@ -40,14 +39,14 @@ export async function POST(request: NextRequest) {
   const audio = form.get("audio");
 
   if (typeof apiKey !== "string" || !apiKey.trim()) {
-    return NextResponse.json({ error: "API-Key fehlt" }, { status: 400 });
+    return NextResponse.json({ error: "API key missing" }, { status: 400 });
   }
   if (!(audio instanceof File) || audio.size === 0) {
-    return NextResponse.json({ error: "Audio fehlt" }, { status: 400 });
+    return NextResponse.json({ error: "Audio missing" }, { status: 400 });
   }
   if (audio.size > MAX_AUDIO_BYTES) {
     return NextResponse.json(
-      { error: `Audio zu gross (${Math.round(audio.size / 1e6)} MB) - OpenAI erlaubt maximal 25 MB.` },
+      { error: `Audio too large (${Math.round(audio.size / 1e6)} MB) - OpenAI allows at most 25 MB.` },
       { status: 413 },
     );
   }
@@ -69,18 +68,18 @@ export async function POST(request: NextRequest) {
       signal: AbortSignal.timeout(120_000),
     });
   } catch {
-    // Kein Detail aus dem catch weiterreichen - koennte im schlimmsten Fall
-    // Request-Interna enthalten, nie den Key.
-    return NextResponse.json({ error: "OpenAI war nicht erreichbar" }, { status: 502 });
+    // Don't pass on any detail from the catch - worst case it could contain
+    // request internals, never the key.
+    return NextResponse.json({ error: "OpenAI was unreachable" }, { status: 502 });
   }
 
   if (!response.ok) {
-    let message = `OpenAI antwortete mit Status ${response.status}`;
+    let message = `OpenAI responded with status ${response.status}`;
     try {
       const body = (await response.json()) as { error?: { message?: string } };
       if (body.error?.message) message = body.error.message;
     } catch {
-      // Antwort war kein JSON - generische Meldung behalten.
+      // Response was not JSON - keep the generic message.
     }
     return NextResponse.json({ error: message }, { status: response.status });
   }

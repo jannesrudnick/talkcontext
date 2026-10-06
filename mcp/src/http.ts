@@ -1,9 +1,9 @@
 /**
- * Empfangsstelle fuer die Extension: POST /sessions mit dem Handoff als JSON.
+ * Receiving endpoint for the extension: POST /sessions with the handoff as JSON.
  *
- * Lauscht nur auf 127.0.0.1. Browser-Seiten koennen zwar Requests an localhost
- * schicken, aber `content-type: application/json` erzwingt einen CORS-Preflight,
- * den wir nie beantworten - und Origins ausser der Extension werden abgelehnt.
+ * Listens on 127.0.0.1 only. Web pages can send requests to localhost, but
+ * `content-type: application/json` forces a CORS preflight that we never
+ * answer - and origins other than the extension are rejected.
  */
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import { ROOT, saveSession, type HandoffManifest, type IncomingFile } from "./store.js";
@@ -17,7 +17,7 @@ function readBody(request: IncomingMessage): Promise<string> {
     request.on("data", (chunk: Buffer) => {
       size += chunk.length;
       if (size > MAX_BODY) {
-        reject(new Error("Body zu groß"));
+        reject(new Error("Body too large"));
         request.destroy();
         return;
       }
@@ -38,37 +38,37 @@ export function startHttp(port: number, version: string, log: (message: string) 
       response.writeHead(status, { "content-type": "application/json" });
       response.end(JSON.stringify(body));
     };
-    if (!allowedOrigin(request.headers.origin)) return send(403, { error: "Origin nicht erlaubt" });
+    if (!allowedOrigin(request.headers.origin)) return send(403, { error: "Origin not allowed" });
 
     if (request.method === "GET" && request.url === "/health") {
       return send(200, { ok: true, version, dir: ROOT });
     }
     if (request.method === "POST" && request.url === "/sessions") {
       if (!String(request.headers["content-type"] ?? "").includes("application/json")) {
-        return send(415, { error: "application/json erwartet" });
+        return send(415, { error: "application/json expected" });
       }
       try {
         const payload = JSON.parse(await readBody(request)) as { manifest: HandoffManifest; files: IncomingFile[] };
-        if (!payload.manifest?.id || !Array.isArray(payload.files)) return send(400, { error: "manifest und files erwartet" });
+        if (!payload.manifest?.id || !Array.isArray(payload.files)) return send(400, { error: "manifest and files expected" });
         const dir = await saveSession(payload.manifest, payload.files);
-        log(`Aufnahme empfangen: ${payload.manifest.title} (${payload.manifest.items.length} Feedback-Punkte) → ${dir}`);
+        log(`Recording received: ${payload.manifest.title} (${payload.manifest.items.length} feedback points) → ${dir}`);
         return send(200, { ok: true, path: dir });
       } catch (error) {
         return send(400, { error: error instanceof Error ? error.message : String(error) });
       }
     }
-    return send(404, { error: "Nicht gefunden" });
+    return send(404, { error: "Not found" });
   });
 
   return new Promise((resolve) => {
     server.once("error", (error: NodeJS.ErrnoException) => {
-      // Eine andere Claude-Code-Sitzung haelt den Port schon - die schreibt in denselben Ordner.
-      if (error.code === "EADDRINUSE") log(`Port ${port} belegt – eine andere qey-MCP-Instanz empfängt bereits.`);
-      else log(`HTTP-Server nicht gestartet: ${error.message}`);
+      // Another Claude Code session already holds the port - it writes to the same folder.
+      if (error.code === "EADDRINUSE") log(`Port ${port} in use – another qey MCP instance is already receiving.`);
+      else log(`HTTP server not started: ${error.message}`);
       resolve(null);
     });
     server.listen(port, "127.0.0.1", () => {
-      log(`Empfange Aufnahmen auf http://127.0.0.1:${port} → ${ROOT}`);
+      log(`Receiving recordings on http://127.0.0.1:${port} → ${ROOT}`);
       resolve(server);
     });
   });

@@ -1,11 +1,11 @@
 /**
- * Offscreen-Dokument: nimmt das Mikrofon auf, solange eine Aufnahme laeuft.
+ * Offscreen document: records the microphone while a recording is running.
  *
- * Der Service Worker hat kein `getUserMedia`, und im Content-Script wuerde die
- * Freigabe fuer die *Zielseite* abgefragt. Hier gilt sie fuer die Origin der
- * Extension - einmal in den Einstellungen erteilt, fragt Chrome nie wieder.
+ * The service worker has no `getUserMedia`, and in the content script the
+ * permission would be requested for the *target page*. Here it applies to the
+ * extension's origin - granted once in the settings, Chrome never asks again.
  *
- * Die Tonspur wird sekundenweise nach IndexedDB geschrieben.
+ * The audio track is written to IndexedDB every second.
  */
 import { appendChunk } from "@/lib/db";
 import type { OffscreenEvent, OffscreenRequest } from "@/lib/messages";
@@ -61,7 +61,7 @@ async function start(recordingId: string, liveConfig: Extract<OffscreenRequest, 
       recordingId,
       denied,
       message: denied
-        ? "Mikrofon ist fuer qey nicht freigegeben. In den Einstellungen unter Aufnahme freigeben."
+        ? "Microphone access not granted for qey. Allow it in Settings under Recording."
         : error instanceof Error
           ? error.message
           : String(error),

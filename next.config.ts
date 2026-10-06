@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Der Frame-Proxy spiegelt den Pfad der Zielseite 1:1. Wuerde Next den
-  // Trailing Slash wegnormalisieren, loesten relative URLs im Frame falsch auf.
+  // The frame proxy mirrors the target page's path 1:1. If Next normalized the
+  // trailing slash away, relative URLs in the frame would resolve incorrectly.
   skipTrailingSlashRedirect: true,
 };
 

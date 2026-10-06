@@ -23,8 +23,8 @@ interface UseRecorderOptions {
 }
 
 /**
- * Bindeglied zwischen Studio und dem Recorder im iframe: nimmt Events
- * entgegen, rechnet Zeitstempel auf den Sessionstart um und haelt den Zustand.
+ * Link between the studio and the recorder in the iframe: receives events,
+ * converts timestamps relative to the session start and holds the state.
  */
 export function useRecorder({ frameRef, mode }: UseRecorderOptions) {
   const [status, setStatus] = useState<RecorderStatus>("idle");
@@ -44,8 +44,8 @@ export function useRecorder({ frameRef, mode }: UseRecorderOptions) {
   const lastUrlRef = useRef<string | null>(null);
   const localSeq = useRef(0);
 
-  // Spiegel fuer die asynchronen postMessage-Handler, die ausserhalb des
-  // Renders laufen und den jeweils aktuellen Stand brauchen.
+  // Mirrors for the async postMessage handlers, which run outside of render
+  // and need the current state.
   useEffect(() => {
     statusRef.current = status;
   }, [status]);
@@ -191,7 +191,7 @@ export function useRecorder({ frameRef, mode }: UseRecorderOptions) {
     statusRef.current = "recording";
     send({ source: "qa-studio", type: "config", config: configRef.current });
     send({ source: "qa-studio", type: "start" });
-    // Startpunkt explizit protokollieren, damit die Timeline mit der Seite beginnt.
+    // Log the starting point explicitly so the timeline begins with the page.
     pushLocalEvent({
       type: "navigate",
       detail: { to: lastUrlRef.current, kind: "start" },

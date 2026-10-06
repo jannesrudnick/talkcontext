@@ -63,7 +63,7 @@ import type { WhisperModelId } from "@/lib/qa/whisper.worker";
 import { cn } from "@/lib/utils";
 
 const VIEWPORTS = [
-  { id: "full", label: "Voll", width: null, icon: Monitor },
+  { id: "full", label: "Full", width: null, icon: Monitor },
   { id: "desktop", label: "1280", width: 1280, icon: Monitor },
   { id: "tablet", label: "834", width: 834, icon: Tablet },
   { id: "mobile", label: "390", width: 390, icon: Smartphone },
@@ -75,13 +75,13 @@ const subscribeToNothing = () => () => {};
 
 const TARGET_QUERY = "url";
 
-/** Liest die persistierte Ziel-URL aus der Tool-Addressleiste. */
+/** Reads the persisted target URL from the tool's address bar. */
 function readTargetQuery(): string | null {
   const raw = new URLSearchParams(window.location.search).get(TARGET_QUERY);
   return raw ? normalizeTargetUrl(raw) : null;
 }
 
-/** Schreibt die Ziel-URL in `?url=` ohne History-Eintrag. */
+/** Writes the target URL to `?url=` without a history entry. */
 function persistTargetQuery(targetUrl: string) {
   const next = new URL(window.location.href);
   if (next.searchParams.get(TARGET_QUERY) === targetUrl) return;
@@ -89,7 +89,7 @@ function persistTargetQuery(targetUrl: string) {
   window.history.replaceState(window.history.state, "", `${next.pathname}${next.search}${next.hash}`);
 }
 
-/** Origin erst nach dem Mount lesen - sonst weicht das Markup vom Server ab. */
+/** Read the origin only after mount - otherwise the markup differs from the server. */
 function useOrigin(): string {
   return useSyncExternalStore(
     subscribeToNothing,
@@ -117,7 +117,7 @@ export function QaStudio() {
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
   const [micEnabled, setMicEnabled] = useState(true);
-  const [language, setLanguage] = useState("de-DE");
+  const [language, setLanguage] = useState("en-US");
   const [sessionId, setSessionId] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [frameKey, setFrameKey] = useState(0);
@@ -170,13 +170,13 @@ export function QaStudio() {
     [recorder.events, mode, loadedUrl, language],
   );
 
-  /* --------------------------------------------------------------- Laden */
+  /* ---------------------------------------------------------------- Load */
 
   const loadTarget = useCallback(
     async (raw: string) => {
       const normalized = normalizeTargetUrl(raw);
       if (!normalized) {
-        toast.error("Bitte eine gueltige URL eingeben, z.B. localhost:3000");
+        toast.error("Please enter a valid URL, e.g. localhost:3000");
         return;
       }
       setUrlInput(normalized);
@@ -188,10 +188,10 @@ export function QaStudio() {
         const result = (await response.json()) as ProbeResult;
         setProbe(result);
         if (!result.reachable) {
-          toast.error(`Ziel nicht erreichbar: ${result.error ?? "unbekannter Fehler"}`);
+          toast.error(`Target unreachable: ${result.error ?? "unknown error"}`);
         }
       } catch {
-        setProbe({ reachable: false, error: "Probe fehlgeschlagen" });
+        setProbe({ reachable: false, error: "Probe failed" });
       } finally {
         setProbing(false);
       }
@@ -222,11 +222,11 @@ export function QaStudio() {
     setFrameKey((key) => key + 1);
   }, [recorder]);
 
-  /* ----------------------------------------------------------- Aufnahme */
+  /* ----------------------------------------------------------- Recording */
 
   const start = useCallback(async () => {
     if (!loadedUrl) {
-      toast.error("Erst eine Seite laden.");
+      toast.error("Load a page first.");
       return;
     }
     setSessionId(crypto.randomUUID());
@@ -234,16 +234,16 @@ export function QaStudio() {
     setTranscriptSource("none");
     if (micEnabled) {
       const ok = await narration.start(startedAt);
-      if (!ok) toast.warning("Aufnahme laeuft ohne Ton - Mikrofonzugriff fehlt.");
+      if (!ok) toast.warning("Recording without audio - no microphone access.");
       else if (narration.supported.speech) setTranscriptSource("webspeech");
     }
-    toast.success("Aufnahme laeuft");
+    toast.success("Recording");
   }, [loadedUrl, micEnabled, narration, recorder]);
 
   const stop = useCallback(() => {
     recorder.stop();
     narration.stop();
-    toast.success("Aufnahme beendet - Artefakt kann exportiert werden.");
+    toast.success("Recording stopped - the artifact can be exported.");
   }, [narration, recorder]);
 
   const addNote = useCallback(() => {
@@ -251,11 +251,11 @@ export function QaStudio() {
     if (!text) return;
     recorder.addNote(text);
     setNote("");
-    toast.success("Notiz gesetzt");
+    toast.success("Note added");
   }, [note, recorder]);
 
-  // Nach dem Laden kurz warten und dann sagen, wenn sich der Recorder nicht
-  // gemeldet hat - Funkstille ohne Erklaerung ist der schlimmste Zustand.
+  // Wait briefly after loading, then say so if the recorder hasn't checked in -
+  // silence without explanation is the worst state.
   useEffect(() => {
     if (!iframeSrc) return;
     const timer = window.setTimeout(() => setConnectionHint(true), 3000);
@@ -273,29 +273,29 @@ export function QaStudio() {
     if (!narration.audioBlob) return;
     const segments = await transcription.transcribe(narration.audioBlob, whisperModel, language);
     if (!segments) {
-      toast.error(transcription.error ?? "Transkription fehlgeschlagen");
+      toast.error(transcription.error ?? "Transcription failed");
       return;
     }
     narration.replaceTranscript(segments);
     setTranscriptSource("whisper");
-    toast.success(`Transkript erzeugt - ${segments.length} Abschnitte`);
+    toast.success(`Transcript created - ${segments.length} segments`);
   }, [language, narration, transcription, whisperModel]);
 
   const runOpenAiTranscription = useCallback(async () => {
     if (!narration.audioBlob) return;
     const key = openaiKey.key.trim();
     if (!key) {
-      toast.error("Erst den OpenAI API-Key eintragen.");
+      toast.error("Enter the OpenAI API key first.");
       return;
     }
     const segments = await openaiTranscription.transcribe(narration.audioBlob, key, language);
     if (!segments) {
-      toast.error(openaiTranscription.error ?? "Transkription fehlgeschlagen");
+      toast.error(openaiTranscription.error ?? "Transcription failed");
       return;
     }
     narration.replaceTranscript(segments);
     setTranscriptSource("openai");
-    toast.success(`Transkript erzeugt - ${segments.length} Abschnitte`);
+    toast.success(`Transcript created - ${segments.length} segments`);
   }, [language, narration, openaiKey.key, openaiTranscription]);
 
   /* ------------------------------------------------------------- Export */
@@ -307,7 +307,7 @@ export function QaStudio() {
       version: "qa-recording/1",
       meta: {
         id: sessionId || crypto.randomUUID(),
-        title: title || loadedUrl || "QA-Aufnahme",
+        title: title || loadedUrl || "QA recording",
         startedAt: new Date(startedAtMs).toISOString(),
         endedAt: new Date(startedAtMs + recorder.elapsed).toISOString(),
         durationMs: recorder.elapsed,
@@ -384,7 +384,7 @@ export function QaStudio() {
 
   const copyMarkdown = useCallback(async () => {
     await navigator.clipboard.writeText(buildMarkdown(buildSession()));
-    toast.success("Markdown in der Zwischenablage - direkt an den Agenten uebergebbar.");
+    toast.success("Markdown copied to clipboard - ready to hand to the agent.");
   }, [buildSession]);
 
   const saveToServer = useCallback(async () => {
@@ -396,10 +396,10 @@ export function QaStudio() {
         body: buildJson(buildSession()),
       });
       const result = (await response.json()) as { json?: string; markdown?: string; error?: string };
-      if (!response.ok) throw new Error(result.error ?? "Speichern fehlgeschlagen");
-      toast.success("Gespeichert", { description: result.markdown });
+      if (!response.ok) throw new Error(result.error ?? "Saving failed");
+      toast.success("Saved", { description: result.markdown });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Speichern fehlgeschlagen");
+      toast.error(error instanceof Error ? error.message : "Saving failed");
     } finally {
       setSaving(false);
     }
@@ -411,13 +411,13 @@ export function QaStudio() {
 
   return (
     <div className="flex h-dvh flex-col bg-background">
-      {/* ------------------------------------------------------- Kopfzeile */}
+      {/* ---------------------------------------------------------- Header */}
       <header className="flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2">
         <div className="flex items-center gap-2 pr-2">
           <span className="grid size-7 place-items-center rounded-md bg-foreground text-background">
             <Circle className="size-3 fill-current" />
           </span>
-          <span className="text-sm font-semibold tracking-tight">QA-Recorder</span>
+          <span className="text-sm font-semibold tracking-tight">QA Recorder</span>
         </div>
 
         <form
@@ -430,7 +430,7 @@ export function QaStudio() {
           <Input
             value={urlInput}
             onChange={(event) => setUrlInput(event.target.value)}
-            placeholder="localhost:3000 oder https://staging.example.com"
+            placeholder="localhost:3000 or https://staging.example.com"
             className="h-8 font-mono text-xs"
             spellCheck={false}
           />
@@ -439,13 +439,13 @@ export function QaStudio() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="proxy">Proxy-Modus</SelectItem>
-              <SelectItem value="bridge">Bridge-Modus</SelectItem>
+              <SelectItem value="proxy">Proxy mode</SelectItem>
+              <SelectItem value="bridge">Bridge mode</SelectItem>
             </SelectContent>
           </Select>
           <Button type="submit" size="sm" disabled={probing}>
             {probing ? <Loader2 className="size-3.5 animate-spin" /> : null}
-            Laden
+            Load
           </Button>
         </form>
 
@@ -476,7 +476,7 @@ export function QaStudio() {
         </div>
       </header>
 
-      {/* --------------------------------------------------- Aufnahmeleiste */}
+      {/* ------------------------------------------------------ Record bar */}
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2">
         {recording ? (
           <Button type="button" size="sm" variant="destructive" onClick={stop}>
@@ -486,7 +486,7 @@ export function QaStudio() {
         ) : (
           <Button type="button" size="sm" onClick={() => void start()} disabled={!loadedUrl}>
             <Circle className="size-3.5 fill-red-500 text-red-500" />
-            Aufnahme
+            Record
           </Button>
         )}
 
@@ -499,8 +499,8 @@ export function QaStudio() {
             className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
             title={
               recorder.frameConnected
-                ? "Der Recorder laeuft in der Zielseite."
-                : "Der Recorder hat sich aus dem Frame noch nicht gemeldet."
+                ? "The recorder is running in the target page."
+                : "The recorder has not checked in from the frame yet."
             }
           >
             <span
@@ -509,7 +509,7 @@ export function QaStudio() {
                 recorder.frameConnected ? "bg-emerald-500" : "bg-amber-500",
               )}
             />
-            {recorder.frameConnected ? "Recorder aktiv" : "kein Recorder"}
+            {recorder.frameConnected ? "Recorder active" : "no recorder"}
           </span>
         )}
 
@@ -519,7 +519,7 @@ export function QaStudio() {
           variant={micEnabled ? "secondary" : "ghost"}
           onClick={() => setMicEnabled((value) => !value)}
           disabled={recording}
-          title={micEnabled ? "Mikrofon an" : "Mikrofon aus"}
+          title={micEnabled ? "Microphone on" : "Microphone off"}
         >
           {micEnabled ? <Mic className="size-3.5" /> : <MicOff className="size-3.5" />}
         </Button>
@@ -529,8 +529,8 @@ export function QaStudio() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="de-DE">Deutsch</SelectItem>
             <SelectItem value="en-US">English</SelectItem>
+            <SelectItem value="de-DE">German</SelectItem>
           </SelectContent>
         </Select>
 
@@ -546,35 +546,35 @@ export function QaStudio() {
                 addNote();
               }
             }}
-            placeholder="Befund notieren (haengt am zuletzt anvisierten Element)"
+            placeholder="Note a finding (attached to the last targeted element)"
             className="h-8 text-xs"
             disabled={!recording}
           />
           <Button type="button" size="sm" variant="outline" onClick={addNote} disabled={!recording || !note.trim()}>
             <Flag className="size-3.5" />
-            Notiz
+            Note
           </Button>
         </div>
 
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <Badge variant="outline" className="font-mono">
-            {summary.clicks} Klicks
+            {summary.clicks} clicks
           </Badge>
           <Badge variant="outline" className="font-mono">
-            {summary.hovers} Hovers
+            {summary.hovers} hovers
           </Badge>
           <Badge variant="outline" className="font-mono">
-            {summary.elements} Elemente
+            {summary.elements} elements
           </Badge>
           {summary.errors > 0 && (
             <Badge variant="destructive" className="font-mono">
-              {summary.errors} Fehler
+              {summary.errors} errors
             </Badge>
           )}
         </div>
       </div>
 
-      {/* --------------------------------------------------------- Arbeitsflaeche */}
+      {/* ------------------------------------------------------- Workspace */}
       <div className="flex min-h-0 flex-1">
         <main className="relative flex min-w-0 flex-1 items-stretch justify-center overflow-auto bg-muted/30 p-3">
           {iframeSrc ? (
@@ -586,7 +586,7 @@ export function QaStudio() {
                 key={`${frameKey}-${iframeSrc}`}
                 ref={frameRef}
                 src={iframeSrc}
-                title="QA-Ziel"
+                title="QA target"
                 className="size-full rounded-lg border bg-white shadow-sm"
                 allow="clipboard-read; clipboard-write; microphone"
                 sandbox="allow-forms allow-modals allow-popups allow-same-origin allow-scripts allow-downloads"
@@ -603,7 +603,7 @@ export function QaStudio() {
           )}
         </main>
 
-        {/* ------------------------------------------------------- Seitenleiste */}
+        {/* --------------------------------------------------------- Sidebar */}
         <aside className="flex w-96 shrink-0 flex-col border-l">
           <Tabs defaultValue="timeline" className="flex min-h-0 flex-1 flex-col gap-0">
             <TabsList className="m-2 grid grid-cols-4">
@@ -614,7 +614,7 @@ export function QaStudio() {
                 Element
               </TabsTrigger>
               <TabsTrigger value="speech" className="text-xs">
-                Sprache
+                Speech
               </TabsTrigger>
               <TabsTrigger value="setup" className="text-xs">
                 Setup
@@ -629,8 +629,8 @@ export function QaStudio() {
                   onHighlight={recorder.highlight}
                   emptyHint={
                     recording
-                      ? "Bewege die Maus im Frame - Hovers und Klicks landen hier."
-                      : "Noch keine Aufnahme. Seite laden, Aufnahme starten, durchklicken."
+                      ? "Move the mouse in the frame - hovers and clicks show up here."
+                      : "No recording yet. Load a page, start recording, click through."
                   }
                 />
               </ScrollArea>
@@ -648,12 +648,12 @@ export function QaStudio() {
                   <div className="space-y-2 rounded-lg border bg-card p-2.5">
                     <div className="flex items-center gap-1.5">
                       <WandSparkles className="size-3.5 text-violet-500" />
-                      <p className="text-xs font-medium">Lokal transkribieren</p>
+                      <p className="text-xs font-medium">Transcribe locally</p>
                     </div>
                     <p className="text-[10px] leading-snug text-muted-foreground">
-                      Whisper laeuft komplett im Browser (WebGPU, sonst WASM). Kein Upload, kein
-                      API-Key, echte Zeitstempel - und es funktioniert auch in Firefox und Safari.
-                      Das Modell wird einmalig geladen und danach vom Browser gecacht.
+                      Whisper runs entirely in the browser (WebGPU, otherwise WASM). No upload, no
+                      API key, real timestamps - and it works in Firefox and Safari too.
+                      The model is downloaded once and then cached by the browser.
                     </p>
                     <div className="flex items-center gap-2">
                       <Select
@@ -684,12 +684,12 @@ export function QaStudio() {
                         ) : (
                           <WandSparkles className="size-3.5" />
                         )}
-                        Starten
+                        Start
                       </Button>
                     </div>
                     {!narration.audioBlob && !transcription.running && (
                       <p className="text-[10px] text-muted-foreground">
-                        Erst mit Mikrofon aufnehmen und stoppen - dann steht die Tonspur bereit.
+                        Record with the microphone and stop first - then the audio track is ready.
                       </p>
                     )}
                     {transcription.progress && (
@@ -711,7 +711,7 @@ export function QaStudio() {
                     )}
                     {transcriptSource === "whisper" && !transcription.running && (
                       <p className="text-[10px] text-emerald-500">
-                        Transkript stammt aus Whisper ({whisperModel.split("/")[1]}).
+                        Transcript comes from Whisper ({whisperModel.split("/")[1]}).
                       </p>
                     )}
                   </div>
@@ -719,12 +719,12 @@ export function QaStudio() {
                   <div className="space-y-2 rounded-lg border bg-card p-2.5">
                     <div className="flex items-center gap-1.5">
                       <Cloud className="size-3.5 text-sky-500" />
-                      <p className="text-xs font-medium">Mit OpenAI transkribieren</p>
+                      <p className="text-xs font-medium">Transcribe with OpenAI</p>
                     </div>
                     <p className="text-[10px] leading-snug text-muted-foreground">
-                      Schickt die Tonspur einmalig an OpenAI (whisper-1), meist genauer als das lokale
-                      Modell. Der Key bleibt in deinem Browser gespeichert und geht nur fuer diesen
-                      einen Request durch unseren Server - wir legen ihn nirgends ab.
+                      Sends the audio track to OpenAI (whisper-1) once, usually more accurate than the
+                      local model. The key stays stored in your browser and only passes through our
+                      server for this one request - we store it nowhere.
                     </p>
                     <Input
                       type="password"
@@ -751,22 +751,21 @@ export function QaStudio() {
                         ) : (
                           <Cloud className="size-3.5" />
                         )}
-                        Starten
+                        Start
                       </Button>
                     </div>
                     {openaiTranscription.error && (
                       <p className="text-[10px] text-red-500">{openaiTranscription.error}</p>
                     )}
                     {transcriptSource === "openai" && !openaiTranscription.running && (
-                      <p className="text-[10px] text-emerald-500">Transkript stammt aus OpenAI (whisper-1).</p>
+                      <p className="text-[10px] text-emerald-500">Transcript comes from OpenAI (whisper-1).</p>
                     )}
                   </div>
 
                   {!narration.supported.speech && (
                     <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px]">
-                      Das <em>Live</em>-Transkript braucht die Web Speech API (Chrome/Edge). Der Ton
-                      wird trotzdem aufgezeichnet - transkribiere ihn danach einfach lokal mit
-                      Whisper.
+                      The <em>live</em> transcript needs the Web Speech API (Chrome/Edge). The audio
+                      is recorded anyway - just transcribe it locally with Whisper afterwards.
                     </p>
                   )}
                   {narration.error && (
@@ -785,7 +784,7 @@ export function QaStudio() {
                   {narration.interim && <p className="italic text-muted-foreground">{narration.interim}</p>}
                   {!narration.transcript.length && !narration.interim && (
                     <p className="py-6 text-center text-muted-foreground">
-                      Noch nichts gesprochen. Waehrend der Aufnahme einfach erklaeren, was du tust.
+                      Nothing spoken yet. Just explain what you are doing while recording.
                     </p>
                   )}
                 </div>
@@ -797,13 +796,13 @@ export function QaStudio() {
                 <div className="space-y-4 p-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="qa-title" className="text-xs">
-                      Titel der Aufnahme
+                      Recording title
                     </Label>
                     <Input
                       id="qa-title"
                       value={title}
                       onChange={(event) => setTitle(event.target.value)}
-                      placeholder="z.B. Checkout-Flow Bug"
+                      placeholder="e.g. checkout flow bug"
                       className="h-8 text-xs"
                     />
                   </div>
@@ -813,36 +812,36 @@ export function QaStudio() {
                   <div className="space-y-2.5">
                     <ConfigSwitch
                       id="highlight"
-                      label="Element hervorheben"
-                      hint="Zeichnet einen Rahmen um das anvisierte Element."
+                      label="Highlight element"
+                      hint="Draws an outline around the targeted element."
                       checked={recorder.config.highlight}
                       onChange={(checked) => recorder.setConfig({ highlight: checked })}
                     />
                     <ConfigSwitch
                       id="html"
-                      label="HTML mitschneiden"
-                      hint="Speichert das gekuerzte outerHTML des Ziels."
+                      label="Capture HTML"
+                      hint="Stores the truncated outerHTML of the target."
                       checked={recorder.config.captureHtml}
                       onChange={(checked) => recorder.setConfig({ captureHtml: checked })}
                     />
                     <ConfigSwitch
                       id="values"
-                      label="Eingabewerte mitschneiden"
-                      hint="Passwortfelder bleiben immer maskiert."
+                      label="Capture input values"
+                      hint="Password fields always stay masked."
                       checked={recorder.config.captureInputValues}
                       onChange={(checked) => recorder.setConfig({ captureInputValues: checked })}
                     />
                     <ConfigSwitch
                       id="console"
-                      label="Konsolenfehler mitschneiden"
-                      hint="console.error/warn und unbehandelte Fehler."
+                      label="Capture console errors"
+                      hint="console.error/warn and unhandled errors."
                       checked={recorder.config.captureConsole}
                       onChange={(checked) => recorder.setConfig({ captureConsole: checked })}
                     />
                     <ConfigSwitch
                       id="network"
-                      label="Fehlgeschlagene Requests"
-                      hint="Requests mit Status >= 400 oder Netzwerkfehler."
+                      label="Failed requests"
+                      hint="Requests with status >= 400 or network errors."
                       checked={recorder.config.captureNetwork}
                       onChange={(checked) => recorder.setConfig({ captureNetwork: checked })}
                     />
@@ -852,17 +851,17 @@ export function QaStudio() {
 
                   <div className="space-y-1.5">
                     <p className="text-xs font-medium">Status</p>
-                    <StatusRow label="Modus" value={mode === "proxy" ? "Proxy (injiziert)" : "Bridge (Snippet)"} />
+                    <StatusRow label="Mode" value={mode === "proxy" ? "Proxy (injected)" : "Bridge (snippet)"} />
                     <StatusRow
                       label="Recorder"
-                      value={recorder.frameConnected ? "verbunden" : "nicht verbunden"}
+                      value={recorder.frameConnected ? "connected" : "not connected"}
                       tone={recorder.frameConnected ? "ok" : "warn"}
                     />
-                    <StatusRow label="Frame-URL" value={recorder.frameUrl ?? "-"} mono />
+                    <StatusRow label="Frame URL" value={recorder.frameUrl ?? "-"} mono />
                     {probe && (
                       <StatusRow
-                        label="Einbettbar"
-                        value={probe.reachable ? (probe.embeddable ? "ja" : "nein (Proxy noetig)") : "nicht erreichbar"}
+                        label="Embeddable"
+                        value={probe.reachable ? (probe.embeddable ? "yes" : "no (proxy required)") : "unreachable"}
                         tone={probe.reachable && probe.embeddable ? "ok" : "warn"}
                       />
                     )}
@@ -871,15 +870,15 @@ export function QaStudio() {
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button type="button" variant="outline" size="sm" className="w-full">
-                        Bridge-Snippet anzeigen
+                        Show bridge snippet
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Bridge-Modus einrichten</DialogTitle>
+                        <DialogTitle>Set up bridge mode</DialogTitle>
                         <DialogDescription>
-                          Fuer eigene Projekte die exakteste Variante: Das Skript laeuft direkt in deiner App,
-                          ohne dass der Proxy HTML umschreiben muss.
+                          The most accurate option for your own projects: the script runs directly in your app,
+                          without the proxy having to rewrite HTML.
                         </DialogDescription>
                       </DialogHeader>
                       <pre className="overflow-x-auto rounded-md bg-muted p-3 font-mono text-[11px]">
@@ -891,11 +890,11 @@ export function QaStudio() {
                         variant="secondary"
                         onClick={() => {
                           void navigator.clipboard.writeText(bridgeSnippet);
-                          toast.success("Snippet kopiert");
+                          toast.success("Snippet copied");
                         }}
                       >
                         <Copy className="size-3.5" />
-                        Kopieren
+                        Copy
                       </Button>
                     </DialogContent>
                   </Dialog>
@@ -907,7 +906,7 @@ export function QaStudio() {
           {/* ------------------------------------------------------- Export */}
           <div className="shrink-0 space-y-2 border-t p-3">
             <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-              <span>Artefakt</span>
+              <span>Artifact</span>
               <span>
                 {recorder.events.length} Events · {formatDuration(recorder.elapsed)}
               </span>
@@ -923,7 +922,7 @@ export function QaStudio() {
               </Button>
               <Button type="button" size="sm" variant="outline" onClick={copyMarkdown} disabled={!hasRecording}>
                 <Copy className="size-3.5" />
-                Kopieren
+                Copy
               </Button>
               <Button
                 type="button"
@@ -944,7 +943,7 @@ export function QaStudio() {
               disabled={!hasRecording || saving}
             >
               {saving ? <Loader2 className="size-3.5 animate-spin" /> : <HardDriveDownload className="size-3.5" />}
-              In ./qa-sessions ablegen
+              Save to ./qa-sessions
             </Button>
           </div>
         </aside>
@@ -1011,22 +1010,22 @@ function EmptyState({ bridgeSnippet }: { bridgeSnippet: string }) {
   return (
     <div className="grid w-full place-items-center">
       <div className="max-w-md space-y-4 text-center">
-        <h1 className="text-lg font-semibold">Loom fuer Agenten</h1>
+        <h1 className="text-lg font-semibold">Loom for agents</h1>
         <p className="text-sm text-muted-foreground">
-          URL oben eingeben und laden. Danach Aufnahme starten und die Seite im Frame durchklicken,
-          waehrend du erklaerst, was du tust. Das Ergebnis ist kein Video, sondern ein Protokoll aus
-          DOM-Elementen, Interaktionen und Transkript - lesbar fuer einen Coding-Agenten.
+          Enter a URL above and load it. Then start recording and click through the page in the frame
+          while explaining what you are doing. The result is not a video but a protocol of DOM
+          elements, interactions and transcript - readable for a coding agent.
         </p>
         <div className="rounded-lg border bg-card p-3 text-left">
-          <p className="mb-2 text-xs font-medium">Zwei Modi</p>
+          <p className="mb-2 text-xs font-medium">Two modes</p>
           <ul className="space-y-2 text-xs text-muted-foreground">
             <li>
-              <span className="font-medium text-foreground">Proxy</span> - ohne Eingriff ins Zielprojekt.
-              Die Seite wird ueber diese App ausgeliefert und der Recorder injiziert.
+              <span className="font-medium text-foreground">Proxy</span> - no changes to the target project.
+              The page is served through this app and the recorder is injected.
             </li>
             <li>
-              <span className="font-medium text-foreground">Bridge</span> - exakter, dafuer ein Snippet im
-              eigenen Dev-Build:
+              <span className="font-medium text-foreground">Bridge</span> - more accurate, but needs a snippet in
+              your own dev build:
               <code className="mt-1 block break-all rounded bg-muted p-1.5 font-mono text-[10px]">
                 {bridgeSnippet}
               </code>
@@ -1039,8 +1038,8 @@ function EmptyState({ bridgeSnippet }: { bridgeSnippet: string }) {
 }
 
 /**
- * Wenn sich der Recorder nicht meldet, ist der haeufigste Grund modusabhaengig -
- * also sagen wir konkret, was zu tun ist, statt den Frame stumm stehen zu lassen.
+ * When the recorder doesn't check in, the most common cause depends on the mode -
+ * so we say concretely what to do instead of leaving the frame silent.
  */
 function ConnectionHint({
   mode,
@@ -1056,12 +1055,12 @@ function ConnectionHint({
       <div className="flex items-start gap-2">
         <Unplug className="mt-0.5 size-4 shrink-0 text-amber-500" />
         <div className="min-w-0 flex-1 space-y-2">
-          <p className="text-xs font-medium">Der Recorder meldet sich nicht aus dem Frame</p>
+          <p className="text-xs font-medium">The recorder is not checking in from the frame</p>
           {mode === "bridge" ? (
             <>
               <p className="text-[11px] text-muted-foreground">
-                Im Bridge-Modus muss das Snippet in der Zielseite eingebunden sein. Ohne das Skript
-                sieht das Studio nichts - weder Hover noch Klicks.
+                In bridge mode the snippet must be included in the target page. Without the script
+                the studio sees nothing - neither hovers nor clicks.
               </p>
               <code className="block break-all rounded bg-muted p-1.5 font-mono text-[10px]">
                 {snippet}
@@ -1073,23 +1072,23 @@ function ConnectionHint({
                   variant="secondary"
                   onClick={() => {
                     void navigator.clipboard.writeText(snippet);
-                    toast.success("Snippet kopiert");
+                    toast.success("Snippet copied");
                   }}
                 >
                   <Copy className="size-3.5" />
-                  Snippet kopieren
+                  Copy snippet
                 </Button>
               </div>
             </>
           ) : (
             <>
               <p className="text-[11px] text-muted-foreground">
-                Die Seite laedt im Proxy, aber das injizierte Skript laeuft nicht. Meist blockiert
-                die Zielseite fremde Skripte oder haengt beim Rendern. Fuer eigene Projekte ist der
-                Bridge-Modus der zuverlaessigere Weg.
+                The page loads in the proxy, but the injected script is not running. Usually the target
+                page blocks foreign scripts or hangs while rendering. For your own projects, bridge
+                mode is the more reliable route.
               </p>
               <Button type="button" size="sm" variant="secondary" onClick={onSwitchMode}>
-                Zu Bridge wechseln
+                Switch to bridge
               </Button>
             </>
           )}

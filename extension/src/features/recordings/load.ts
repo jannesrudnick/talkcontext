@@ -1,9 +1,9 @@
 /**
- * Laedt eine Aufnahme aus IndexedDB und bringt alle Spuren auf eine Zeitachse.
+ * Loads a recording from IndexedDB and puts all tracks on one timeline.
  *
- * Zeitbasis der Oberflaeche ist der erste rrweb-Frame (= Replay-Zeit 0). Fuer
- * den Export wird auf den Aufnahmestart umgerechnet, damit Markdown/JSON
- * dasselbe Format haben wie in der Next-App.
+ * The UI's time base is the first rrweb frame (= replay time 0). For export,
+ * times are converted to the recording start so Markdown/JSON have the same
+ * format as in the Next app.
  */
 import type { eventWithTime } from "rrweb";
 import { correlate } from "@shared/correlate";
@@ -14,17 +14,17 @@ import type { ConsoleEntry, FeedbackItem, NetworkEntry, RecordingMeta, Screensho
 export interface LoadedRecording {
   meta: RecordingMeta;
   rrweb: eventWithTime[];
-  /** Semantische Events, `t` relativ zur Replay-Zeit 0. */
+  /** Semantic events, `t` relative to replay time 0. */
   events: QaEvent[];
   console: ConsoleEntry[];
   network: NetworkEntry[];
   cursor: Array<{ ts: number; x: number; y: number }>;
   audio: Blob | null;
-  /** Ausdrueckliche Befunde, nach Nummer sortiert (verworfene fehlen). */
+  /** Explicit findings, sorted by number (discarded ones omitted). */
   feedback: FeedbackItem[];
   strokes: Stroke[];
   screenshots: Screenshot[];
-  /** epoch ms der Replay-Zeit 0. */
+  /** epoch ms of replay time 0. */
   base: number;
   durationMs: number;
 }
@@ -83,14 +83,14 @@ export async function loadRecording(id: string): Promise<LoadedRecording | null>
   };
 }
 
-/** Transkript-Segmente in Replay-Zeit (Tonspur beginnt nicht exakt bei 0). */
+/** Transcript segments in replay time (the audio track doesn't start exactly at 0). */
 export function transcriptInReplayTime(recording: LoadedRecording): TranscriptSegment[] {
   const segments = recording.meta.transcript?.segments ?? [];
   const offset = recording.meta.audio ? recording.meta.audio.startedAt - recording.base : 0;
   return segments.map((segment) => ({ ...segment, t: segment.t + offset, endT: segment.endT + offset }));
 }
 
-/** Transkript-Abschnitte in epoch ms. */
+/** Transcript segments in epoch ms. */
 export function transcriptEpoch(recording: LoadedRecording): Array<{ start: number; end: number; text: string }> {
   const audioStart = recording.meta.audio?.startedAt ?? recording.meta.startedAt;
   return (recording.meta.transcript?.segments ?? [])
@@ -99,10 +99,10 @@ export function transcriptEpoch(recording: LoadedRecording): Array<{ start: numb
 }
 
 /**
- * Was wurde zu welchem Feedback-Punkt gesagt? Jeder Abschnitt geht an den
- * Punkt, mit dessen Aktivzeit (plus kurzem Vorlauf - man kuendigt oft an,
- * bevor man klickt) er am staerksten ueberlappt. Ohne Transkript bleibt das
- * live Mitgeschriebene.
+ * What was said about which feedback point? Each segment goes to the point
+ * whose active time (plus a short lead-in - people often announce before
+ * they click) it overlaps most. Without a transcript, the live-captured
+ * speech is kept.
  */
 export function speechByFeedback(recording: LoadedRecording): Map<string, string[]> {
   const result = new Map<string, string[]>();
@@ -128,7 +128,7 @@ export function speechByFeedback(recording: LoadedRecording): Map<string, string
   return result;
 }
 
-/** Transkript den Events zuordnen - fuer die Aktivitaetsliste. */
+/** Map the transcript to events - for the activity list. */
 export function correlated(recording: LoadedRecording) {
   return correlate({
     events: recording.events,
@@ -137,7 +137,7 @@ export function correlated(recording: LoadedRecording) {
   });
 }
 
-/** Aufnahme in das Austauschformat `qa-recording/1` der Next-App ueberfuehren. */
+/** Convert a recording to the Next app's `qa-recording/1` exchange format. */
 export function toQaSession(recording: LoadedRecording): QaSession {
   const { meta } = recording;
   const start = meta.startedAt;

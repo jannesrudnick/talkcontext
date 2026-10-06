@@ -5,7 +5,7 @@ import type { Environment, Settings } from "./types";
 const KEY = "local:settings";
 
 export const DEFAULT_SETTINGS: Settings = {
-  language: "de-DE",
+  language: "en-US",
   theme: "system",
   recorder: { ...DEFAULT_RECORDER_CONFIG },
   replay: { maskAllInputs: false, recordCanvas: false, blockSelector: "" },
@@ -24,7 +24,7 @@ export const DEFAULT_SETTINGS: Settings = {
   environments: [
     {
       id: "local",
-      name: "Lokal",
+      name: "Local",
       color: "#22c55e",
       patterns: ["http://localhost:*/*", "http://127.0.0.1:*/*"],
       notes: "",
@@ -35,7 +35,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
 const settingsItem = storage.defineItem<Settings>(KEY, { fallback: DEFAULT_SETTINGS });
 
-/** Tief genug mergen, dass neue Felder in alten Speicherstaenden Defaults bekommen. */
+/** Merge deep enough that new fields get defaults in old stored states. */
 function withDefaults(value: Partial<Settings> | null | undefined): Settings {
   const v = value ?? {};
   return {
@@ -63,7 +63,7 @@ export function watchSettings(callback: (settings: Settings) => void): () => voi
   return settingsItem.watch((value) => callback(withDefaults(value)));
 }
 
-/* ------------------------------------------------------------ Umgebungen */
+/* ------------------------------------------------------------ Environments */
 
 function patternToRegExp(pattern: string): RegExp | null {
   const trimmed = pattern.trim();
@@ -80,7 +80,7 @@ export function matchesPattern(url: string, pattern: string): boolean {
   const regex = patternToRegExp(pattern);
   if (!regex) return false;
   if (regex.test(url)) return true;
-  // "https://example.com" ohne Pfad soll auch Unterseiten treffen.
+  // "https://example.com" without a path should also match subpages.
   return !pattern.includes("*") && url.toLowerCase().startsWith(pattern.trim().toLowerCase());
 }
 

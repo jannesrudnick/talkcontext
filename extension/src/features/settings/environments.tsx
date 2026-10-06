@@ -25,7 +25,7 @@ export function EnvironmentsSection({ settings, update }: SectionProps) {
       ...list,
       {
         id: newId("env_"),
-        name: `Umgebung ${list.length + 1}`,
+        name: `Environment ${list.length + 1}`,
         color: COLORS[list.length % COLORS.length]!,
         patterns: [""],
         notes: "",
@@ -36,12 +36,12 @@ export function EnvironmentsSection({ settings, update }: SectionProps) {
   return (
     <section>
       <SectionHeader
-        title="Umgebungen"
-        description="Lokal, Staging, Produktion … Anhand der URL erkennt qey die Umgebung, zeigt sie im Overlay und hängt Notizen und Variablen an jede Aufnahme – damit der Agent weiß, wo er testen kann."
+        title="Environments"
+        description="Local, Staging, Production … qey detects the environment from the URL, shows it in the overlay and attaches notes and variables to every recording – so the agent knows where to test."
         action={
           <Button onClick={add}>
             <PlusIcon />
-            Umgebung
+            Environment
           </Button>
         }
       />
@@ -51,13 +51,13 @@ export function EnvironmentsSection({ settings, update }: SectionProps) {
             <EmptyMedia variant="icon">
               <GlobeIcon />
             </EmptyMedia>
-            <EmptyTitle>Keine Umgebungen</EmptyTitle>
-            <EmptyDescription>Aufnahmen funktionieren auch ohne – mit Umgebung bekommt der Agent mehr Kontext.</EmptyDescription>
+            <EmptyTitle>No environments</EmptyTitle>
+            <EmptyDescription>Recordings work without one – with an environment the agent gets more context.</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             <Button onClick={add}>
               <PlusIcon />
-              Erste Umgebung anlegen
+              Add first environment
             </Button>
           </EmptyContent>
         </Empty>
@@ -97,7 +97,7 @@ function EnvironmentCard({
             <button
               key={color}
               type="button"
-              aria-label={`Farbe ${color}`}
+              aria-label={`Color ${color}`}
               onClick={() => onChange({ ...env, color })}
               className={cn(
                 "size-4 rounded-full ring-offset-2 ring-offset-card transition",
@@ -114,15 +114,15 @@ function EnvironmentCard({
         />
         <Badge variant="outline" className="ml-auto gap-1.5">
           <span className="size-1.5 rounded-full" style={{ background: env.color }} />
-          {env.name || "Ohne Namen"}
+          {env.name || "Untitled"}
         </Badge>
-        <Button size="icon" variant="ghost" onClick={onRemove} aria-label="Umgebung löschen">
+        <Button size="icon" variant="ghost" onClick={onRemove} aria-label="Delete environment">
           <Trash2Icon />
         </Button>
       </CardHeader>
       <CardContent className="space-y-6">
         <Field>
-          <FieldLabel>URL-Muster</FieldLabel>
+          <FieldLabel>URL patterns</FieldLabel>
           <div className="space-y-2">
             {env.patterns.map((pattern, index) => (
               <div key={index} className="flex gap-2">
@@ -137,7 +137,7 @@ function EnvironmentCard({
                 <Button
                   size="icon"
                   variant="ghost"
-                  aria-label="Muster entfernen"
+                  aria-label="Remove pattern"
                   onClick={() => onChange({ ...env, patterns: env.patterns.filter((_, i) => i !== index) })}
                 >
                   <Trash2Icon />
@@ -146,32 +146,32 @@ function EnvironmentCard({
             ))}
             <Button size="sm" variant="outline" onClick={() => onChange({ ...env, patterns: [...env.patterns, ""] })}>
               <PlusIcon />
-              Muster
+              Pattern
             </Button>
           </div>
           <FieldDescription>
-            <span className="font-mono">*</span> steht für beliebige Zeichen, z.B.{" "}
-            <span className="font-mono">http://localhost:*/*</span>. Die erste passende Umgebung gewinnt.
+            <span className="font-mono">*</span> matches any characters, e.g.{" "}
+            <span className="font-mono">http://localhost:*/*</span>. The first matching environment wins.
           </FieldDescription>
         </Field>
 
         <Field>
-          <FieldLabel>Notizen für den Agenten</FieldLabel>
+          <FieldLabel>Notes for the agent</FieldLabel>
           <Textarea
             value={env.notes}
-            placeholder={"Testnutzer: qa@example.com\nFeature-Flag „new-checkout“ ist hier aktiv\nDeploy: main, automatisch"}
+            placeholder={"Test user: qa@example.com\nFeature flag “new-checkout” is enabled here\nDeploy: main, automatic"}
             rows={3}
             onChange={(event) => onChange({ ...env, notes: event.target.value })}
           />
-          <FieldDescription>Landet im Kontext-Abschnitt jedes Exports.</FieldDescription>
+          <FieldDescription>Included in the context section of every export.</FieldDescription>
         </Field>
 
         <Field>
-          <FieldLabel>Variablen</FieldLabel>
+          <FieldLabel>Variables</FieldLabel>
           <div className="overflow-hidden rounded-lg border">
             {env.variables.length === 0 && (
               <p className="px-3 py-3 text-sm text-muted-foreground">
-                Z.B. <span className="font-mono">API_URL</span>, <span className="font-mono">BUILD</span>,{" "}
+                E.g. <span className="font-mono">API_URL</span>, <span className="font-mono">BUILD</span>,{" "}
                 <span className="font-mono">TEST_USER</span>.
               </p>
             )}
@@ -200,7 +200,7 @@ function EnvironmentCard({
             </Button>
           </div>
           <FieldDescription>
-            Geheime Werte (Schloss) werden nie in Aufnahmen oder Exporte übernommen – dort steht nur der Name.
+            Secret values (lock) are never included in recordings or exports – only the name is.
           </FieldDescription>
         </Field>
       </CardContent>
@@ -230,24 +230,24 @@ function VariableRow({
       <Input
         value={variable.value}
         type={variable.secret && !reveal ? "password" : "text"}
-        placeholder="Wert"
+        placeholder="Value"
         className="h-8 flex-1 font-mono text-xs"
         onChange={(event) => onChange({ value: event.target.value })}
       />
       {variable.secret && (
-        <Button size="icon-sm" variant="ghost" onClick={() => setReveal((value) => !value)} aria-label="Anzeigen">
+        <Button size="icon-sm" variant="ghost" onClick={() => setReveal((value) => !value)} aria-label="Show">
           {reveal ? <EyeOffIcon /> : <EyeIcon />}
         </Button>
       )}
       <Button
         size="icon-sm"
         variant={variable.secret ? "secondary" : "ghost"}
-        title={variable.secret ? "Geheim – wird nicht exportiert" : "Als geheim markieren"}
+        title={variable.secret ? "Secret – not exported" : "Mark as secret"}
         onClick={() => onChange({ secret: !variable.secret })}
       >
         {variable.secret ? <LockIcon /> : <UnlockIcon />}
       </Button>
-      <Button size="icon-sm" variant="ghost" onClick={onRemove} aria-label="Variable entfernen">
+      <Button size="icon-sm" variant="ghost" onClick={onRemove} aria-label="Remove variable">
         <Trash2Icon />
       </Button>
     </div>

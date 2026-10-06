@@ -38,14 +38,14 @@ export function NetworkPanel({
           size="sm"
           variant="outline"
         >
-          <ToggleGroupItem value="all">Alle</ToggleGroupItem>
-          <ToggleGroupItem value="failed">Fehlgeschlagen</ToggleGroupItem>
+          <ToggleGroupItem value="all">All</ToggleGroupItem>
+          <ToggleGroupItem value="failed">Failed</ToggleGroupItem>
         </ToggleGroup>
         <span className="ml-auto text-xs text-muted-foreground">fetch &amp; XHR</span>
       </div>
       <ScrollArea className="min-h-0 flex-1">
         {filtered.length === 0 ? (
-          <p className="px-3 py-8 text-center text-sm text-muted-foreground">Keine Requests.</p>
+          <p className="px-3 py-8 text-center text-sm text-muted-foreground">No requests.</p>
         ) : (
           <div className="divide-y text-xs">
             {filtered.map((entry) => {

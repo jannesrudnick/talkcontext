@@ -22,8 +22,8 @@
 }
 
 /*
- * Chrome injiziert in Extension-Seiten eigene Schrift-Defaults (ohne Layer) -
- * die schlagen alles in @layer base. Deshalb hier bewusst ungelayert.
+ * Chrome injects its own font defaults into extension pages (unlayered) -
+ * they beat everything in @layer base. Hence deliberately unlayered here.
  */
 html,
 body {
