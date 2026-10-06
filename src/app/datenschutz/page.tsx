@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Datenschutzerklärung – qey" };
+export const metadata: Metadata = { title: "Datenschutzerklärung – TalkContext" };
 
 export default function Datenschutz() {
   return (
@@ -18,8 +18,8 @@ export default function Datenschutz() {
         E-Mail: <a href="mailto:kontakt@jannesrudnick.com">kontakt@jannesrudnick.com</a>
       </p>
       <p>
-        Diese Datenschutzerklärung gilt für die Website qey (diese Landingpage) und beschreibt außerdem, wie die
-        Browser-Erweiterung qey mit Daten umgeht.
+        Diese Datenschutzerklärung gilt für die Website TalkContext (diese Landingpage) und beschreibt außerdem, wie die
+        Browser-Erweiterung TalkContext mit Daten umgeht.
       </p>
 
       <h2>2. Das Wichtigste vorab</h2>
@@ -74,7 +74,7 @@ export default function Datenschutz() {
         ist und keine gesetzlichen Aufbewahrungspflichten entgegenstehen.
       </p>
 
-      <h2>6. Browser-Erweiterung qey</h2>
+      <h2>6. Browser-Erweiterung TalkContext</h2>
       <p>
         Die Erweiterung ist Open-Source-Software, die Sie selbst installieren und betreiben. Wir erhalten dabei keine
         Daten.
@@ -93,9 +93,14 @@ export default function Datenschutz() {
           Transkription an OpenAI übermittelt. Dafür gelten Ihre Vereinbarung mit OpenAI und deren
           Datenschutzbestimmungen. Ohne Schlüssel erfolgt die Transkription lokal im Browser.
         </li>
+        <li>
+          Für die lokale Transkription lädt die Erweiterung einmalig ein Whisper-Modell von Hugging Face
+          (huggingface.co) herunter. Dabei wird – wie bei jedem Download – Ihre IP-Adresse an Hugging Face übermittelt;
+          Audio oder Aufnahmen werden nicht übertragen.
+        </li>
       </ul>
       <p>
-        Wenn Sie mit qey Websites aufnehmen, auf denen personenbezogene Daten Dritter sichtbar sind, sind Sie für deren
+        Wenn Sie mit TalkContext Websites aufnehmen, auf denen personenbezogene Daten Dritter sichtbar sind, sind Sie für deren
         Verarbeitung selbst verantwortlich.
       </p>
 

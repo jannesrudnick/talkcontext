@@ -295,7 +295,7 @@ export const ReplayPlayer = forwardRef<PlayerHandle, PlayerProps>(function Repla
           >
             <div
               ref={mountRef}
-              className="qey-replay absolute top-0 left-0 origin-top-left"
+              className="talkcontext-replay absolute top-0 left-0 origin-top-left"
               style={{ transform: `scale(${scale})`, width: viewport?.width, height: viewport?.height }}
             />
             {viewport &&

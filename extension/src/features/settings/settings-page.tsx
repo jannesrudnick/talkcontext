@@ -541,13 +541,13 @@ function ClaudeSection({ settings, update }: SectionProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const command = "claude mcp add qey -- node <path-to-repo>/mcp/dist/index.js";
+  const command = "claude mcp add talkcontext -- node <path-to-repo>/mcp/dist/index.js";
 
   return (
     <section>
       <SectionHeader
         title="Claude Code"
-        description="Recordings are sent as a handoff (feedback points, screenshots, DOM, logs) to a local MCP server. Then in Claude Code just say: “Fix the latest qey feedback”."
+        description="Recordings are sent as a handoff (feedback points, screenshots, DOM, logs) to a local MCP server. Then in Claude Code just say: “Fix the latest TalkContext feedback”."
       />
       <FieldGroup>
         <Field>
@@ -567,8 +567,8 @@ function ClaudeSection({ settings, update }: SectionProps) {
             </Button>
           </div>
           <FieldDescription>
-            First run <span className="font-mono">pnpm --filter qey-mcp build</span> in the repo. While Claude Code is running, the server
-            listens on the endpoint below and stores recordings in <span className="font-mono">~/.qey/sessions</span>.
+            First run <span className="font-mono">pnpm --filter talkcontext-mcp build</span> in the repo. While Claude Code is running, the server
+            listens on the endpoint below and stores recordings in <span className="font-mono">~/.talkcontext/sessions</span>.
           </FieldDescription>
         </Field>
         <FieldSeparator />
@@ -593,8 +593,8 @@ function ClaudeSection({ settings, update }: SectionProps) {
             {health === null
               ? "…"
               : health.ok
-                ? `Connected – qey MCP ${health.version ?? ""}${health.dir ? ` · ${health.dir}` : ""}`
-                : `Unreachable (${health.error}). Is Claude Code running with the qey server?`}
+                ? `Connected – TalkContext MCP ${health.version ?? ""}${health.dir ? ` · ${health.dir}` : ""}`
+                : `Unreachable (${health.error}). Is Claude Code running with the TalkContext server?`}
           </FieldDescription>
         </Field>
         <FieldSeparator />

@@ -2,7 +2,7 @@
 
 <img src="extension/public/icon/128.png" width="72" alt="" />
 
-# qey
+# TalkContext
 
 **Click through a web app, say out loud what bugs you – and Claude Code gets structured
 feedback instead of a video.**
@@ -19,7 +19,7 @@ Giving feedback on a website is tedious: take screenshots, draw arrows, write ti
 a Loom – and someone still has to guess *which* button you meant. For a coding agent, a video
 is even more of a black box.
 
-qey flips that around. You click through the page as usual and talk about what's good or bad
+TalkContext flips that around. You click through the page as usual and talk about what's good or bad
 along the way. In the background the extension captures two things:
 
 1. **What you do** – which element you point at, what you hover, click and type, what changes
@@ -36,7 +36,7 @@ that time window.
 When you stop, everything goes to a local **MCP server**. Claude Code then fetches the
 feedback itself – screenshots included, as images:
 
-> Fix the latest qey feedback
+> Fix the latest TalkContext feedback
 
 ## What it looks like
 
@@ -48,7 +48,7 @@ feedback itself – screenshots included, as images:
 | --- | --- |
 | ![Feedback tab](extension/docs/feedback-tab.png) | ![Replay](extension/docs/replay.png) |
 
-And this is what Claude receives (excerpt from `qey_get_feedback`):
+And this is what Claude receives (excerpt from `talkcontext_get_feedback`):
 
 ````markdown
 ## F1 · [00:16.5] button "Place order" – /
@@ -77,7 +77,7 @@ background-color: rgb(41, 37, 36);
 
 ## Installation (without the Chrome Web Store)
 
-qey isn't in the Chrome Web Store (yet). Chrome won't install extensions from outside the
+TalkContext isn't in the Chrome Web Store (yet). Chrome won't install extensions from outside the
 store by double-click or drag & drop – the way in is **developer mode** and an unpacked
 folder. It takes less than five minutes.
 
@@ -87,10 +87,10 @@ and [pnpm](https://pnpm.io) 11 (`npm i -g pnpm`).
 ### 1. Build
 
 ```bash
-git clone https://github.com/jannesrudnick/qey.git
-cd qey
+git clone https://github.com/jannesrudnick/talkcontext.git
+cd talkcontext
 pnpm install
-pnpm --filter qey-extension build
+pnpm --filter talkcontext-extension build
 ```
 
 The result lands in `extension/.output/chrome-mv3`.
@@ -100,19 +100,19 @@ The result lands in `extension/.output/chrome-mv3`.
 1. Open `chrome://extensions`
 2. Turn on **Developer mode** (top right)
 3. **Load unpacked** → pick the `extension/.output/chrome-mv3` folder
-4. **Pin** qey via the puzzle icon in the toolbar
+4. **Pin** TalkContext via the puzzle icon in the toolbar
 
 The *Getting started* page opens. **Allow the microphone** there once – the permission applies
 to the extension, not to each website.
 
 ![Getting started](extension/docs/getting-started.png)
 
-> **Sharing with others:** `pnpm --filter qey-extension zip` creates
-> `extension/.output/qey-extension-<version>-chrome.zip`. Recipients unzip it and load the
+> **Sharing with others:** `pnpm --filter talkcontext-extension zip` creates
+> `extension/.output/talkcontext-extension-<version>-chrome.zip`. Recipients unzip it and load the
 > unpacked folder as described above – no Node required.
 
-> **Updating:** `git pull && pnpm install && pnpm --filter qey-extension build`, then click ↻ on
-> qey in `chrome://extensions`. Don't move the folder: Chrome derives an unpacked extension's ID
+> **Updating:** `git pull && pnpm install && pnpm --filter talkcontext-extension build`, then click ↻ on
+> TalkContext in `chrome://extensions`. Don't move the folder: Chrome derives an unpacked extension's ID
 > from its path, and your saved recordings are tied to that ID.
 
 ### 3. Connect Claude Code (optional)
@@ -120,7 +120,7 @@ to the extension, not to each website.
 `pnpm install` already built the MCP server. Once, from the repo root:
 
 ```bash
-claude mcp add qey -- node "$(pwd)/mcp/dist/index.js"
+claude mcp add talkcontext -- node "$(pwd)/mcp/dist/index.js"
 ```
 
 While Claude Code is running, the server accepts recordings on `127.0.0.1:4777`. In the
@@ -130,7 +130,7 @@ From then on every recording is sent to Claude automatically when you stop. Deta
 
 ### 4. Live transcript (optional)
 
-For the live bubbles qey needs an OpenAI API key (*Settings → Transcription*); the microphone
+For the live bubbles TalkContext needs an OpenAI API key (*Settings → Transcription*); the microphone
 is then transcribed via the Realtime API. **Without a key** everything else works the same:
 the audio is transcribed locally with Whisper in the browser after recording (one-time model
 download, offline afterwards) and assigned to the points via the timeline.
@@ -146,15 +146,15 @@ German, French, Spanish).
 
 | | |
 | --- | --- |
-| Show/hide the dock | Click the qey icon or `Alt+Shift+Q` |
+| Show/hide the dock | Click the TalkContext icon or `Alt+Shift+Q` |
 | Start/stop recording | Button in the dock or `Alt+Shift+R` |
 | Feedback point | **Right-click** the element – whatever you said in the 10 seconds before is picked up |
 | Finish a point | `Enter`, `Esc`, "Done" or simply the next right-click |
 | Regular context menu | `Alt` + right-click |
 | Mark something | **Pen** in the dock, draw on the page – the circled element becomes a point |
-| Recordings, replay, settings | Buttons in the dock or right-click the qey icon |
+| Recordings, replay, settings | Buttons in the dock or right-click the TalkContext icon |
 
-Recording continues across page navigations. On console or network errors qey takes a
+Recording continues across page navigations. On console or network errors TalkContext takes a
 screenshot automatically.
 
 In the settings you can define **environments** (URL patterns for local, staging, production –
@@ -165,18 +165,18 @@ knows where you tested. Values marked as secret are never exported.
 
 ```bash
 pnpm install
-pnpm --filter qey-extension dev         # launches Chrome with the extension loaded and hot reload
-pnpm --filter qey-extension typecheck
-pnpm --filter qey-extension build       # → extension/.output/chrome-mv3
+pnpm --filter talkcontext-extension dev         # launches Chrome with the extension loaded and hot reload
+pnpm --filter talkcontext-extension typecheck
+pnpm --filter talkcontext-extension build       # → extension/.output/chrome-mv3
 
-pnpm --filter qey-mcp build
+pnpm --filter talkcontext-mcp build
 node mcp/scripts/smoke.mjs              # calls every MCP tool against the existing recordings
 
 pnpm dev                                # landing page on http://localhost:3000
 ```
 
 The extension is built with [WXT](https://wxt.dev), React 19, Tailwind v4 and shadcn/ui. For a
-quick test any local app with a React or Vue dev build will do – then qey also shows the
+quick test any local app with a React or Vue dev build will do – then TalkContext also shows the
 component chain.
 
 ```
@@ -207,8 +207,8 @@ Architecture, design decisions and gotchas in detail:
 └──────────────┬────────────────────────────┘
                │ POST /sessions
         ┌──────▼──────────────┐   stdio/MCP   ┌─────────────┐
-        │ qey MCP 127.0.0.1   │──────────────▶│ Claude Code │
-        │ ~/.qey/sessions/    │               └─────────────┘
+        │ TalkContext MCP 127.0.0.1   │──────────────▶│ Claude Code │
+        │ ~/.talkcontext/sessions/    │               └─────────────┘
         └─────────────────────┘
 ```
 
@@ -219,14 +219,14 @@ masked), navigation, scrolling – each element with a stable selector (preferri
 watches the DOM and attaches the **effect**: new nodes, opened dialogs, messages, URL changes.
 
 **Feedback points.** A right-click creates a point at the element under the cursor. It comes
-with a screenshot (qey's own UI is hidden for the capture), the component chain from the React
+with a screenshot (TalkContext's own UI is hidden for the capture), the component chain from the React
 fiber or Vue instance (including the source file when the dev build provides it), the relevant
 computed styles (including a hint about clipped content), a DOM snippet around the element and
 the steps before.
 
 **Assigning speech.** Live sentences belong to the currently open point. Sentences that don't
 belong to a point yet are kept for ten seconds – if you talk first and right-click afterwards,
-nothing is lost. Without a live transcript, qey assigns the segments after recording based on
+nothing is lost. Without a live transcript, TalkContext assigns the segments after recording based on
 each point's active time.
 
 **Robust recording.** Every track is written to IndexedDB in one-second chunks. If the service
@@ -236,14 +236,15 @@ offscreen document so Chrome doesn't ask for permission on every page you test. 
 
 **Handoff.** After stopping, the extension builds a package of `feedback.md`, `handoff.json`,
 screenshots and DOM snippets and sends it to the MCP server. The server stores it under
-`~/.qey/sessions/` and offers Claude the tools `qey_list_sessions`, `qey_get_session`,
-`qey_get_feedback`, `qey_get_screenshot` and `qey_get_logs`. Alternatively you can download
+`~/.talkcontext/sessions/` and offers Claude the tools `talkcontext_list_sessions`, `talkcontext_get_session`,
+`talkcontext_get_feedback`, `talkcontext_get_screenshot` and `talkcontext_get_logs`. Alternatively you can download
 the package as a ZIP or copy the Markdown to the clipboard.
 
 ### Privacy & permissions
 
 Recordings stay local in the extension's IndexedDB. Audio only leaves your machine if you add
-an OpenAI key. The MCP server listens on `127.0.0.1` only and accepts requests from
+an OpenAI key. Local transcription downloads the Whisper model from Hugging Face once; no audio
+is sent there. The MCP server listens on `127.0.0.1` only and accepts requests from
 `chrome-extension://` origins only.
 
 | Permission | Used for |
@@ -252,11 +253,11 @@ an OpenAI key. The MCP server listens on `127.0.0.1` only and accepts requests f
 | `tabs` | Screenshots of the visible tab, recording across navigations |
 | `offscreen` | Microphone without every website needing its own permission |
 | `storage`, `unlimitedStorage` | Storing recordings, replay and audio locally |
-| `contextMenus` | "Open recordings" / "Settings" on the qey icon |
+| `contextMenus` | "Open recordings" / "Settings" on the TalkContext icon |
 
 ## Status & contributing
 
-qey is early but usable: tested in Chrome. Ideas for what's next – issues and pull requests
+TalkContext is early but usable: tested in Chrome. Ideas for what's next – issues and pull requests
 are welcome:
 
 - **Firefox** – there's no offscreen API there, so audio needs a different approach
@@ -265,3 +266,7 @@ are welcome:
 - **Cross-origin iframes** in the replay
 - Handoff to other agents besides Claude Code (MCP is an open protocol)
 - Localized UI
+
+## License
+
+[MIT](LICENSE)

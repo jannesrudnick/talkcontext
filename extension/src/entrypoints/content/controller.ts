@@ -23,7 +23,7 @@ import { FeedbackManager } from "./feedback";
 import type { ElementRef } from "@/lib/qa/types";
 
 /** Anything belonging to the overlay shows up neither in the replay nor in the log. */
-export const OVERLAY_TAG = "qey-overlay";
+export const OVERLAY_TAG = "talkcontext-overlay";
 
 /**
  * Does the node belong to the overlay? Events from the shadow root are retargeted

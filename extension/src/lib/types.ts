@@ -69,7 +69,7 @@ export interface FeedbackConfig {
 }
 
 export interface HandoffConfig {
-  /** Local qey MCP server that recordings are sent to for Claude Code. */
+  /** Local TalkContext MCP server that recordings are sent to for Claude Code. */
   endpoint: string;
   /** Send automatically after stopping (and transcribing, if enabled). */
   autoSend: boolean;
@@ -248,7 +248,7 @@ export interface RecordingMeta {
     feedback?: number;
     screenshots?: number;
   };
-  /** Last sent to the qey MCP server. */
+  /** Last sent to the TalkContext MCP server. */
   sentAt?: number;
   audio?: {
     mimeType: string;

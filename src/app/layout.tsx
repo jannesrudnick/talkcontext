@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "qey – QA feedback your coding agent can read",
+  title: "TalkContext – QA feedback your coding agent can read",
   description:
     "Click through a web app, say out loud what bugs you – and Claude Code gets structured feedback instead of a video. Open-source Chrome extension with live transcript, session replay and an MCP server.",
 };
@@ -29,7 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <header className="flex items-center justify-between py-5">
             <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight">
               <Image src="/icon.svg" alt="" width={28} height={28} />
-              qey
+              TalkContext
             </Link>
             <a href={REPO} className="text-sm text-zinc-600 hover:text-zinc-900">
               GitHub →
@@ -39,7 +39,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
 
           <footer className="flex flex-wrap items-center justify-between gap-4 py-10 text-sm text-zinc-500">
-            <span>qey – open source QA recorder for coding agents</span>
+            <span>TalkContext – open source QA recorder for coding agents</span>
             <nav className="flex gap-5">
               <a href={REPO} className="hover:text-zinc-900">
                 GitHub

@@ -103,7 +103,7 @@ export function RecordingsListPage() {
             </EmptyMedia>
             <EmptyTitle>No recordings yet</EmptyTitle>
             <EmptyDescription>
-              Open the app you want to test, click the qey icon in the toolbar or press{" "}
+              Open the app you want to test, click the TalkContext icon in the toolbar or press{" "}
               <Kbd>Alt</Kbd> <Kbd>Shift</Kbd> <Kbd>Q</Kbd> – then “Start recording”.
             </EmptyDescription>
           </EmptyHeader>

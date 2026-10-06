@@ -16,7 +16,7 @@ export function AppShell({ active, children }: { active: string; children: React
       <aside className="flex w-60 shrink-0 flex-col border-r bg-sidebar px-3 py-4">
         <button type="button" onClick={() => navigate("recordings")} className="mb-6 flex items-center gap-2.5 px-2">
           <Logo />
-          <span className="text-lg font-semibold tracking-tight">qey</span>
+          <span className="text-lg font-semibold tracking-tight">TalkContext</span>
           <span className="rounded-md border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">beta</span>
         </button>
         <nav className="flex flex-col gap-0.5">
@@ -71,7 +71,7 @@ export function Logo({ className }: { className?: string }) {
         className,
       )}
     >
-      q
+      T
     </span>
   );
 }

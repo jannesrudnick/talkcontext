@@ -17,7 +17,7 @@ interface ChunkRecord<K extends ChunkKind = ChunkKind> {
   data: ChunkPayloads[K];
 }
 
-interface QeyDb extends DBSchema {
+interface TalkContextDb extends DBSchema {
   recordings: {
     key: string;
     value: RecordingMeta;
@@ -30,10 +30,10 @@ interface QeyDb extends DBSchema {
   };
 }
 
-let dbPromise: Promise<IDBPDatabase<QeyDb>> | null = null;
+let dbPromise: Promise<IDBPDatabase<TalkContextDb>> | null = null;
 
-export function db(): Promise<IDBPDatabase<QeyDb>> {
-  dbPromise ??= openDB<QeyDb>("qey", 1, {
+export function db(): Promise<IDBPDatabase<TalkContextDb>> {
+  dbPromise ??= openDB<TalkContextDb>("talkcontext", 1, {
     upgrade(database) {
       const recordings = database.createObjectStore("recordings", { keyPath: "id" });
       recordings.createIndex("startedAt", "startedAt");

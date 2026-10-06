@@ -10,7 +10,7 @@ import { REPO } from "./repo";
 const STEPS = [
   {
     title: "Click through and talk",
-    text: "Use the app like you normally would and say what's good or bad. qey transcribes you live and records every hover, click, input, console error and failed request on the same timeline.",
+    text: "Use the app like you normally would and say what's good or bad. TalkContext transcribes you live and records every hover, click, input, console error and failed request on the same timeline.",
   },
   {
     title: "Right-click what's wrong",
@@ -18,7 +18,7 @@ const STEPS = [
   },
   {
     title: "Claude fetches the feedback",
-    text: "When you stop, the recording goes to a local MCP server. In Claude Code you just say “Fix the latest qey feedback” – screenshots included, as images.",
+    text: "When you stop, the recording goes to a local MCP server. In Claude Code you just say “Fix the latest TalkContext feedback” – screenshots included, as images.",
   },
 ];
 
@@ -127,7 +127,7 @@ export default function Home() {
         <div>
           <h2 className="text-3xl font-semibold tracking-tight">What Claude receives</h2>
           <p className="mt-4 leading-relaxed text-zinc-600">
-            No screenshots to interpret, no guessing which button you meant. The qey MCP server hands Claude Code
+            No screenshots to interpret, no guessing which button you meant. The TalkContext MCP server hands Claude Code
             each feedback point as text – your comment, a stable selector, the component chain, the steps before
             and the errors in that time window – plus the screenshots as images.
           </p>
@@ -151,13 +151,13 @@ export default function Home() {
       <section className="rounded-2xl bg-zinc-900 px-6 py-12 text-center text-white sm:px-12">
         <h2 className="text-3xl font-semibold tracking-tight">Try it in five minutes</h2>
         <p className="mx-auto mt-4 max-w-xl text-zinc-300">
-          qey isn&apos;t in the Chrome Web Store yet. Build it, load it unpacked in developer mode and connect
+          TalkContext isn&apos;t in the Chrome Web Store yet. Build it, load it unpacked in developer mode and connect
           Claude Code with one command.
         </p>
         <pre className="mx-auto mt-8 max-w-xl overflow-x-auto rounded-lg bg-black/40 p-4 text-left font-mono text-[13px] text-zinc-200">
-          {`git clone ${REPO}.git && cd qey
-pnpm install && pnpm --filter qey-extension build
-claude mcp add qey -- node "$(pwd)/mcp/dist/index.js"`}
+          {`git clone ${REPO}.git && cd talkcontext
+pnpm install && pnpm --filter talkcontext-extension build
+claude mcp add talkcontext -- node "$(pwd)/mcp/dist/index.js"`}
         </pre>
         <a
           href={`${REPO}#installation-without-the-chrome-web-store`}

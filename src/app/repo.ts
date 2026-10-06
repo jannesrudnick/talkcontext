@@ -1,1 +1,1 @@
-export const REPO = "https://github.com/jannesrudnick/qey";
+export const REPO = "https://github.com/jannesrudnick/talkcontext";

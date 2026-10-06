@@ -10,7 +10,7 @@ import { defineConfig } from "wxt";
 function escapeNoncharacters(): Plugin {
   const pattern = /[\uFDD0-\uFDEF\uFFFE\uFFFF]/g;
   return {
-    name: "qey:escape-noncharacters",
+    name: "talkcontext:escape-noncharacters",
     enforce: "post",
     // Only after minification - it would otherwise resolve the escapes again.
     generateBundle(_options, bundle) {
@@ -32,13 +32,13 @@ export default defineConfig({
     optimizeDeps: { exclude: ["onnxruntime-web"] },
   }),
   manifest: {
-    name: "qey – QA Recorder",
-    short_name: "qey",
+    name: "TalkContext – QA Recorder",
+    short_name: "TalkContext",
     description:
       "Records manual QA sessions as session replay plus DOM log and voice – no script needed in the target app.",
     permissions: ["storage", "unlimitedStorage", "offscreen", "scripting", "tabs", "contextMenus"],
     host_permissions: ["<all_urls>"],
-    action: { default_title: "qey – Show/hide overlay" },
+    action: { default_title: "TalkContext – Show/hide overlay" },
     commands: {
       "toggle-overlay": {
         suggested_key: { default: "Alt+Shift+Q" },

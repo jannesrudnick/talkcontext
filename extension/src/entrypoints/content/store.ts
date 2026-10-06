@@ -60,7 +60,7 @@ export const overlayStore = createStore<OverlayState>((set, get) => {
   const setVisible = (visible: boolean) => {
     const tab = get().tab;
     if (tab) set({ tab: { ...tab, overlayVisible: visible } });
-    void request({ type: "qey:overlay", visible }).catch(() => undefined);
+    void request({ type: "talkcontext:overlay", visible }).catch(() => undefined);
   };
 
   return {
@@ -85,7 +85,7 @@ export const overlayStore = createStore<OverlayState>((set, get) => {
         run(async () => {
           set({ savedId: null });
           const tab = await request<TabState>({
-            type: "qey:start",
+            type: "talkcontext:start",
             viewport: { width: window.innerWidth, height: window.innerHeight, dpr: window.devicePixelRatio },
             pageTitle: document.title,
           });
@@ -95,17 +95,17 @@ export const overlayStore = createStore<OverlayState>((set, get) => {
         run(async () => {
           const tab = get().tab;
           if (tab?.recording) set({ tab: { ...tab, recording: { ...tab.recording, stopping: true } } });
-          await request({ type: "qey:stop" });
+          await request({ type: "talkcontext:stop" });
         }),
       discard: () =>
         run(async () => {
-          await request({ type: "qey:discard" });
+          await request({ type: "talkcontext:discard" });
         }),
       hide() {
         setVisible(false);
       },
       open(page, recordingId) {
-        void request({ type: "qey:open", page, recordingId }).catch(() => undefined);
+        void request({ type: "talkcontext:open", page, recordingId }).catch(() => undefined);
       },
     },
   };

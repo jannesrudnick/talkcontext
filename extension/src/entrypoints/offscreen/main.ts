@@ -42,7 +42,7 @@ function startLevelMeter(source: MediaStream) {
       sum += centered * centered;
     }
     const rms = Math.sqrt(sum / buffer.length);
-    void send({ type: "qey:audio-level", level: Math.min(1, rms * 4) });
+    void send({ type: "talkcontext:audio-level", level: Math.min(1, rms * 4) });
   }, 150);
 }
 
@@ -57,11 +57,11 @@ async function start(recordingId: string, liveConfig: Extract<OffscreenRequest, 
   } catch (error) {
     const denied = error instanceof DOMException && (error.name === "NotAllowedError" || error.name === "SecurityError");
     void send({
-      type: "qey:audio-error",
+      type: "talkcontext:audio-error",
       recordingId,
       denied,
       message: denied
-        ? "Microphone access not granted for qey. Allow it in Settings under Recording."
+        ? "Microphone access not granted for TalkContext. Allow it in Settings under Recording."
         : error instanceof Error
           ? error.message
           : String(error),
@@ -80,17 +80,17 @@ async function start(recordingId: string, liveConfig: Extract<OffscreenRequest, 
   recorder.start(1000);
   startedAt = Date.now();
   startLevelMeter(stream);
-  void send({ type: "qey:audio-started", recordingId, startedAt, mimeType: recorder.mimeType || "audio/webm" });
+  void send({ type: "talkcontext:audio-started", recordingId, startedAt, mimeType: recorder.mimeType || "audio/webm" });
 
   if (liveConfig) {
     live = new LiveTranscriber({
       ...liveConfig,
-      onText: (event) => void send({ type: "qey:live-text", recordingId, event }),
-      onState: (state, error) => void send({ type: "qey:live-status", recordingId, state, error }),
+      onText: (event) => void send({ type: "talkcontext:live-text", recordingId, event }),
+      onState: (state, error) => void send({ type: "talkcontext:live-status", recordingId, state, error }),
     });
     live.start(stream).catch((error: unknown) => {
       void send({
-        type: "qey:live-status",
+        type: "talkcontext:live-status",
         recordingId,
         state: "error",
         error: error instanceof Error ? error.message : String(error),
@@ -115,7 +115,7 @@ async function stop() {
   stream = null;
   audioContext = null;
   currentId = null;
-  void send({ type: "qey:audio-stopped", recordingId: id, durationMs: Date.now() - startedAt, size });
+  void send({ type: "talkcontext:audio-stopped", recordingId: id, durationMs: Date.now() - startedAt, size });
 }
 
 browser.runtime.onMessage.addListener((message: OffscreenRequest) => {

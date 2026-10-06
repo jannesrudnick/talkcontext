@@ -1,6 +1,6 @@
 {
-  "name": "qey-extension",
-  "description": "qey – QA recorder as a browser extension",
+  "name": "talkcontext-extension",
+  "description": "TalkContext – QA recorder as a browser extension",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -43,5 +43,6 @@
     "typescript": "^5.9.3",
     "vite": "8.3.1",
     "wxt": "^0.21.4"
-  }
+  },
+  "license": "MIT"
 }

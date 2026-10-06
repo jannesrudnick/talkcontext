@@ -116,7 +116,7 @@ function stylesOf(el: Element): Record<string, string> {
 
 const CONTAINER = "form,section,article,dialog,[role=dialog],main,nav,header,footer,li,tr,[class*=card]";
 
-/** DOM snippet around the element, with the target marked by `data-qey-target`. */
+/** DOM snippet around the element, with the target marked by `data-talkcontext-target`. */
 function domSnippet(el: Element): string {
   let container = el.closest(CONTAINER) ?? el.parentElement?.parentElement ?? el;
   if (container === document.body || container === document.documentElement) container = el.parentElement ?? el;
@@ -130,7 +130,7 @@ function domSnippet(el: Element): string {
   const clone = container.cloneNode(true) as Element;
   let target: Element | undefined = clone;
   for (const index of path) target = target?.children[index];
-  target?.setAttribute("data-qey-target", "");
+  target?.setAttribute("data-talkcontext-target", "");
 
   clone.querySelectorAll("script,style,noscript,template").forEach((node) => node.remove());
   clone.querySelectorAll("svg").forEach((svg) => {
@@ -176,7 +176,7 @@ export class FeedbackManager {
     options: { text?: string; screenshot?: boolean } = {},
   ): Promise<FeedbackItem> {
     this.close();
-    const index = await request<number>({ type: "qey:next-feedback-index" }).catch(() => 1);
+    const index = await request<number>({ type: "talkcontext:next-feedback-index" }).catch(() => 1);
     const item: FeedbackItem = {
       id: newId("fb_"),
       index,
@@ -372,7 +372,7 @@ export class FeedbackManager {
     feedbackStore.setState({ capturing: true });
     await nextFrame();
     try {
-      const shot = await request<{ id: string }>({ type: "qey:capture", reason, feedbackId: item?.id });
+      const shot = await request<{ id: string }>({ type: "talkcontext:capture", reason, feedbackId: item?.id });
       const current = this.active;
       if (current && item && current.id === item.id) {
         this.update({ screenshotIds: [...current.screenshotIds, shot.id] });

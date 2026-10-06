@@ -8,20 +8,20 @@
  */
 import type { ChunkKind, ChunkPayloads, TabState } from "./types";
 
-export const RECORDER_PORT = "qey-recorder";
+export const RECORDER_PORT = "talkcontext-recorder";
 
 /** Content script -> background (sendMessage). */
 export type ContentRequest =
-  | { type: "qey:hello" }
-  | { type: "qey:start"; viewport: { width: number; height: number; dpr: number }; pageTitle: string }
-  | { type: "qey:stop" }
-  | { type: "qey:discard" }
-  | { type: "qey:overlay"; visible: boolean }
-  | { type: "qey:open"; page: "recordings" | "settings"; recordingId?: string }
+  | { type: "talkcontext:hello" }
+  | { type: "talkcontext:start"; viewport: { width: number; height: number; dpr: number }; pageTitle: string }
+  | { type: "talkcontext:stop" }
+  | { type: "talkcontext:discard" }
+  | { type: "talkcontext:overlay"; visible: boolean }
+  | { type: "talkcontext:open"; page: "recordings" | "settings"; recordingId?: string }
   /** Store the visible area of the tab as a screenshot. */
-  | { type: "qey:capture"; reason: import("./types").Screenshot["reason"]; feedbackId?: string }
+  | { type: "talkcontext:capture"; reason: import("./types").Screenshot["reason"]; feedbackId?: string }
   /** Next sequential feedback number (F1, F2, ...) - counts across page navigations. */
-  | { type: "qey:next-feedback-index" };
+  | { type: "talkcontext:next-feedback-index" };
 
 /** Content script -> background (port). */
 export type PortUpMessage =
@@ -34,12 +34,12 @@ export type PortDownMessage = { type: "flush"; token: string };
 
 /** Background -> content script (tabs.sendMessage). */
 export type TabMessage =
-  | { type: "qey:state"; state: TabState }
-  | { type: "qey:toggle-overlay" }
-  | { type: "qey:toggle-recording" }
-  | { type: "qey:audio-level"; level: number }
-  | { type: "qey:saved"; recordingId: string }
-  | { type: "qey:live"; event: LiveTextEvent };
+  | { type: "talkcontext:state"; state: TabState }
+  | { type: "talkcontext:toggle-overlay" }
+  | { type: "talkcontext:toggle-recording" }
+  | { type: "talkcontext:audio-level"; level: number }
+  | { type: "talkcontext:saved"; recordingId: string }
+  | { type: "talkcontext:live"; event: LiveTextEvent };
 
 /** Live transcript: interim state (delta) or finished segment (final). */
 export type LiveTextEvent =
@@ -58,16 +58,16 @@ export type OffscreenRequest =
 
 /** Offscreen -> Background. */
 export type OffscreenEvent =
-  | { type: "qey:audio-started"; recordingId: string; startedAt: number; mimeType: string }
-  | { type: "qey:audio-error"; recordingId: string; denied: boolean; message: string }
-  | { type: "qey:audio-level"; level: number }
-  | { type: "qey:audio-chunk"; recordingId: string }
-  | { type: "qey:audio-stopped"; recordingId: string; durationMs: number; size: number }
-  | { type: "qey:live-status"; recordingId: string; state: import("./types").LiveState; error?: string }
-  | { type: "qey:live-text"; recordingId: string; event: LiveTextEvent };
+  | { type: "talkcontext:audio-started"; recordingId: string; startedAt: number; mimeType: string }
+  | { type: "talkcontext:audio-error"; recordingId: string; denied: boolean; message: string }
+  | { type: "talkcontext:audio-level"; level: number }
+  | { type: "talkcontext:audio-chunk"; recordingId: string }
+  | { type: "talkcontext:audio-stopped"; recordingId: string; durationMs: number; size: number }
+  | { type: "talkcontext:live-status"; recordingId: string; state: import("./types").LiveState; error?: string }
+  | { type: "talkcontext:live-text"; recordingId: string; event: LiveTextEvent };
 
 /** Page in the window (MAIN world) -> content script, via window.postMessage. */
-export const MAIN_WORLD_SOURCE = "qey-main-world";
+export const MAIN_WORLD_SOURCE = "talkcontext-main-world";
 
 export type MainWorldMessage =
   | { source: typeof MAIN_WORLD_SOURCE; type: "console"; entry: import("./types").ConsoleEntry }
@@ -81,4 +81,4 @@ export type MainWorldMessage =
     };
 
 /** Content script -> MAIN world: dispatched as a CustomEvent directly on the element. */
-export const COMPONENT_PROBE_EVENT = "qey:component-probe";
+export const COMPONENT_PROBE_EVENT = "talkcontext:component-probe";

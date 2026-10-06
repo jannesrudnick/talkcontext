@@ -1,5 +1,5 @@
 /**
- * Storage of handoffs on disk: ~/.qey/sessions/<id>/...
+ * Storage of handoffs on disk: ~/.talkcontext/sessions/<id>/...
  *
  * The extension sends every recording as a file tree (feedback.md, handoff.json,
  * session.json, screenshots/, dom/). Multiple Claude Code sessions share the
@@ -9,7 +9,7 @@ import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 
-export const ROOT = path.resolve(process.env.QEY_DIR ?? path.join(homedir(), ".qey"));
+export const ROOT = path.resolve(process.env.TALKCONTEXT_DIR ?? path.join(homedir(), ".talkcontext"));
 export const SESSIONS = path.join(ROOT, "sessions");
 
 export interface HandoffItem {
@@ -92,7 +92,7 @@ export async function getSession(ref: string | undefined): Promise<SessionSummar
   const sessions = await listSessions();
   if (!sessions.length) {
     throw new Error(
-      "No qey recordings received yet. Open a recording in the extension and click \"Send to Claude\" (the qey MCP server must be running).",
+      "No TalkContext recordings received yet. Open a recording in the extension and click \"Send to Claude\" (the TalkContext MCP server must be running).",
     );
   }
   if (!ref || ref === "latest") return sessions[0]!;

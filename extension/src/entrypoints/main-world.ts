@@ -12,13 +12,13 @@ import type { ComponentInfo, ConsoleEntry, NetworkEntry } from "@/lib/types";
 
 declare global {
   interface Window {
-    __qeyMainWorld?: boolean;
+    __talkcontextMainWorld?: boolean;
   }
 }
 
 export default defineUnlistedScript(() => {
-  if (window.__qeyMainWorld) return;
-  window.__qeyMainWorld = true;
+  if (window.__talkcontextMainWorld) return;
+  window.__talkcontextMainWorld = true;
 
   let seq = 0;
   const uid = (prefix: string) => `${prefix}${Date.now().toString(36)}${(seq++).toString(36)}`;
@@ -162,10 +162,10 @@ export default defineUnlistedScript(() => {
     } as typeof window.fetch;
   }
 
-  type TrackedXhr = XMLHttpRequest & { __qey?: { method: string; url: string } };
+  type TrackedXhr = XMLHttpRequest & { __talkcontext?: { method: string; url: string } };
   const originalOpen = XMLHttpRequest.prototype.open;
   XMLHttpRequest.prototype.open = function patchedOpen(this: TrackedXhr, method: string, url: string | URL) {
-    this.__qey = { method: String(method).toUpperCase(), url: absolute(String(url)) };
+    this.__talkcontext = { method: String(method).toUpperCase(), url: absolute(String(url)) };
     // eslint-disable-next-line prefer-rest-params
     return originalOpen.apply(this, arguments as unknown as Parameters<typeof originalOpen>);
   } as typeof XMLHttpRequest.prototype.open;
@@ -174,7 +174,7 @@ export default defineUnlistedScript(() => {
   XMLHttpRequest.prototype.send = function patchedSend(this: TrackedXhr, body?: XMLHttpRequestBodyInit | null) {
     const started = Date.now();
     this.addEventListener("loadend", () => {
-      const info = this.__qey;
+      const info = this.__talkcontext;
       if (!info) return;
       let responseBody: string | undefined;
       if (failed(this.status)) {

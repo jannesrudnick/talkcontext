@@ -37,7 +37,7 @@ export function EnvironmentsSection({ settings, update }: SectionProps) {
     <section>
       <SectionHeader
         title="Environments"
-        description="Local, Staging, Production … qey detects the environment from the URL, shows it in the overlay and attaches notes and variables to every recording – so the agent knows where to test."
+        description="Local, Staging, Production … TalkContext detects the environment from the URL, shows it in the overlay and attaches notes and variables to every recording – so the agent knows where to test."
         action={
           <Button onClick={add}>
             <PlusIcon />
