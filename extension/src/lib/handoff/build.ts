@@ -15,8 +15,8 @@
  *   screenshots/*.jpg  With timestamp in the name
  *   dom/f<n>.html      DOM snippet, target marked with data-qey-target
  */
-import { buildJson, describeElement, eventHeadline, formatDuration, formatTimecode } from "@shared/export";
-import type { QaEvent } from "@shared/types";
+import { buildJson, describeElement, eventHeadline, formatDuration, formatTimecode } from "@/lib/qa/export";
+import type { QaEvent } from "@/lib/qa/types";
 import {
   speechByFeedback,
   toQaSession,

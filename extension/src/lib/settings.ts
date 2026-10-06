@@ -1,5 +1,5 @@
 import { storage } from "#imports";
-import { DEFAULT_RECORDER_CONFIG } from "@shared/types";
+import { DEFAULT_RECORDER_CONFIG } from "@/lib/qa/types";
 import type { Environment, Settings } from "./types";
 
 const KEY = "local:settings";

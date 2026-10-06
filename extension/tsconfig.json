@@ -5,8 +5,7 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "@shared/*": ["../src/lib/qa/*"]
+      "@/*": ["./src/*"]
     }
   }
 }

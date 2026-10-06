@@ -171,6 +171,8 @@ pnpm --filter qey-extension build       # → extension/.output/chrome-mv3
 
 pnpm --filter qey-mcp build
 node mcp/scripts/smoke.mjs              # calls every MCP tool against the existing recordings
+
+pnpm dev                                # landing page on http://localhost:3000
 ```
 
 The extension is built with [WXT](https://wxt.dev), React 19, Tailwind v4 and shadcn/ui. For a
@@ -178,12 +180,9 @@ quick test any local app with a React or Vue dev build will do – then qey also
 component chain.
 
 ```
-extension/     The Chrome extension (Manifest V3) – overlay, recorder, replay app, settings
-mcp/           MCP server: receives handoffs over HTTP, exposes them to Claude Code as tools
-src/lib/qa/    Data model, speech↔event correlation and Markdown export (imported by the
-               extension as @shared)
-src/, public/  The predecessor: the QA recorder as a Next.js web app with an iframe proxy
-               (docs/web-app.md)
+extension/  The Chrome extension (Manifest V3) – overlay, recorder, replay app, settings
+mcp/        MCP server: receives handoffs over HTTP, exposes them to Claude Code as tools
+src/app/    Landing page (Next.js, deployed on Vercel); uses the screenshots from extension/docs
 ```
 
 Architecture, design decisions and gotchas in detail:

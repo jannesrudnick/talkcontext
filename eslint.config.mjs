@@ -12,10 +12,6 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Browser script that runs in the target page - not part of the app build.
-    "public/qa-recorder.js",
-    // ONNX runtime copied from node_modules, see scripts/copy-ort-runtime.mjs.
-    "public/ort/**",
     // Separate package with its own build (WXT), see extension/README.md.
     "extension/**",
     // Separate package (qey MCP server), see mcp/README.md.

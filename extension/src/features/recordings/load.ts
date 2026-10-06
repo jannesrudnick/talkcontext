@@ -2,12 +2,11 @@
  * Loads a recording from IndexedDB and puts all tracks on one timeline.
  *
  * The UI's time base is the first rrweb frame (= replay time 0). For export,
- * times are converted to the recording start so Markdown/JSON have the same
- * format as in the Next app.
+ * times are converted to the recording start (the `qa-recording/1` format).
  */
 import type { eventWithTime } from "rrweb";
-import { correlate } from "@shared/correlate";
-import type { QaEvent, QaSession, TranscriptSegment } from "@shared/types";
+import { correlate } from "@/lib/qa/correlate";
+import type { QaEvent, QaSession, TranscriptSegment } from "@/lib/qa/types";
 import { getRecording, readAudio, readLatestById, readTrack } from "@/lib/db";
 import type { ConsoleEntry, FeedbackItem, NetworkEntry, RecordingMeta, Screenshot, Stroke } from "@/lib/types";
 
@@ -137,7 +136,7 @@ export function correlated(recording: LoadedRecording) {
   });
 }
 
-/** Convert a recording to the Next app's `qa-recording/1` exchange format. */
+/** Convert a recording to the `qa-recording/1` exchange format. */
 export function toQaSession(recording: LoadedRecording): QaSession {
   const { meta } = recording;
   const start = meta.startedAt;

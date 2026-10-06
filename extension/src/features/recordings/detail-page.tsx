@@ -14,7 +14,7 @@ import {
   Trash2Icon,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { QaEvent } from "@shared/types";
+import type { QaEvent } from "@/lib/qa/types";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,7 +45,7 @@ import { ActivityPanel } from "./activity-panel";
 import { ConsolePanel } from "./console-panel";
 import { ElementInspector } from "./element-inspector";
 import { eventMeta } from "./event-meta";
-import { downloadFile, sessionFileBase } from "@shared/export";
+import { downloadFile, sessionFileBase } from "@/lib/qa/export";
 import { buildHandoff } from "@/lib/handoff/build";
 import { sendHandoff, zipHandoff } from "@/lib/handoff/transport";
 import { formatRelative } from "@/lib/format";

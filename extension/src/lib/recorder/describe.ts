@@ -1,10 +1,8 @@
 /**
  * Describes a DOM element so an agent can find it again without a screenshot:
  * stable selector, XPath, role, accessible name, attributes, truncated HTML.
- *
- * Ported from `public/qa-recorder.js` of the Next app (without proxy special cases).
  */
-import type { ElementRef } from "@shared/types";
+import type { ElementRef } from "@/lib/qa/types";
 
 export function truncate(value: unknown, max: number): string | undefined {
   if (value == null) return undefined;

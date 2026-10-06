@@ -1,9 +1,9 @@
 /**
  * Data model of the extension.
  *
- * The semantic log (QaEvent, ElementRef, ...) comes unchanged from the
- * Next app (`@shared`), so the Markdown/JSON export stays identical.
- * New are the session replay (rrweb) plus console and network as separate tracks.
+ * The semantic log (QaEvent, ElementRef, ...) and its Markdown/JSON export
+ * live in `lib/qa`; on top of that come the session replay (rrweb) plus
+ * console and network as separate tracks.
  */
 import type {
   CursorSample,
@@ -12,7 +12,7 @@ import type {
   RawFrameEvent,
   RecorderConfig,
   TranscriptSegment,
-} from "@shared/types";
+} from "@/lib/qa/types";
 
 export type { CursorSample, DomEffect, ElementRef, RawFrameEvent, RecorderConfig, TranscriptSegment };
 

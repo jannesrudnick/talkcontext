@@ -1,8 +1,8 @@
 /**
  * Transcription of the audio track - locally with Whisper (web worker) or via OpenAI.
  *
- * Unlike in the Next app, OpenAI needs no pass-through endpoint here:
- * extension pages with host permission are not subject to CORS restrictions.
+ * OpenAI needs no pass-through endpoint: extension pages with host
+ * permission are not subject to CORS restrictions.
  */
 import type { TranscriptSegment, WhisperModelId } from "@/lib/types";
 import type { WhisperRequest, WhisperResponse } from "./whisper.worker";

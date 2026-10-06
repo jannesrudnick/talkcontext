@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,20 +13,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "QA Recorder",
-  description: "Record manual QA - as a DOM protocol for coding agents instead of a video.",
+  title: "qey – QA feedback your coding agent can read",
+  description:
+    "Click through a web app, say out loud what bugs you – and Claude Code gets structured feedback instead of a video. Open-source Chrome extension with live transcript, session replay and an MCP server.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
-        {children}
-        <Toaster position="bottom-left" />
-      </body>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className="font-sans">{children}</body>
     </html>
   );
 }

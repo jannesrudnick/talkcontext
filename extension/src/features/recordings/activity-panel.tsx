@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AudioLinesIcon, LocateFixedIcon } from "lucide-react";
-import type { QaEvent, TranscriptSegment } from "@shared/types";
+import type { QaEvent, TranscriptSegment } from "@/lib/qa/types";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";

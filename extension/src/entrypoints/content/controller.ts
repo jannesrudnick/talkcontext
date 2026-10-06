@@ -20,7 +20,7 @@ import { describe, meaningful } from "@/lib/recorder/describe";
 import { newId } from "@/lib/settings";
 import type { ChunkKind, ChunkPayloads, ComponentInfo, FeedbackItem, Settings } from "@/lib/types";
 import { FeedbackManager } from "./feedback";
-import type { ElementRef } from "@shared/types";
+import type { ElementRef } from "@/lib/qa/types";
 
 /** Anything belonging to the overlay shows up neither in the replay nor in the log. */
 export const OVERLAY_TAG = "qey-overlay";

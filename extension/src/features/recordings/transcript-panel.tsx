@@ -1,5 +1,5 @@
 import { AudioLinesIcon, Loader2Icon, MicOffIcon, RefreshCwIcon, SparklesIcon } from "lucide-react";
-import type { TranscriptSegment } from "@shared/types";
+import type { TranscriptSegment } from "@/lib/qa/types";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Progress } from "@/components/ui/progress";
