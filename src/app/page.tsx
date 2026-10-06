@@ -5,7 +5,7 @@ import liveCaptions from "../../extension/docs/live-captions.png";
 import pen from "../../extension/docs/pen.png";
 import replay from "../../extension/docs/replay.png";
 
-const REPO = "https://github.com/jannesrudnick/qey";
+import { REPO } from "./repo";
 
 const STEPS = [
   {
@@ -57,17 +57,7 @@ Computed styles
 
 export default function Home() {
   return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6">
-      <header className="flex items-center justify-between py-5">
-        <a href="#" className="flex items-center gap-2.5 font-semibold tracking-tight">
-          <Image src="/icon.svg" alt="" width={28} height={28} />
-          qey
-        </a>
-        <a href={REPO} className="text-sm text-zinc-600 hover:text-zinc-900">
-          GitHub →
-        </a>
-      </header>
-
+    <>
       <section className="pt-12 pb-10 text-center sm:pt-20">
         <p className="text-sm font-medium text-brand">Open source · Chrome extension · MCP server for Claude Code</p>
         <h1 className="mx-auto mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
@@ -176,13 +166,6 @@ claude mcp add qey -- node "$(pwd)/mcp/dist/index.js"`}
           Full setup guide
         </a>
       </section>
-
-      <footer className="flex flex-wrap items-center justify-between gap-4 py-10 text-sm text-zinc-500">
-        <span>qey – open source QA recorder for coding agents</span>
-        <a href={REPO} className="hover:text-zinc-900">
-          github.com/jannesrudnick/qey
-        </a>
-      </footer>
-    </div>
+    </>
   );
 }
