@@ -5,9 +5,9 @@ import { navigate } from "@/hooks/use-hash-route";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { path: "recordings", label: "Aufnahmen", icon: ListVideoIcon },
-  { path: "settings", label: "Einstellungen", icon: SettingsIcon },
-  { path: "welcome", label: "Erste Schritte", icon: SparklesIcon },
+  { path: "recordings", label: "Recordings", icon: ListVideoIcon },
+  { path: "settings", label: "Settings", icon: SettingsIcon },
+  { path: "welcome", label: "Getting started", icon: SparklesIcon },
 ];
 
 export function AppShell({ active, children }: { active: string; children: ReactNode }) {
@@ -38,7 +38,7 @@ export function AppShell({ active, children }: { active: string; children: React
         <div className="mt-auto space-y-2 rounded-xl border bg-background/60 p-3 text-xs text-muted-foreground">
           <p className="flex items-center gap-1.5 font-medium text-foreground">
             <KeyboardIcon className="size-3.5" />
-            Tastenkürzel
+            Shortcuts
           </p>
           <div className="flex items-center justify-between">
             <span>Overlay</span>
@@ -49,7 +49,7 @@ export function AppShell({ active, children }: { active: string; children: React
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span>Aufnahme</span>
+            <span>Recording</span>
             <span className="flex gap-0.5">
               <Kbd>⌥</Kbd>
               <Kbd>⇧</Kbd>

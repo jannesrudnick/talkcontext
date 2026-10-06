@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /**
- * qey-MCP: gibt Claude Code Zugriff auf die QA-Aufnahmen der qey-Extension.
+ * qey MCP: gives Claude Code access to the QA recordings of the qey extension.
  *
- *   claude mcp add qey -- node /pfad/zu/qey/mcp/dist/index.js
+ *   claude mcp add qey -- node /path/to/qey/mcp/dist/index.js
  *
- * Zwei Aufgaben in einem Prozess:
- *  1. MCP-Server ueber stdio - Werkzeuge zum Lesen von Feedback, Screenshots, Logs
- *  2. HTTP-Empfang auf 127.0.0.1:4777 - die Extension schickt Aufnahmen hierher
+ * Two jobs in one process:
+ *  1. MCP server over stdio - tools for reading feedback, screenshots, logs
+ *  2. HTTP receiver on 127.0.0.1:4777 - the extension sends recordings here
  *
- * stdout gehoert dem MCP-Protokoll; alles Menschliche geht nach stderr.
+ * stdout belongs to the MCP protocol; everything human-readable goes to stderr.
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -24,9 +24,9 @@ const server = new McpServer(
   { name: "qey", version: VERSION },
   {
     instructions:
-      "qey liefert QA-Feedback aus dem Browser: Feedback-Punkte (F1, F2, …) mit Aussage des Testers, " +
-      "Element-Selektor, Komponentenkette, Screenshots, DOM-Ausschnitt und Fehlern. Starte mit " +
-      "qey_get_session, hol dir Details und Screenshots pro Punkt mit qey_get_feedback.",
+      "qey delivers QA feedback from the browser: feedback points (F1, F2, …) with the tester's statement, " +
+      "element selector, component chain, screenshots, DOM snippet and errors. Start with " +
+      "qey_get_session, then get details and screenshots per point with qey_get_feedback.",
   },
 );
 
@@ -47,27 +47,27 @@ const fail = (error: unknown) => ({
 const sessionArg = z
   .string()
   .optional()
-  .describe('ID der Aufnahme oder "latest" (Standard) für die zuletzt empfangene');
+  .describe('Recording ID, or "latest" (default) for the most recently received one');
 
 server.registerTool(
   "qey_list_sessions",
   {
-    title: "qey-Aufnahmen auflisten",
-    description: "Listet die zuletzt aus der qey-Extension empfangenen QA-Aufnahmen.",
-    inputSchema: { limit: z.number().int().min(1).max(50).optional().describe("Anzahl, Standard 10") },
+    title: "List qey recordings",
+    description: "Lists the QA recordings most recently received from the qey extension.",
+    inputSchema: { limit: z.number().int().min(1).max(50).optional().describe("Number of recordings, default 10") },
   },
   async ({ limit }) => {
     const sessions = (await listSessions()).slice(0, limit ?? 10);
-    if (!sessions.length) return { content: [text("Noch keine Aufnahmen empfangen.")] };
+    if (!sessions.length) return { content: [text("No recordings received yet.")] };
     const lines = sessions.map(({ id, manifest, receivedAt }) =>
       [
         `- ${id}`,
         manifest.title,
         manifest.url,
-        manifest.environment ? `Umgebung ${manifest.environment}` : null,
-        `${manifest.items.length} Feedback-Punkte`,
-        `${manifest.errors.console} Konsolen-/${manifest.errors.network} Netzwerkfehler`,
-        `empfangen ${new Date(receivedAt).toLocaleString("de-DE")}`,
+        manifest.environment ? `Environment ${manifest.environment}` : null,
+        `${manifest.items.length} feedback points`,
+        `${manifest.errors.console} console / ${manifest.errors.network} network errors`,
+        `received ${new Date(receivedAt).toLocaleString("en-US")}`,
       ]
         .filter(Boolean)
         .join(" · "),
@@ -79,16 +79,16 @@ server.registerTool(
 server.registerTool(
   "qey_get_session",
   {
-    title: "qey-Handoff lesen",
+    title: "Read qey handoff",
     description:
-      "Liefert den vollständigen Handoff einer QA-Aufnahme als Markdown: Kontext, Umgebung, alle Feedback-Punkte mit Aussage, Element, Komponente, Schritten und Fehlern, dazu Ablauf und Transkript. Screenshots sind als Pfade referenziert – für die Bilder qey_get_feedback nutzen.",
+      "Returns the full handoff of a QA recording as Markdown: context, environment, all feedback points with statement, element, component, steps and errors, plus flow and transcript. Screenshots are referenced as paths – use qey_get_feedback for the images.",
     inputSchema: { session: sessionArg },
   },
   async ({ session }) => {
     try {
       const found = await getSession(session);
       const markdown = (await readSessionFile(found, "feedback.md")).toString("utf8");
-      return { content: [text(`Aufnahme ${found.id} (Ordner: ${found.dir})\n\n${markdown}`)] };
+      return { content: [text(`Recording ${found.id} (folder: ${found.dir})\n\n${markdown}`)] };
     } catch (error) {
       return fail(error);
     }
@@ -98,13 +98,13 @@ server.registerTool(
 server.registerTool(
   "qey_get_feedback",
   {
-    title: "qey-Feedback-Punkt mit Screenshots",
+    title: "qey feedback point with screenshots",
     description:
-      "Details zu einem Feedback-Punkt (z.B. F3): Aussage, Element, Komponente, Fehler, Styles, DOM-Ausschnitt und die Screenshots als Bilder. Ohne `item` alle Punkte.",
+      "Details for one feedback point (e.g. F3): statement, element, component, errors, styles, DOM snippet and the screenshots as images. Without `item`, all points.",
     inputSchema: {
       session: sessionArg,
-      item: z.string().optional().describe('Feedback-Punkt, z.B. "F3"'),
-      screenshots: z.boolean().optional().describe("Screenshots mitliefern (Standard: ja)"),
+      item: z.string().optional().describe('Feedback point, e.g. "F3"'),
+      screenshots: z.boolean().optional().describe("Include screenshots (default: true)"),
     },
   },
   async ({ session, item, screenshots }) => {
@@ -114,14 +114,14 @@ server.registerTool(
         ? found.manifest.items.filter((entry) => entry.key.toLowerCase() === item.trim().toLowerCase())
         : found.manifest.items;
       if (!items.length) {
-        return fail(`Punkt ${item} nicht gefunden. Vorhanden: ${found.manifest.items.map((entry) => entry.key).join(", ") || "keine"}`);
+        return fail(`Point ${item} not found. Available: ${found.manifest.items.map((entry) => entry.key).join(", ") || "none"}`);
       }
       const content: Content[] = [];
       for (const entry of items) {
         content.push(text(entry.markdown));
         if (entry.dom) {
           const dom = (await readSessionFile(found, entry.dom)).toString("utf8");
-          content.push(text(`DOM-Ausschnitt ${entry.key} (${entry.dom}):\n\`\`\`html\n${dom.slice(0, 8000)}\n\`\`\``));
+          content.push(text(`DOM snippet ${entry.key} (${entry.dom}):\n\`\`\`html\n${dom.slice(0, 8000)}\n\`\`\``));
         }
         if (screenshots !== false) {
           for (const shot of entry.screenshots) {
@@ -140,9 +140,9 @@ server.registerTool(
 server.registerTool(
   "qey_get_screenshot",
   {
-    title: "qey-Screenshot",
-    description: "Einzelner Screenshot einer Aufnahme, Pfad wie im Handoff (z.B. screenshots/f1-1-00-12-3.jpg).",
-    inputSchema: { session: sessionArg, path: z.string().describe("Pfad relativ zur Aufnahme") },
+    title: "qey screenshot",
+    description: "A single screenshot of a recording, path as in the handoff (e.g. screenshots/f1-1-00-12-3.jpg).",
+    inputSchema: { session: sessionArg, path: z.string().describe("Path relative to the recording") },
   },
   async ({ session, path }) => {
     try {
@@ -157,12 +157,12 @@ server.registerTool(
 server.registerTool(
   "qey_get_logs",
   {
-    title: "qey-Konsole & Netzwerk",
-    description: "Konsolenausgaben oder Requests einer Aufnahme, standardmäßig nur Fehler – inkl. Request-/Response-Bodies fehlgeschlagener Requests.",
+    title: "qey console & network",
+    description: "Console output or requests of a recording, errors only by default – including request/response bodies of failed requests.",
     inputSchema: {
       session: sessionArg,
-      kind: z.enum(["console", "network"]).describe("console oder network"),
-      errors_only: z.boolean().optional().describe("Nur Fehler (Standard: ja)"),
+      kind: z.enum(["console", "network"]).describe("console or network"),
+      errors_only: z.boolean().optional().describe("Errors only (default: true)"),
     },
   },
   async ({ session, kind, errors_only }) => {
@@ -177,7 +177,7 @@ server.registerTool(
         kind === "console"
           ? (data.console ?? []).filter((entry) => !onlyErrors || entry.level === "error" || entry.level === "warn")
           : (data.network ?? []).filter((entry) => !onlyErrors || entry.status === 0 || entry.status >= 400);
-      return { content: [text(entries.length ? JSON.stringify(entries, null, 2) : "Keine Einträge.")] };
+      return { content: [text(entries.length ? JSON.stringify(entries, null, 2) : "No entries.")] };
     } catch (error) {
       return fail(error);
     }
@@ -187,9 +187,9 @@ server.registerTool(
 server.registerPrompt(
   "fix_feedback",
   {
-    title: "qey-Feedback fixen",
-    description: "Arbeitet das QA-Feedback der letzten (oder einer bestimmten) qey-Aufnahme im aktuellen Projekt ab.",
-    argsSchema: { session: z.string().optional().describe('Aufnahme-ID oder "latest"') },
+    title: "Fix qey feedback",
+    description: "Works through the QA feedback of the latest (or a specific) qey recording in the current project.",
+    argsSchema: { session: z.string().optional().describe('Recording ID or "latest"') },
   },
   ({ session }) => ({
     messages: [
@@ -198,14 +198,14 @@ server.registerPrompt(
         content: {
           type: "text",
           text: [
-            `Arbeite das QA-Feedback aus qey ab (Aufnahme: ${session ?? "latest"}).`,
+            `Work through the QA feedback from qey (recording: ${session ?? "latest"}).`,
             "",
-            "1. Lies den Handoff mit qey_get_session.",
-            "2. Hol dir für jeden Feedback-Punkt mit qey_get_feedback die Screenshots und den DOM-Ausschnitt.",
-            "3. Finde den Code über Komponentenkette/Quelldatei, sonst über Selektor, data-testid und Texte.",
-            "4. Behebe die Punkte einzeln und nenne pro Punkt (F1, F2, …), was du geändert hast.",
-            "5. Bei fehlgeschlagenen Requests die Bodies mit qey_get_logs prüfen, bevor du rätst.",
-            "Frag nach, wenn eine Aussage mehrdeutig ist, statt zu raten.",
+            "1. Read the handoff with qey_get_session.",
+            "2. For each feedback point, get the screenshots and the DOM snippet with qey_get_feedback.",
+            "3. Find the code via the component chain/source file, otherwise via selector, data-testid and texts.",
+            "4. Fix the points one by one and state per point (F1, F2, …) what you changed.",
+            "5. For failed requests, check the bodies with qey_get_logs before guessing.",
+            "Ask when a statement is ambiguous instead of guessing.",
           ].join("\n"),
         },
       },
@@ -215,4 +215,4 @@ server.registerPrompt(
 
 await startHttp(PORT, VERSION, log);
 await server.connect(new StdioServerTransport());
-log(`bereit (v${VERSION})`);
+log(`ready (v${VERSION})`);

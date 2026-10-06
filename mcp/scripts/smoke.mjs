@@ -8,7 +8,7 @@ console.log("PROMPTS", (await client.listPrompts()).prompts.map((p) => p.name).j
 const list = await client.callTool({ name: "qey_list_sessions", arguments: {} });
 console.log("LIST\n" + list.content[0].text);
 const session = await client.callTool({ name: "qey_get_session", arguments: {} });
-console.log("SESSION (Anfang)\n" + session.content[0].text.slice(0, 400));
+console.log("SESSION (start)\n" + session.content[0].text.slice(0, 400));
 const fb = await client.callTool({ name: "qey_get_feedback", arguments: { item: "F1" } });
 for (const c of fb.content) console.log("F1 content:", c.type, c.type === "text" ? c.text.slice(0, 160).replace(/\n/g, " ⏎ ") : `${c.mimeType} ${c.data.length} base64`);
 const logs = await client.callTool({ name: "qey_get_logs", arguments: { kind: "network" } });

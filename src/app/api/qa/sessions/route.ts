@@ -1,6 +1,6 @@
 /**
- * Speichert eine Aufnahme als Datei-Paar (JSON + Markdown) im Projektordner
- * `qa-sessions/`, damit ein Agent sie direkt vom Dateisystem lesen kann.
+ * Saves a recording as a file pair (JSON + Markdown) in the project folder
+ * `qa-sessions/`, so an agent can read it straight from the file system.
  */
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -27,11 +27,11 @@ export async function POST(request: NextRequest) {
   try {
     session = (await request.json()) as QaSession;
   } catch {
-    return NextResponse.json({ error: "Ungueltiges JSON" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
   if (session?.version !== "qa-recording/1" || !Array.isArray(session.events)) {
-    return NextResponse.json({ error: "Kein gueltiges QA-Recording" }, { status: 400 });
+    return NextResponse.json({ error: "Not a valid QA recording" }, { status: 400 });
   }
 
   const base = sessionFileBase(session).replace(/[^a-z0-9._-]/gi, "-");

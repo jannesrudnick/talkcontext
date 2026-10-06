@@ -1,159 +1,161 @@
-# qey – Browser-Extension
+# qey – browser extension
 
-QA-Recorder als Chrome-Extension (Manifest V3). Kein Skript in der Zielanwendung, kein
-Proxy, kein iframe: qey legt sich als Overlay über den Tab, du klickst dich durch und
-erklärst laut – aufgezeichnet werden **Session-Replay (rrweb)**, das **semantische
-DOM-Protokoll** für Agenten, **Konsole**, **Netzwerk** und die **Tonspur**.
+The QA recorder as a Chrome extension (Manifest V3). No script in the target app, no proxy, no
+iframe: qey sits as an overlay on top of the tab, you click through and explain out loud – it
+records a **session replay (rrweb)**, the **semantic DOM log** for agents, **console**,
+**network** and the **audio track**.
 
-Überblick, Installation ohne Web Store und Einrichtung von Claude Code: [README im Repo-Root](../README.md).
-Diese Seite geht tiefer in Bedienung, Architektur und Stolpersteine.
+Overview, installation without the Web Store and Claude Code setup: [root README](../README.md).
+This page goes deeper into usage, architecture and gotchas.
 
 ```
-Toolbar-Symbol / Alt+Shift+Q  →  Overlay  →  Aufnahme starten  →  durchklicken & reden
-        Rechtsklick aufs Element / Stift  →  Feedback-Punkt (F1, F2 …) mit Sprache, Screenshot, Kontext
-                                                                                    ↓ Stopp
-      Replay wie PostHog/Sentry + Feedback-Tab  →  „An Claude senden“  →  Claude Code (qey-MCP)
+Toolbar icon / Alt+Shift+Q  →  overlay  →  Start recording  →  click through & talk
+      Right-click an element / pen  →  feedback point (F1, F2 …) with speech, screenshot, context
+                                                                                  ↓ Stop
+      Replay like PostHog/Sentry + feedback tab  →  "Send to Claude"  →  Claude Code (qey MCP)
 ```
 
-| Rechtsklick → Feedback-Punkt mit Live-Transkript | Stift: umkreisen → Screenshot mit Markierung |
+| Right-click → feedback point with live transcript | Pen: circle → screenshot with markup |
 | --- | --- |
-| ![Feedback-Sprechblase](docs/feedback-sprechblase.png) | ![Stift](docs/stift.png) |
+| ![Feedback bubble](docs/feedback-bubble.png) | ![Pen](docs/pen.png) |
 
-| Feedback-Tab mit Screenshots | Replay mit Aktivität & Element-Inspektor |
+| Feedback tab with screenshots | Replay with activity & element inspector |
 | --- | --- |
-| ![Feedback-Tab](docs/feedback-tab.png) | ![Replay](docs/replay.png) |
+| ![Feedback tab](docs/feedback-tab.png) | ![Replay](docs/replay.png) |
 
-## Feedback-Punkte
+## Feedback points
 
-Der Kern des Handoffs: ausdrückliche Befunde statt einer Timeline, aus der der Agent raten muss.
+The core of the handoff: explicit findings instead of a timeline the agent has to guess from.
 
-| Wie | Was passiert |
+| How | What happens |
 | --- | --- |
-| **Rechtsklick** auf ein Element (während der Aufnahme) | Neuer Punkt, Element bleibt markiert, Sprechblase zeigt live, was festgehalten wird. Alles Gesagte und Getippte gehört zu diesem Punkt, bis Enter/Esc, „Fertig“ oder der nächste Rechtsklick. Was in den 10 Sekunden davor gesagt wurde und noch keinem Punkt gehört, wird übernommen. Alt+Rechtsklick = normales Kontextmenü. |
-| **Stift** in der Leiste | Auf der Seite zeichnen. Nach jedem Strich (bzw. einer Gruppe von Strichen) entsteht ein Screenshot mit Markierung; das umkreiste Element wird erkannt und zum Punkt. |
+| **Right-click** an element (while recording) | New point, the element stays highlighted, a bubble shows live what's being captured. Everything said and typed belongs to this point until Enter/Esc, "Done" or the next right-click. Whatever was said in the 10 seconds before and doesn't belong to a point yet is picked up. Alt+right-click = regular context menu. |
+| **Pen** in the dock | Draw on the page. After each stroke (or group of strokes) a screenshot with the markup is taken; the circled element is detected and becomes the point. |
 
-Bei Konsolen-/Netzwerkfehlern entsteht automatisch ein zusätzlicher Screenshot.
+On console/network errors an additional screenshot is taken automatically.
 
-Jeder Punkt bekommt: Screenshot mit Zeitstempel (Bedienleiste ausgeblendet, Markierungen
-sichtbar), Selektor/XPath/Rolle/Name, **Komponentenkette** aus React- oder Vue-Dev-Builds
-(inkl. Quelldatei, wenn verfügbar), berechnete Styles (inkl. Hinweis auf abgeschnittenen Inhalt),
-einen DOM-Ausschnitt mit markiertem Ziel, die Schritte davor und die Fehler in seinem Zeitfenster.
+Every point gets: a timestamped screenshot (dock hidden, markup visible),
+selector/XPath/role/name, the **component chain** from React or Vue dev builds (incl. source
+file when available), computed styles (incl. a hint about clipped content), a DOM snippet with
+the target marked, the steps before and the errors in its time window.
 
-## Live-Transkript (OpenAI Realtime)
+## Live transcript (OpenAI Realtime)
 
-Mit OpenAI-API-Key (Einstellungen → Transkription) streamt das Offscreen-Dokument das Mikrofon als
-PCM16/24 kHz per WebSocket an `wss://api.openai.com/v1/realtime?intent=transcription`. Das Overlay
-zeigt Zwischenstände live – in der Sprechblase des aktiven Punkts oder als Untertitel über der
-Leiste („→ allgemein“). Die fertigen Abschnitte bilden am Ende direkt das Transkript; eine
-Nachtranskription ist dann nicht nötig. Ohne Key bleibt es bei Whisper lokal/OpenAI nach der
-Aufnahme, und die Zuordnung zu den Punkten erfolgt über deren Aktivzeit.
+With an OpenAI API key (Settings → Transcription) the offscreen document streams the microphone
+as PCM16/24 kHz over WebSocket to `wss://api.openai.com/v1/realtime?intent=transcription`. The
+overlay shows interim results live – in the active point's bubble or as a caption above the
+dock ("→ general"). The finished segments become the transcript directly at the end; no
+re-transcription needed. Without a key it falls back to local Whisper / OpenAI after recording,
+and speech is assigned to points via their active time.
 
-## Handoff an Claude Code
+The spoken language is set under Settings → General → Transcription language.
 
-„An Claude senden“ (oder automatisch nach dem Stoppen) schickt die Aufnahme an den lokalen
-[qey-MCP-Server](../mcp/README.md). Claude Code liest sie dann über Werkzeuge – inklusive
-Screenshots als echte Bilder. Alternativ:
+## Handoff to Claude Code
 
-- **Handoff-Paket (.zip)**: `feedback.md`, `handoff.json`, `session.json`, `screenshots/`, `dom/`
-- **Kopieren**: nur das Markdown (ohne Bilder) für die Zwischenablage
+"Send to Claude" (or automatically after stopping) sends the recording to the local
+[qey MCP server](../mcp/README.md). Claude Code then reads it via tools – screenshots included
+as real images. Alternatively:
 
-## Entwicklung
+- **Handoff package (.zip)**: `feedback.md`, `handoff.json`, `session.json`, `screenshots/`, `dom/`
+- **Copy**: just the Markdown (without images) to the clipboard
 
-Voraussetzung: **Node ≥ 22** (WXT nutzt `util.parseEnv`), siehe `.nvmrc` – z.B. `nvm use` oder `fnm use`.
+## Development
+
+Requires **Node ≥ 22** (WXT uses `util.parseEnv`), see `.nvmrc` – e.g. `nvm use` or `fnm use`.
 
 ```bash
-pnpm install            # im Repo-Root oder hier – das Paket ist Teil des pnpm-Workspaces
-pnpm --filter qey-extension dev     # startet Chrome mit geladener Extension (HMR)
+pnpm install            # in the repo root or here – the package is part of the pnpm workspace
+pnpm --filter qey-extension dev     # launches Chrome with the extension loaded (HMR)
 pnpm --filter qey-extension build   # → extension/.output/chrome-mv3
 pnpm --filter qey-extension typecheck
 ```
 
-Manuell laden: `chrome://extensions` → Entwicklermodus → „Entpackte Erweiterung laden“ →
+Load manually: `chrome://extensions` → Developer mode → "Load unpacked" →
 `extension/.output/chrome-mv3`.
 
-## Bedienung
+## Usage
 
 | | |
 | --- | --- |
-| Overlay ein/aus | Klick aufs Toolbar-Symbol oder `Alt+Shift+Q` |
-| Aufnahme starten/stoppen | Button im Overlay oder `Alt+Shift+R` |
-| Feedback-Punkt | Rechtsklick aufs Element oder Stift |
-| Stift beenden / Punkt abschließen | `Esc` |
-| Aufnahmen & Einstellungen | Rechtsklick aufs Symbol, oder Buttons im Overlay |
+| Overlay on/off | Click the toolbar icon or `Alt+Shift+Q` |
+| Start/stop recording | Button in the overlay or `Alt+Shift+R` |
+| Feedback point | Right-click the element or use the pen |
+| Exit pen / finish point | `Esc` |
+| Recordings & settings | Right-click the icon, or buttons in the overlay |
 
-Die Aufnahme läuft über Seitenwechsel hinweg weiter (das Content-Script meldet sich nach
-jedem Laden beim Background und setzt Replay und Protokoll fort).
+Recording continues across page navigations (the content script checks in with the background
+after every load and resumes replay and log).
 
-## Seiten
+## Pages
 
-- **Aufnahmen** – Liste mit Suche und Umgebungs-Filter.
-- **Replay** – rrweb-Player mit Zeitleiste (Marker für Klicks, Fehler, Notizen, Navigation,
-  Sprache), Tempo, „Inaktivität überspringen“, synchroner Tonspur. Rechts: Feedback-Punkte,
-  Aktivität (inkl. zugeordneter Sprache und Element-Inspektor mit Hervorhebung im Replay),
-  Konsole, Netz, Sprache. Oben: „Kopieren“ (Markdown), „An Claude senden“, Export (Handoff-ZIP, Markdown, JSON, Replay, Tonspur).
-- **Einstellungen** – Sprache/Theme, **Umgebungen** (URL-Muster, Notizen für den Agenten,
-  Variablen, geheime Werte werden nie exportiert), Aufnahme (Mikrofon-Freigabe, Protokoll,
-  Replay-Maskierung), Feedback (Rechtsklick, Screenshot bei Fehlern, Stiftfarbe),
-  Transkription (Whisper lokal oder OpenAI, Live-Transkript), Claude Code (Endpunkt,
-  automatisch senden), Daten.
+- **Recordings** – list with search and environment filter.
+- **Replay** – rrweb player with a timeline (markers for clicks, errors, notes, navigation,
+  speech), speed, "Skip inactivity", synced audio. On the right: feedback points, activity
+  (incl. assigned speech and an element inspector that highlights in the replay), console,
+  network, speech. At the top: "Copy" (Markdown), "Send to Claude", export (handoff ZIP,
+  Markdown, JSON, replay, audio track).
+- **Settings** – transcription language/theme, **environments** (URL patterns, notes for the
+  agent, variables; secret values are never exported), recording (microphone permission, log,
+  replay masking), feedback (right-click, screenshot on errors, pen color), transcription
+  (local Whisper or OpenAI, live transcript), Claude Code (endpoint, send automatically), data.
 
-## Architektur
+## Architecture
 
 ```
 src/entrypoints/
-  background.ts          Zustand (storage.session), Ports der Tabs, Schreiben nach IndexedDB,
-                         Offscreen-Steuerung, Toolbar/Kürzel/Kontextmenü
-  content/               Läuft in jedem Tab (isolierte Welt)
-    index.tsx            Bootstrap, Shadow-Root-Overlay (WXT createShadowRootUi)
-    controller.ts        rrweb + semantischer Recorder, puffert und sendet Chunks per Port
-    feedback.ts          Feedback-Punkte: Rechtsklick, Stift, Live-Sprache, Screenshots,
-                         Komponenten/Styles/DOM
-    overlay.tsx          Die schwebende Leiste (React, Tailwind in px statt rem)
-  main-world.ts          Wird nur während einer Aufnahme in die Seite injiziert:
-                         console, fetch/XHR (Bodies bei Fehlern), history, Komponentenkette
-                         (React-Fiber / Vue-Instanz) → postMessage
-  offscreen/             Mikrofon (MediaRecorder) + Pegel, schreibt Audio-Chunks nach IndexedDB;
-                         live-transcriber.ts streamt parallel an OpenAI Realtime
-  options/               Die App: Aufnahmen, Replay, Einstellungen, Erste Schritte
+  background.ts          State (storage.session), tab ports, writing to IndexedDB,
+                         offscreen control, toolbar/shortcuts/context menu
+  content/               Runs in every tab (isolated world)
+    index.tsx            Bootstrap, shadow-root overlay (WXT createShadowRootUi)
+    controller.ts        rrweb + semantic recorder, buffers and sends chunks over a port
+    feedback.ts          Feedback points: right-click, pen, live speech, screenshots,
+                         components/styles/DOM
+    overlay.tsx          The floating dock (React, Tailwind in px instead of rem)
+  main-world.ts          Only injected into the page while recording:
+                         console, fetch/XHR (bodies on errors), history, component chain
+                         (React fiber / Vue instance) → postMessage
+  offscreen/             Microphone (MediaRecorder) + level, writes audio chunks to IndexedDB;
+                         live-transcriber.ts streams to OpenAI Realtime in parallel
+  options/               The app: recordings, replay, settings, getting started
 src/lib/
-  recorder/              Semantischer Recorder (Port von public/qa-recorder.js)
+  recorder/              Semantic recorder (port of public/qa-recorder.js)
   db.ts                  IndexedDB: recordings + chunks (rrweb, events, effects, cursor,
                          console, network, audio)
-  transcription/         Whisper-Worker (transformers.js) und OpenAI
-  handoff/               Handoff bauen (Markdown, handoff.json, Screenshots, DOM) + ZIP/MCP-Versand
-src/features/            Seiten der App
+  transcription/         Whisper worker (transformers.js) and OpenAI
+  handoff/               Build the handoff (Markdown, handoff.json, screenshots, DOM) + ZIP/MCP transport
+src/features/            The app's pages
 ```
 
-Datenmodell, Korrelation Sprache↔Event und der Markdown-/JSON-Export kommen aus
-`../src/lib/qa` (Alias `@shared`) – Extension und Next-App erzeugen dasselbe
-`qa-recording/1`-Artefakt.
+The data model, speech↔event correlation and the Markdown/JSON export come from
+`../src/lib/qa` (alias `@shared`) – the extension and the Next app produce the same
+`qa-recording/1` artifact.
 
-### Warum so
+### Why it's built this way
 
-- **Offscreen-Dokument fürs Mikrofon**: Im Content-Script würde Chrome die Freigabe für
-  jede getestete Seite einzeln abfragen, der Service Worker hat kein `getUserMedia`. Die
-  Freigabe wird einmal auf einer Extension-Seite eingeholt (Erste Schritte / Einstellungen).
-- **MAIN-world-Script nur während der Aufnahme**: `console`/`fetch` zu patchen verändert
-  Stacktraces der Seite – außerhalb einer Aufnahme bleibt die Seite unangetastet.
-- **Chunks statt einem großen Objekt**: Jede Spur wird sekundenweise geschrieben. Stirbt der
-  Service Worker oder der Browser, fehlt höchstens die letzte Sekunde.
-- **Overlay im Shadow Root**, vom Replay (`blockSelector`) und Protokoll ausgenommen.
+- **Offscreen document for the microphone**: in the content script Chrome would ask for
+  permission on every tested page separately, and the service worker has no `getUserMedia`. The
+  permission is requested once on an extension page (Getting started / Settings).
+- **MAIN-world script only while recording**: patching `console`/`fetch` changes the page's
+  stack traces – outside a recording the page stays untouched.
+- **Chunks instead of one big object**: every track is written second by second. If the service
+  worker or the browser dies, at most the last second is missing.
+- **Overlay in a shadow root**, excluded from the replay (`blockSelector`) and the log.
 
-### Stolpersteine
+### Gotchas
 
-- rrweb bündelt postcss, das ein literales U+FFFE enthält. Chrome lehnt Content-Scripts mit
-  Unicode-Nichtzeichen ab („isn't UTF-8 encoded“) – `wxt.config.ts` escaped sie nach dem Build.
-- Tailwind v4 initialisiert `--tw-*` per `@property`; das greift im Shadow DOM nicht.
-  `overlay.css` setzt die Defaults selbst.
-- Chrome injiziert in Extension-Seiten eigene Schrift-Defaults ohne Layer; `globals.css`
-  setzt die Schrift deshalb ungelayert.
-- Chrome injiziert dieselben Defaults (`font-size: 75%`) auch ins Replay-iframe – ohne Reset
-  wäre das Replay kleiner als das Original und Stift-Markierungen lägen daneben (`player.tsx`).
-- Die ONNX-Runtime für Whisper wird wie in der Next-App aus `node_modules` nach `public/ort/`
-  kopiert (nicht im Repo, `scripts/copy-ort-runtime.mjs`).
+- rrweb bundles postcss, which contains a literal U+FFFE. Chrome rejects content scripts with
+  Unicode noncharacters ("isn't UTF-8 encoded") – `wxt.config.ts` escapes them after the build.
+- Tailwind v4 initializes `--tw-*` via `@property`; that doesn't apply inside shadow DOM.
+  `overlay.css` sets the defaults itself.
+- Chrome injects its own unlayered font defaults into extension pages; `globals.css` therefore
+  sets the font unlayered.
+- Chrome injects the same defaults (`font-size: 75%`) into the replay iframe – without a reset
+  the replay would be smaller than the original and pen markup would be off (`player.tsx`).
+- The ONNX runtime for Whisper is copied from `node_modules` to `public/ort/` like in the Next
+  app (not in the repo, `scripts/copy-ort-runtime.mjs`).
 
-## Offen / nächste Schritte
+## Open / next steps
 
-- Firefox (kein Offscreen-API → Audio anders lösen)
-- Aufnahmen teilen/hochladen (Backend) und direkt als Issue/Agent-Task anlegen
-- Cross-Origin-iframes im Replay (`recordCrossOriginIframes`)
+- Firefox (no offscreen API → audio needs a different approach)
+- Share/upload recordings (backend) and create an issue/agent task directly
+- Cross-origin iframes in the replay (`recordCrossOriginIframes`)

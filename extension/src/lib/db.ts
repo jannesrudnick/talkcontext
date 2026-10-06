@@ -1,10 +1,10 @@
 /**
- * Persistenz aller Aufnahmen in IndexedDB der Extension-Origin.
+ * Persistence of all recordings in IndexedDB of the extension origin.
  *
- * Background, Offscreen-Dokument und die Aufnahmen-Seite teilen sich diese
- * Origin und damit dieselbe Datenbank. Jede Spur wird in Stuecken geschrieben,
- * sobald sie anfaellt - stirbt der Service Worker oder der Browser, ist nur
- * die letzte Sekunde verloren, nicht die Aufnahme.
+ * Background, offscreen document and the recordings page share this origin
+ * and therefore the same database. Each track is written in chunks as soon as
+ * data arrives - if the service worker or the browser dies, only the last
+ * second is lost, not the recording.
  */
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type { ChunkKind, ChunkPayloads, RecordingMeta } from "./types";
@@ -97,14 +97,14 @@ export async function appendChunk<K extends ChunkKind>(
   await (await db()).add("chunks", { recordingId, kind, ts: Date.now(), data } as ChunkRecord);
 }
 
-/** Alle Stuecke einer Spur in Schreibreihenfolge zusammengefuegt. */
+/** All chunks of a track joined in write order. */
 export async function readTrack<K extends ChunkKind>(recordingId: string, kind: K): Promise<ChunkPayloads[K]> {
   const records = await (await db()).getAllFromIndex("chunks", "recordingKind", [recordingId, kind]);
   records.sort((a, b) => (a.key ?? 0) - (b.key ?? 0));
   return records.flatMap((record) => record.data as unknown[]) as ChunkPayloads[K];
 }
 
-/** Spuren mit Upserts (Feedback): pro ID gewinnt der zuletzt geschriebene Stand. */
+/** Tracks with upserts (feedback): the last written state per ID wins. */
 export async function readLatestById<K extends "feedback">(recordingId: string, kind: K): Promise<ChunkPayloads[K]> {
   const all = await readTrack(recordingId, kind);
   const byId = new Map<string, ChunkPayloads[K][number]>();

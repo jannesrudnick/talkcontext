@@ -21,13 +21,13 @@ import { assignErrors } from "@/lib/handoff/build";
 import { speechByFeedback, type LoadedRecording } from "./load";
 
 const SOURCE = {
-  contextmenu: { icon: MousePointerClickIcon, label: "Rechtsklick" },
-  pen: { icon: PenLineIcon, label: "Stift" },
-  note: { icon: MessageSquareIcon, label: "Notiz" },
+  contextmenu: { icon: MousePointerClickIcon, label: "Right-click" },
+  pen: { icon: PenLineIcon, label: "Pen" },
+  note: { icon: MessageSquareIcon, label: "Note" },
   marker: { icon: FlagIcon, label: "Bug" },
 } as const;
 
-/** Object-URLs fuer Screenshot-Blobs, sauber freigegeben. */
+/** Object URLs for screenshot blobs, properly revoked. */
 export function useScreenshotUrls(screenshots: Screenshot[]) {
   const urls = useMemo(() => new Map(screenshots.map((shot) => [shot.id, URL.createObjectURL(shot.blob)])), [screenshots]);
   useEffect(() => () => urls.forEach((url) => URL.revokeObjectURL(url)), [urls]);
@@ -68,10 +68,10 @@ export function FeedbackPanel({
           <EmptyMedia variant="icon">
             <ScanSearchIcon />
           </EmptyMedia>
-          <EmptyTitle>Keine Feedback-Punkte</EmptyTitle>
+          <EmptyTitle>No feedback points</EmptyTitle>
           <EmptyDescription>
-            Beim nächsten Mal während der Aufnahme per Rechtsklick auf ein Element oder mit dem Stift markieren – dann
-            landen Aussage, Screenshot und Element hier gebündelt.
+            Next time, right-click an element or mark it with the pen while recording – the comment,
+            screenshot and element will be bundled here.
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
@@ -119,7 +119,7 @@ export function FeedbackPanel({
                   )}
                 </div>
                 <p className="mt-2 text-sm">
-                  {said ? `„${said}“` : <span className="text-muted-foreground italic">Keine Aussage</span>}
+                  {said ? `“${said}”` : <span className="text-muted-foreground italic">No comment</span>}
                 </p>
                 {item.target && (
                   <p className="mt-1.5 truncate font-mono text-[11px] text-muted-foreground" title={item.target.selector}>
@@ -160,7 +160,7 @@ export function FeedbackPanel({
             <div className="pt-2">
               <p className="mb-2 flex items-center gap-1.5 px-1 text-xs font-medium text-muted-foreground">
                 <ImageIcon className="size-3.5" />
-                Weitere Screenshots
+                More screenshots
               </p>
               <div className="grid grid-cols-3 gap-1.5">
                 {loose.map((shot, index) => (
@@ -172,7 +172,7 @@ export function FeedbackPanel({
                   >
                     <img src={urls.get(shot.id)} alt="" className="size-full object-cover object-top" />
                     <span className="absolute right-1 bottom-1 rounded bg-black/60 px-1 font-mono text-[9px] text-white">
-                      {shot.reason === "error" ? "Fehler · " : ""}
+                      {shot.reason === "error" ? "Error · " : ""}
                       {formatClock(shot.ts - recording.base)}
                     </span>
                   </button>

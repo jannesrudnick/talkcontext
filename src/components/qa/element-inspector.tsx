@@ -7,12 +7,12 @@ interface ElementInspectorProps {
   element: ElementRef | null;
 }
 
-/** Zeigt, was der Recorder gerade vom anvisierten Element sieht. */
+/** Shows what the recorder currently sees of the targeted element. */
 export function ElementInspector({ element }: ElementInspectorProps) {
   if (!element) {
     return (
       <p className="px-3 py-6 text-center text-xs text-muted-foreground">
-        Noch kein Element erfasst. Bewege die Maus im Frame ueber ein Element.
+        No element captured yet. Move the mouse over an element in the frame.
       </p>
     );
   }
@@ -31,15 +31,15 @@ export function ElementInspector({ element }: ElementInspectorProps) {
         )}
       </div>
 
-      <Field label="Selektor" value={element.selector} mono />
+      <Field label="Selector" value={element.selector} mono />
       {element.name && <Field label="Name" value={element.name} />}
       {element.text && element.text !== element.name && <Field label="Text" value={element.text} />}
-      {element.path?.length ? <Field label="Pfad" value={element.path.join(" › ")} mono /> : null}
+      {element.path?.length ? <Field label="Path" value={element.path.join(" › ")} mono /> : null}
       <Field label="XPath" value={element.xpath} mono />
 
       {element.attrs && Object.keys(element.attrs).length > 0 && (
         <div>
-          <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Attribute</p>
+          <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Attributes</p>
           <dl className="space-y-0.5">
             {Object.entries(element.attrs).map(([key, value]) => (
               <div key={key} className="flex gap-2">

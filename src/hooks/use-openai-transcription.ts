@@ -3,14 +3,14 @@
 import { useCallback, useState } from "react";
 import type { TranscriptSegment } from "@/lib/qa/types";
 
-/** Preis von whisper-1, fuer die Kostenschaetzung vor dem Absenden. */
+/** Price of whisper-1, for the cost estimate before sending. */
 export const OPENAI_WHISPER_USD_PER_MINUTE = 0.006;
 
 /**
- * Transkribiert die Tonspur ueber OpenAIs whisper-1 - der einzige Grund, das
- * ganze durch /api/qa/transcribe statt direkt vom Browser zu schicken, ist
- * fehlendes CORS auf api.openai.com. Der Key geht als Teil des einen Requests
- * mit, unser Server legt ihn nirgends ab (siehe route.ts).
+ * Transcribes the audio track via OpenAI's whisper-1 - the only reason to send
+ * it through /api/qa/transcribe instead of directly from the browser is the
+ * missing CORS on api.openai.com. The key goes along as part of the single
+ * request; our server stores it nowhere (see route.ts).
  */
 export function useOpenAiTranscription() {
   const [running, setRunning] = useState(false);
@@ -33,12 +33,12 @@ export function useOpenAiTranscription() {
           | null;
 
         if (!response.ok || !data || "error" in data) {
-          setError((data && "error" in data && data.error) || "Transkription fehlgeschlagen");
+          setError((data && "error" in data && data.error) || "Transcription failed");
           return null;
         }
         return data.segments;
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Netzwerkfehler");
+        setError(err instanceof Error ? err.message : "Network error");
         return null;
       } finally {
         setRunning(false);

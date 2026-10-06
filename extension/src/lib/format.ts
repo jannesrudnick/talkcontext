@@ -20,16 +20,16 @@ export function formatRelative(epochMs: number): string {
   const minute = 60_000;
   const hour = 60 * minute;
   const day = 24 * hour;
-  const rtf = new Intl.RelativeTimeFormat("de", { numeric: "auto" });
-  if (diff < minute) return "gerade eben";
+  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+  if (diff < minute) return "just now";
   if (diff < hour) return rtf.format(-Math.round(diff / minute), "minute");
   if (diff < day) return rtf.format(-Math.round(diff / hour), "hour");
   if (diff < 7 * day) return rtf.format(-Math.round(diff / day), "day");
-  return new Date(epochMs).toLocaleDateString("de-DE", { day: "2-digit", month: "short", year: "numeric" });
+  return new Date(epochMs).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 export function formatDateTime(epochMs: number): string {
-  return new Date(epochMs).toLocaleString("de-DE", {
+  return new Date(epochMs).toLocaleString("en-US", {
     weekday: "short",
     day: "2-digit",
     month: "short",

@@ -1,8 +1,8 @@
 /**
- * Beschreibt ein DOM-Element so, dass ein Agent es ohne Screenshot wiederfindet:
- * stabiler Selektor, XPath, Rolle, Accessible Name, Attribute, gekuerztes HTML.
+ * Describes a DOM element so an agent can find it again without a screenshot:
+ * stable selector, XPath, role, accessible name, attributes, truncated HTML.
  *
- * Portiert aus `public/qa-recorder.js` der Next-App (ohne Proxy-Sonderfaelle).
+ * Ported from `public/qa-recorder.js` of the Next app (without proxy special cases).
  */
 import type { ElementRef } from "@shared/types";
 
@@ -26,7 +26,7 @@ function isUnique(selector: string): boolean {
 
 const TEST_ATTRS = ["data-testid", "data-test-id", "data-test", "data-qa", "data-cy", "data-pw"];
 
-// Klassen aus Utility-Frameworks und Build-Hashes taugen nicht als Identitaet.
+// Classes from utility frameworks and build hashes are useless as identity.
 const NOISY_CLASS =
   /^(?:[a-z-]+:)?(?:flex|grid|block|inline|hidden|contents|table|absolute|relative|fixed|sticky|static|isolate|container|p[xytrbl]?-|m[xytrbl]?-|-m|w-|h-|min-|max-|size-|text-|bg-|from-|via-|to-|border|rounded|gap-|space-|items-|justify-|self-|place-|content-|order-|col-|row-|shadow|ring|opacity-|font-|leading-|tracking-|whitespace|truncate|overflow|object-|z-|top-|left-|right-|bottom-|inset-|translate|rotate|scale-|transform|transition|duration-|ease-|delay-|animate-|cursor-|select-|pointer-events|outline|underline|uppercase|lowercase|capitalize|antialiased|backdrop|filter|blur|list-|divide-|aspect-|basis-|grow|shrink|float-|clear-|align-|sr-only|group|peer)/;
 const HASHED_CLASS = /(?:^|[_-])[a-z0-9]{5,}$/i;
@@ -129,7 +129,7 @@ function accessibleName(el: Element): string | undefined {
     const value = el.getAttribute(attr);
     if (value) return truncate(value, 120);
   }
-  // Bei Formularfeldern waere der Textinhalt (z.B. alle <option>) irrefuehrend.
+  // For form fields the text content (e.g. all <option>s) would be misleading.
   if (/^(select|input|textarea)$/i.test(el.tagName)) return undefined;
   return truncate(el.textContent, 120);
 }
@@ -241,7 +241,7 @@ export function describe(el: Element | null, options: DescribeOptions): ElementR
   if (text && text !== name) ref.text = text;
   if (Object.keys(attrs).length) ref.attrs = attrs;
   ref.rect = { x: Math.round(rect.left), y: Math.round(rect.top), w: Math.round(rect.width), h: Math.round(rect.height) };
-  // outerHTML grosser Container kostet mehr, als das Snippet je wert waere.
+  // outerHTML of large containers costs more than the snippet would ever be worth.
   if (options.captureHtml && options.html !== false && size <= 60) {
     const html = el.outerHTML;
     if (html) ref.html = html.length > 600 ? `${html.slice(0, 600)}…` : html;
@@ -255,7 +255,7 @@ export function describe(el: Element | null, options: DescribeOptions): ElementR
 const INTERACTIVE =
   'a,button,input,select,textarea,summary,label,[role],[onclick],[tabindex],[contenteditable="true"],[data-testid],[data-qa],[data-cy]';
 
-/** Hover auf einem <span> im Button soll den Button melden, nicht den Span. */
+/** Hovering a <span> inside a button should report the button, not the span. */
 export function meaningful(el: Element): Element {
   const candidate = el.closest(INTERACTIVE);
   if (!candidate) return el;

@@ -1,7 +1,7 @@
 /**
- * Session-Replay auf Basis von rrweb, mit eigener Steuerleiste im Stil von
- * PostHog/Sentry: Zeitleiste mit Markern, Tempo, Inaktivitaet ueberspringen,
- * synchron laufende Tonspur und Element-Hervorhebung.
+ * Session replay built on rrweb, with custom controls in the style of
+ * PostHog/Sentry: timeline with markers, speed, skip inactivity, synced
+ * audio track and element highlighting.
  */
 import {
   forwardRef,
@@ -34,7 +34,7 @@ export interface TimelineMarker {
   label: string;
 }
 
-/** Stift-Markierung, sichtbar im Replay-Zeitfenster [start, end]. */
+/** Pen annotation, visible in the replay time window [start, end]. */
 export interface ReplayStroke {
   id: string;
   start: number;
@@ -54,7 +54,7 @@ interface PlayerProps {
   durationMs: number;
   markers: TimelineMarker[];
   audioUrl: string | null;
-  /** Replay-Zeit, zu der die Tonspur beginnt. */
+  /** Replay time at which the audio track starts. */
   audioOffsetMs: number;
   highlightSelector: string | null;
   strokes?: ReplayStroke[];
@@ -90,7 +90,7 @@ export const ReplayPlayer = forwardRef<PlayerHandle, PlayerProps>(function Repla
   const [box, setBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const total = Math.max(durationMs, 1);
 
-  /* ------------------------------------------------------ Replayer anlegen */
+  /* ------------------------------------------------------ Create replayer */
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -103,11 +103,11 @@ export const ReplayPlayer = forwardRef<PlayerHandle, PlayerProps>(function Repla
       mouseTail: { strokeStyle: "rgba(124, 92, 255, 0.55)", lineWidth: 2, duration: 600 },
       speed: 1,
       triggerFocus: false,
-      // Chrome injiziert in Extension-Seiten (auch in das Replay-iframe)
-      // `body { font-family: system-ui; font-size: 75% }`. Ohne Reset waere das
-      // Replay kleiner als das Original und Stift-Markierungen laegen daneben.
-      // rrweb setzt diese Regel vor die Styles der Seite - deren eigene
-      // body-Regeln gewinnen also weiterhin.
+      // Chrome injects `body { font-family: system-ui; font-size: 75% }` into
+      // extension pages (including the replay iframe). Without a reset the
+      // replay would be smaller than the original and pen annotations would be off.
+      // rrweb puts this rule before the page's styles - so the page's own
+      // body rules still win.
       insertStyleRules: ["body { font-size: medium; font-family: initial; }"],
     });
     replayerRef.current = replayer;
@@ -126,7 +126,7 @@ export const ReplayPlayer = forwardRef<PlayerHandle, PlayerProps>(function Repla
     };
   }, [events]);
 
-  /* ------------------------------------------------------- Skalierung */
+  /* ---------------------------------------------------------- Scaling */
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -146,7 +146,7 @@ export const ReplayPlayer = forwardRef<PlayerHandle, PlayerProps>(function Repla
     return () => observer.disconnect();
   }, [viewport]);
 
-  /* -------------------------------------------------------- Tonspur */
+  /* ------------------------------------------------------ Audio track */
 
   const syncAudio = useCallback(
     (replayTime: number, isPlaying: boolean) => {
@@ -159,8 +159,8 @@ export const ReplayPlayer = forwardRef<PlayerHandle, PlayerProps>(function Repla
         return;
       }
       const drift = Math.abs(audio.currentTime - target);
-      // Beim Ueberspringen von Inaktivitaet laeuft das Replay schneller - dann
-      // springt die Tonspur mit, statt vorzuspulen.
+      // When skipping inactivity the replay runs faster - the audio track
+      // jumps along instead of fast-forwarding.
       if (drift > 0.35) audio.currentTime = target;
       audio.playbackRate = Math.min(speed, 4);
       if (audio.paused) void audio.play().catch(() => undefined);
@@ -168,7 +168,7 @@ export const ReplayPlayer = forwardRef<PlayerHandle, PlayerProps>(function Repla
     [audioOffsetMs, audioUrl, speed],
   );
 
-  /* ----------------------------------------------------- Zeit-Schleife */
+  /* -------------------------------------------------------- Time loop */
 
   const tick = useCallback(() => {
     const replayer = replayerRef.current;
@@ -230,7 +230,7 @@ export const ReplayPlayer = forwardRef<PlayerHandle, PlayerProps>(function Repla
     if (audioRef.current) audioRef.current.muted = muted;
   }, [muted]);
 
-  /* ---------------------------------------------------- Hervorhebung */
+  /* -------------------------------------------------------- Highlight */
 
   useEffect(() => {
     if (!highlightSelector) {
@@ -254,10 +254,10 @@ export const ReplayPlayer = forwardRef<PlayerHandle, PlayerProps>(function Repla
       setBox({ x: rect.left, y: rect.top, w: rect.width, h: rect.height });
     }, 80);
     return () => window.clearTimeout(timer);
-    // Nicht jeden Frame neu messen - sonst feuert der Timer waehrend der Wiedergabe nie.
+    // Don't re-measure every frame - otherwise the timer never fires during playback.
   }, [highlightSelector, Math.floor(time / 250)]);
 
-  /* -------------------------------------------------------- Tastatur */
+  /* --------------------------------------------------------- Keyboard */
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -287,7 +287,7 @@ export const ReplayPlayer = forwardRef<PlayerHandle, PlayerProps>(function Repla
         onDoubleClick={() => stageRef.current?.requestFullscreen?.()}
       >
         {events.length < 2 ? (
-          <p className="text-sm text-muted-foreground">Für diese Aufnahme gibt es kein Replay.</p>
+          <p className="text-sm text-muted-foreground">No replay available for this recording.</p>
         ) : (
           <div
             className="relative overflow-hidden rounded-md bg-white shadow-2xl ring-1 ring-black/10"
@@ -331,7 +331,7 @@ export const ReplayPlayer = forwardRef<PlayerHandle, PlayerProps>(function Repla
             type="button"
             onClick={() => play()}
             className="absolute inset-0 flex items-center justify-center bg-black/0 transition hover:bg-black/5"
-            aria-label="Abspielen"
+            aria-label="Play"
           >
             <span className="flex size-14 items-center justify-center rounded-full bg-foreground/85 text-background shadow-xl backdrop-blur">
               <PlayIcon className="ml-0.5 size-6 fill-current" />
@@ -345,10 +345,10 @@ export const ReplayPlayer = forwardRef<PlayerHandle, PlayerProps>(function Repla
       <Scrubber time={time} total={total} markers={markers} onSeek={(ms) => seek(ms)} />
 
       <div className="flex items-center gap-1.5 pt-2">
-        <Button size="icon" variant="ghost" onClick={() => (playing ? pause() : play())} aria-label="Abspielen/Pause">
+        <Button size="icon" variant="ghost" onClick={() => (playing ? pause() : play())} aria-label="Play/Pause">
           {playing ? <PauseIcon className="fill-current" /> : <PlayIcon className="fill-current" />}
         </Button>
-        <Button size="icon" variant="ghost" onClick={() => seek(0)} aria-label="Zum Anfang">
+        <Button size="icon" variant="ghost" onClick={() => seek(0)} aria-label="Restart">
           <RotateCcwIcon />
         </Button>
         <span className="px-1 font-mono text-xs tabular-nums text-muted-foreground">
@@ -356,7 +356,7 @@ export const ReplayPlayer = forwardRef<PlayerHandle, PlayerProps>(function Repla
         </span>
         <div className="ml-auto flex items-center gap-1">
           {audioUrl && (
-            <Button size="icon" variant="ghost" onClick={() => setMuted((m) => !m)} aria-label="Ton">
+            <Button size="icon" variant="ghost" onClick={() => setMuted((m) => !m)} aria-label="Sound">
               {muted ? <VolumeXIcon /> : <Volume2Icon />}
             </Button>
           )}
@@ -371,9 +371,9 @@ export const ReplayPlayer = forwardRef<PlayerHandle, PlayerProps>(function Repla
               }
             >
               <FastForwardIcon />
-              Inaktivität überspringen
+              Skip inactivity
             </TooltipTrigger>
-            <TooltipContent>Pausen ohne Interaktion im Zeitraffer abspielen</TooltipContent>
+            <TooltipContent>Fast-forward through pauses without interaction</TooltipContent>
           </Tooltip>
           <div className="flex items-center rounded-lg border p-0.5">
             {SPEEDS.map((value) => (
@@ -394,7 +394,7 @@ export const ReplayPlayer = forwardRef<PlayerHandle, PlayerProps>(function Repla
             size="icon"
             variant="ghost"
             onClick={() => stageRef.current?.requestFullscreen?.()}
-            aria-label="Vollbild"
+            aria-label="Fullscreen"
           >
             <MaximizeIcon />
           </Button>
@@ -447,7 +447,7 @@ function Scrubber({
         }}
         onPointerLeave={() => setHover(null)}
       >
-        {/* Sprach-Abschnitte als dezente Baender */}
+        {/* Speech segments as subtle bands */}
         <div className="absolute inset-x-0 top-[9px] h-1.5 overflow-hidden rounded-full bg-muted">
           {speech.map((marker, index) => (
             <span

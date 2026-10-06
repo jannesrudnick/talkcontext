@@ -1,11 +1,11 @@
 /**
- * Laeuft im JavaScript-Kontext der Seite (MAIN world), nicht in der isolierten
- * Welt des Content-Scripts - nur dort sind `console`, `fetch`, `XMLHttpRequest`
- * und `history` die Objekte, die auch die Anwendung benutzt.
+ * Runs in the page's JavaScript context (MAIN world), not in the content script's
+ * isolated world - only there are `console`, `fetch`, `XMLHttpRequest`
+ * and `history` the same objects the application uses.
  *
- * Wird ausschliesslich waehrend einer Aufnahme injiziert und meldet per
- * window.postMessage an das Content-Script. Die Seite darf dadurch nie brechen:
- * jeder Patch ruft das Original auf und schluckt eigene Fehler.
+ * Injected only during a recording and reports to the content script via
+ * window.postMessage. It must never break the page:
+ * every patch calls the original and swallows its own errors.
  */
 import { COMPONENT_PROBE_EVENT, MAIN_WORLD_SOURCE, type MainWorldMessage } from "@/lib/messages";
 import type { ComponentInfo, ConsoleEntry, NetworkEntry } from "@/lib/types";
@@ -28,7 +28,7 @@ export default defineUnlistedScript(() => {
     try {
       window.postMessage({ source: MAIN_WORLD_SOURCE, ...message }, "*");
     } catch {
-      /* nicht klonbar - dann eben nicht */
+      /* not cloneable - skip it */
     }
   };
 
@@ -45,7 +45,7 @@ export default defineUnlistedScript(() => {
     }
   };
 
-  /* ------------------------------------------------------------- Konsole */
+  /* ------------------------------------------------------------- Console */
 
   const levels: ConsoleEntry["level"][] = ["log", "info", "warn", "error", "debug"];
   for (const level of levels) {
@@ -64,7 +64,7 @@ export default defineUnlistedScript(() => {
           },
         });
       } catch {
-        /* ignorieren */
+        /* ignore */
       }
       original(...args);
     };
@@ -77,7 +77,7 @@ export default defineUnlistedScript(() => {
         id: uid("c"),
         ts: Date.now(),
         level: "error",
-        message: truncate(String(event.message || "Unbekannter Fehler"), 2000),
+        message: truncate(String(event.message || "Unknown error"), 2000),
         source: event.filename ? `${event.filename}:${event.lineno}:${event.colno}` : undefined,
         stack: event.error instanceof Error && event.error.stack ? truncate(event.error.stack, 2000) : undefined,
       },
@@ -99,11 +99,11 @@ export default defineUnlistedScript(() => {
     });
   });
 
-  /* ------------------------------------------------------------ Netzwerk */
+  /* ------------------------------------------------------------- Network */
 
   const report = (entry: Omit<NetworkEntry, "id">) => post({ type: "network", entry: { id: uid("n"), ...entry } });
 
-  // Bei fehlgeschlagenen Requests hilft dem Agenten der Body mehr als der Statuscode.
+  // For failed requests the body helps the agent more than the status code.
   const SECRET_KEYS = /("(?:[^"]*(?:pass|token|secret|authorization|api[_-]?key|cookie)[^"]*)"\s*:\s*)"[^"]*"/gi;
   const mask = (text: string) => text.replace(SECRET_KEYS, '$1"***"');
   const bodyPreview = (body: unknown, max: number): string | undefined => {
@@ -192,7 +192,7 @@ export default defineUnlistedScript(() => {
         url: info.url,
         status: this.status,
         durationMs: Date.now() - started,
-        error: this.status === 0 ? "Netzwerkfehler oder abgebrochen" : undefined,
+        error: this.status === 0 ? "Network error or aborted" : undefined,
         requestBody: failed(this.status) ? bodyPreview(body, 1000) : undefined,
         responseBody,
       });
@@ -200,12 +200,12 @@ export default defineUnlistedScript(() => {
     return originalSend.call(this, body);
   };
 
-  /* ---------------------------------------------------------- Komponenten */
+  /* ---------------------------------------------------------- Components */
 
   /**
-   * Komponentenkette eines Elements aus React- bzw. Vue-Dev-Builds. Die Daten
-   * haengen als Expandos am DOM-Knoten und sind nur hier in der MAIN world
-   * sichtbar - das Content-Script fragt per CustomEvent auf dem Element an.
+   * Component chain of an element from React or Vue dev builds. The data
+   * hangs off the DOM node as expandos and is only visible here in the MAIN
+   * world - the content script asks via a CustomEvent on the element.
    */
   type Fiber = {
     type?: unknown;
@@ -240,7 +240,7 @@ export default defineUnlistedScript(() => {
     for (let current: Fiber | null | undefined = fiber; current && chain.length < 12; current = current.return) {
       if (typeof current.type === "string" || !current.type) continue;
       const name = nameOf(current.type);
-      // Interne/anonyme Wrapper (Provider, Router-Internas) helfen niemandem.
+      // Internal/anonymous wrappers (providers, router internals) help nobody.
       if (!name || name.length < 2 || /^(Anonymous|_c\d*|Fragment|Suspense|StrictMode)$/.test(name)) continue;
       if (chain[0] === name) continue;
       chain.unshift(name);

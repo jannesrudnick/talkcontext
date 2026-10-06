@@ -17,7 +17,7 @@ export interface TranscriptionChoice {
 }
 
 const ENGINE_ITEMS = [
-  { value: "whisper", label: "Whisper lokal (im Browser)" },
+  { value: "whisper", label: "Whisper local (in browser)" },
   { value: "openai", label: "OpenAI (Cloud)" },
 ];
 
@@ -51,9 +51,9 @@ export function TranscriptPanel({
           <EmptyMedia variant="icon">
             <MicOffIcon />
           </EmptyMedia>
-          <EmptyTitle>Keine Tonspur</EmptyTitle>
+          <EmptyTitle>No audio track</EmptyTitle>
           <EmptyDescription>
-            {meta.audioError ?? "Diese Aufnahme wurde ohne Mikrofon gemacht."}
+            {meta.audioError ?? "This recording was made without a microphone."}
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
@@ -106,17 +106,17 @@ export function TranscriptPanel({
           <EmptyMedia variant="icon">
             <AudioLinesIcon />
           </EmptyMedia>
-          <EmptyTitle>Noch kein Transkript</EmptyTitle>
+          <EmptyTitle>No transcript yet</EmptyTitle>
           <EmptyDescription>
-            Die Tonspur wird transkribiert und mit Klicks und Hovern auf eine Zeitachse gelegt – so weiß der Agent,
-            was du bei welchem Element gesagt hast.
+            The audio track is transcribed and lined up with clicks and hovers on one timeline – so the agent
+            knows what you said about which element.
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           {controls}
           <Button onClick={onTranscribe} disabled={running} className="w-full">
             {running ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
-            Transkribieren
+            Transcribe
           </Button>
           {progress && (
             <div className="w-full space-y-1.5">
@@ -134,11 +134,11 @@ export function TranscriptPanel({
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center gap-2 border-b px-3 py-2">
         <span className="text-xs text-muted-foreground">
-          {meta.transcript?.source === "openai" ? "OpenAI" : "Whisper lokal"} · {meta.transcript?.model.split("/").pop()}
+          {meta.transcript?.source === "openai" ? "OpenAI" : "Whisper local"} · {meta.transcript?.model.split("/").pop()}
         </span>
         <Button size="sm" variant="ghost" className="ml-auto" onClick={onTranscribe} disabled={running}>
           {running ? <Loader2Icon className="animate-spin" /> : <RefreshCwIcon />}
-          Neu
+          Redo
         </Button>
       </div>
       {(progress || error) && (

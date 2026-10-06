@@ -82,7 +82,7 @@ function Dock({ controller }: { controller: RecordingController }) {
         <div className="flex items-center gap-1 rounded-full border border-white/10 bg-zinc-950/92 p-1.5 pl-1 text-zinc-100 shadow-[0_12px_40px_-8px_rgb(0_0_0/0.55),0_0_0_1px_rgb(0_0_0/0.4)] backdrop-blur-xl">
           <button
             type="button"
-            title="Verschieben"
+            title="Move"
             className="flex h-8 w-5 cursor-grab items-center justify-center text-zinc-500 hover:text-zinc-300 active:cursor-grabbing"
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
@@ -111,20 +111,20 @@ function DockContent({ controller }: { controller: RecordingController }) {
         type="button"
         disabled={busy || tab.busyElsewhere}
         onClick={() => void actions.start()}
-        title={tab.busyElsewhere ? "Es läuft bereits eine Aufnahme in einem anderen Tab" : "Aufnahme starten (Alt+Shift+R)"}
+        title={tab.busyElsewhere ? "A recording is already running in another tab" : "Start recording (Alt+Shift+R)"}
         className="ml-1 inline-flex h-8 items-center gap-2 rounded-full bg-[var(--recording)] px-3.5 text-[13px] font-medium text-white shadow-sm transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
       >
         {busy ? <Loader2Icon className="size-3.5 animate-spin" /> : <span className="size-2.5 rounded-full bg-white" />}
-        Aufnahme starten
+        Start recording
       </button>
       <Divider />
-      <DockButton title="Aufnahmen" onClick={() => actions.open("recordings")}>
+      <DockButton title="Recordings" onClick={() => actions.open("recordings")}>
         <ListVideoIcon />
       </DockButton>
-      <DockButton title="Einstellungen" onClick={() => actions.open("settings")}>
+      <DockButton title="Settings" onClick={() => actions.open("settings")}>
         <SettingsIcon />
       </DockButton>
-      <DockButton title="Ausblenden (Alt+Shift+Q)" onClick={actions.hide}>
+      <DockButton title="Hide (Alt+Shift+Q)" onClick={actions.hide}>
         <XIcon />
       </DockButton>
     </>
@@ -142,7 +142,7 @@ function RecordingControls({ controller }: { controller: RecordingController }) 
     return (
       <div className="flex h-8 items-center gap-2 px-3 text-[13px] text-zinc-300">
         <Loader2Icon className="size-3.5 animate-spin" />
-        Aufnahme wird gespeichert …
+        Saving recording …
       </div>
     );
   }
@@ -156,38 +156,38 @@ function RecordingControls({ controller }: { controller: RecordingController }) 
       <AudioIndicator />
       <LiveBadge />
       <Divider />
-      <DockButton title="Stift – auf der Seite markieren (Esc beendet)" active={pen} onClick={() => controller.feedback?.togglePen()}>
+      <DockButton title="Pen – mark up the page (Esc to exit)" active={pen} onClick={() => controller.feedback?.togglePen()}>
         <PenLineIcon />
       </DockButton>
       <HighlightToggle />
       <Divider />
       {confirmDiscard ? (
         <div className="flex items-center gap-1">
-          <span className="px-1 text-xs text-zinc-400">Verwerfen?</span>
+          <span className="px-1 text-xs text-zinc-400">Discard?</span>
           <button
             type="button"
             className="h-7 rounded-full bg-red-500/15 px-2.5 text-xs font-medium text-red-300 hover:bg-red-500/25"
             onClick={() => void actions.discard()}
           >
-            Ja, löschen
+            Yes, delete
           </button>
-          <DockButton title="Abbrechen" onClick={() => setConfirmDiscard(false)}>
+          <DockButton title="Cancel" onClick={() => setConfirmDiscard(false)}>
             <XIcon />
           </DockButton>
         </div>
       ) : (
         <>
-          <DockButton title="Aufnahme verwerfen" onClick={() => setConfirmDiscard(true)}>
+          <DockButton title="Discard recording" onClick={() => setConfirmDiscard(true)}>
             <Trash2Icon />
           </DockButton>
           <button
             type="button"
-            title="Aufnahme beenden (Alt+Shift+R)"
+            title="Stop recording (Alt+Shift+R)"
             onClick={() => void actions.stop()}
             className="ml-0.5 inline-flex h-8 items-center gap-1.5 rounded-full bg-white px-3 text-[13px] font-medium text-zinc-950 transition hover:bg-zinc-200 active:scale-[0.98]"
           >
             <SquareIcon className="size-3 fill-current" />
-            Stopp
+            Stop
           </button>
         </>
       )}
@@ -207,7 +207,7 @@ function LiveBadge() {
         : "border-red-400/30 text-red-300";
   return (
     <span
-      title={live === "error" ? `Live-Transkript: ${error ?? "Fehler"}` : "Live-Transkript über OpenAI"}
+      title={live === "error" ? `Live transcript: ${error ?? "Error"}` : "Live transcript via OpenAI"}
       className={cn("inline-flex h-6 items-center gap-1 rounded-full border px-2 text-[10px] font-semibold tracking-wide", tone)}
     >
       {live === "connecting" ? <Loader2Icon className="size-3 animate-spin" /> : <span className="size-1.5 rounded-full bg-current" />}
@@ -225,7 +225,7 @@ function Panels({ controller }: { controller: RecordingController }) {
   const actions = useOverlay((s) => s.actions);
   const pen = useFeedback((s) => s.pen);
 
-  // Die "Gespeichert"-Karte raeumt sich nach ein paar Sekunden selbst weg.
+  // The "Saved" card dismisses itself after a few seconds.
   useEffect(() => {
     if (!savedId) return;
     const timer = window.setTimeout(() => overlayStore.setState({ savedId: null }), 8000);
@@ -244,15 +244,15 @@ function Panels({ controller }: { controller: RecordingController }) {
             <MicOffIcon className="size-4 shrink-0 text-amber-400" />
             <p className="text-xs text-zinc-300">
               {tab.recording!.audio === "denied"
-                ? "Mikrofon nicht freigegeben – es wird ohne Ton aufgenommen."
-                : `Mikrofon-Fehler: ${tab.recording!.audioError ?? "unbekannt"}`}
+                ? "Microphone not allowed – recording without audio."
+                : `Microphone error: ${tab.recording!.audioError ?? "unknown"}`}
             </p>
             <button
               type="button"
               className="shrink-0 text-xs font-medium text-[var(--brand)] hover:underline"
               onClick={() => actions.open("settings")}
             >
-              Freigeben
+              Allow
             </button>
           </div>
         </Card>
@@ -263,13 +263,13 @@ function Panels({ controller }: { controller: RecordingController }) {
             <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
               <CheckIcon className="size-3.5" />
             </span>
-            <p className="text-[13px] text-zinc-200">Aufnahme gespeichert</p>
+            <p className="text-[13px] text-zinc-200">Recording saved</p>
             <button
               type="button"
               className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white hover:bg-white/15"
               onClick={() => actions.open("recordings", savedId)}
             >
-              Ansehen
+              View
             </button>
           </div>
         </Card>
@@ -283,7 +283,7 @@ function Panels({ controller }: { controller: RecordingController }) {
   );
 }
 
-/** Live-Untertitel - zeigt, was gerade verstanden wird und wohin es geht. */
+/** Live captions - shows what is being heard right now and where it goes. */
 function CaptionBar() {
   const active = useFeedback((s) => s.active);
   const partial = useFeedback((s) => s.partial);
@@ -297,7 +297,7 @@ function CaptionBar() {
     return () => window.clearInterval(timer);
   }, []);
 
-  // Solange ein Punkt offen ist, laeuft die Sprache in dessen Sprechblase.
+  // While a point is open, speech goes into its bubble.
   if (active) return null;
   const recent = captions.filter((caption) => now - caption.at < 7000);
   if (!partial && !recent.length) {
@@ -306,7 +306,7 @@ function CaptionBar() {
       <Card className="py-2">
         <p className="flex items-center gap-2 text-[11px] text-zinc-400">
           <MousePointerClickIcon className="size-3.5" />
-          Rechtsklick auf ein Element, um dein Gesagtes daran festzuhalten
+          Right-click an element to attach what you said to it
         </p>
       </Card>
     );
@@ -315,10 +315,10 @@ function CaptionBar() {
   return (
     <Card className="max-w-[560px] py-2">
       <p className="text-[13px] leading-snug text-zinc-100">
-        {partial ? <span className="text-zinc-400 italic">{partial}</span> : <>„{last?.text}“</>}
+        {partial ? <span className="text-zinc-400 italic">{partial}</span> : <>“{last?.text}”</>}
       </p>
       <p className="mt-1 text-[10px] tracking-wide text-zinc-500 uppercase">
-        {!partial && last?.feedback ? `→ ${last.feedback}` : "→ allgemein · Rechtsklick auf ein Element ordnet zu"}
+        {!partial && last?.feedback ? `→ ${last.feedback}` : "→ general · right-click an element to assign"}
       </p>
     </Card>
   );
@@ -332,14 +332,14 @@ function PenPanel({ controller }: { controller: RecordingController }) {
       <div className="flex items-center gap-3">
         <PenLineIcon className="size-3.5 text-zinc-400" />
         <span className="text-xs text-zinc-300">
-          {active ? `Zeichnen für F${active.index}` : "Auf der Seite markieren – das umkreiste Element wird zum Feedback-Punkt"}
+          {active ? `Drawing for F${active.index}` : "Mark up the page – the circled element becomes a feedback point"}
         </span>
         <div className="flex gap-1">
           {PEN_COLORS.map((value) => (
             <button
               key={value}
               type="button"
-              aria-label={`Farbe ${value}`}
+              aria-label={`Color ${value}`}
               onClick={() => controller.feedback?.setPenColor(value)}
               className={cn("size-4 rounded-full ring-offset-2 ring-offset-zinc-950", color === value && "ring-2 ring-white/70")}
               style={{ background: value }}
@@ -351,14 +351,14 @@ function PenPanel({ controller }: { controller: RecordingController }) {
           onClick={() => controller.feedback?.togglePen(false)}
           className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs text-white hover:bg-white/15"
         >
-          Fertig
+          Done
         </button>
       </div>
     </Card>
   );
 }
 
-/* ------------------------------------------------------ Feedback-Punkte */
+/* ------------------------------------------------------ Feedback points */
 
 function useElementRect(selector: string | undefined) {
   const [rect, setRect] = useState<DOMRect | null>(null);
@@ -415,7 +415,7 @@ function FeedbackBubble({ controller, item }: { controller: RecordingController;
 
   useEffect(() => {
     setText(item.text);
-    // Nur beim Wechsel des Punkts uebernehmen, nicht bei jedem Speichern.
+    // Only sync when the point changes, not on every save.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item.id]);
 
@@ -433,7 +433,7 @@ function FeedbackBubble({ controller, item }: { controller: RecordingController;
     top = below + 220 < window.innerHeight ? below : Math.max(margin, rect.top - 240);
   }
 
-  const label = item.target ? (item.target.name ?? item.target.text ?? item.target.selector) : "ohne Element";
+  const label = item.target ? (item.target.name ?? item.target.text ?? item.target.selector) : "no element";
 
   return (
     <div
@@ -445,7 +445,7 @@ function FeedbackBubble({ controller, item }: { controller: RecordingController;
           F{item.index}
         </span>
         <span className="min-w-0 flex-1 truncate text-xs text-zinc-300">
-          {item.target?.role ?? item.target?.tag} „{label}“
+          {item.target?.role ?? item.target?.tag} “{label}”
         </span>
         <span className="flex items-center gap-1 text-[11px] text-zinc-500" title="Screenshots">
           <CameraIcon className="size-3" />
@@ -462,8 +462,8 @@ function FeedbackBubble({ controller, item }: { controller: RecordingController;
         {item.speech.length === 0 && !partial ? (
           <p className="text-zinc-500">
             {live === "on" || live === "connecting"
-              ? "Sprich einfach – alles landet bei diesem Punkt."
-              : "Live-Transkript aus – das Gesagte wird nach der Aufnahme zugeordnet."}
+              ? "Just talk – everything goes to this point."
+              : "Live transcript off – speech is assigned after recording."}
           </p>
         ) : (
           <p>
@@ -476,7 +476,7 @@ function FeedbackBubble({ controller, item }: { controller: RecordingController;
         ref={inputRef}
         value={text}
         rows={2}
-        placeholder="Tippen zum Ergänzen …"
+        placeholder="Type to add …"
         onChange={(event) => {
           setText(event.target.value);
           controller.feedback?.setText(event.target.value);
@@ -492,27 +492,27 @@ function FeedbackBubble({ controller, item }: { controller: RecordingController;
       />
 
       <div className="mt-2 flex items-center gap-2">
-        <span className="text-[10px] text-zinc-500">Enter/Esc schließt</span>
+        <span className="text-[10px] text-zinc-500">Enter/Esc to close</span>
         <button
           type="button"
           onClick={() => controller.feedback?.discard()}
           className="ml-auto rounded-full px-2.5 py-1 text-xs text-zinc-400 hover:bg-white/10 hover:text-white"
         >
-          Verwerfen
+          Discard
         </button>
         <button
           type="button"
           onClick={() => controller.feedback?.close()}
           className="rounded-full bg-[var(--brand)] px-3 py-1 text-xs font-medium text-white hover:brightness-110"
         >
-          Fertig
+          Done
         </button>
       </div>
     </div>
   );
 }
 
-/* ---------------------------------------------------------------- Stift */
+/* ------------------------------------------------------------------ Pen */
 
 function useScroll() {
   const [scroll, setScroll] = useState({ x: window.scrollX, y: window.scrollY });
@@ -594,7 +594,7 @@ function StrokeLayer({ controller }: { controller: RecordingController }) {
   );
 }
 
-/* ------------------------------------------------------------ Bausteine */
+/* ----------------------------------------------------------- Primitives */
 
 function Card({ children, className }: { children: ReactNode; className?: string }) {
   return (
@@ -667,21 +667,21 @@ function AudioIndicator() {
   const level = useOverlay((s) => s.audioLevel);
   if (audio === "off") {
     return (
-      <span title="Ohne Mikrofon" className="flex size-8 items-center justify-center text-zinc-500">
+      <span title="No microphone" className="flex size-8 items-center justify-center text-zinc-500">
         <MicOffIcon className="size-4" />
       </span>
     );
   }
   if (audio === "denied" || audio === "error") {
     return (
-      <span title="Mikrofon nicht verfügbar" className="flex size-8 items-center justify-center text-amber-400">
+      <span title="Microphone unavailable" className="flex size-8 items-center justify-center text-amber-400">
         <MicOffIcon className="size-4" />
       </span>
     );
   }
   const bars = [0.35, 0.7, 1, 0.7, 0.35];
   return (
-    <span title="Mikrofon aktiv" className="flex h-8 items-center gap-1.5 px-1 text-zinc-300">
+    <span title="Microphone active" className="flex h-8 items-center gap-1.5 px-1 text-zinc-300">
       <MicIcon className="size-3.5" />
       <span className="flex h-4 items-center gap-[2px]">
         {bars.map((weight, index) => (
@@ -703,7 +703,7 @@ function HighlightToggle() {
   const [on, setOn] = useState(highlightOverride ?? configured);
   return (
     <DockButton
-      title={on ? "Element-Hervorhebung aus" : "Element-Hervorhebung an"}
+      title={on ? "Turn off element highlight" : "Turn on element highlight"}
       active={on}
       onClick={() => {
         highlightOverride = !on;

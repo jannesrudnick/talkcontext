@@ -1,61 +1,61 @@
-# qey-MCP
+# qey MCP
 
-MCP-Server, über den **Claude Code** die QA-Aufnahmen der qey-Extension liest: Feedback-Punkte
-mit Aussage, Element, Komponentenkette, **Screenshots als Bilder**, DOM-Ausschnitt, Konsole und
-Netzwerk (inkl. Bodies fehlgeschlagener Requests).
+MCP server through which **Claude Code** reads the QA recordings of the qey extension: feedback points
+with statement, element, component chain, **screenshots as images**, DOM snippet, console and
+network (including bodies of failed requests).
 
 ```
-Extension ──POST /sessions──▶ qey-MCP (127.0.0.1:4777) ──▶ ~/.qey/sessions/<id>/
+Extension ──POST /sessions──▶ qey MCP (127.0.0.1:4777) ──▶ ~/.qey/sessions/<id>/
                                    │
 Claude Code ◀──── stdio/MCP ───────┘   qey_get_session, qey_get_feedback, …
 ```
 
-## Einrichtung
+## Setup
 
 ```bash
-pnpm install                      # baut den Server (prepare → dist/)
+pnpm install                      # builds the server (prepare → dist/)
 claude mcp add qey -- node "$(pwd)/mcp/dist/index.js"
 ```
 
-Solange Claude Code läuft, nimmt der Server auf `http://127.0.0.1:4777` Aufnahmen entgegen. In der
-Extension „An Claude senden“ klicken – oder unter *Einstellungen → Claude Code* automatisch senden
-lassen. Dann in Claude Code z.B.:
+As long as Claude Code is running, the server accepts recordings on `http://127.0.0.1:4777`. In the
+extension, click "Send to Claude" – or enable automatic sending under *Settings → Claude Code*.
+Then, in Claude Code, e.g.:
 
-> Fix das letzte qey-Feedback
+> Fix the latest qey feedback
 
-oder den mitgelieferten Prompt `/mcp__qey__fix_feedback`.
+or use the bundled prompt `/mcp__qey__fix_feedback`.
 
-## Werkzeuge
+## Tools
 
-| Tool | Zweck |
+| Tool | Purpose |
 | --- | --- |
-| `qey_list_sessions` | Zuletzt empfangene Aufnahmen |
-| `qey_get_session` | Kompletter Handoff als Markdown (Kontext, alle Punkte, Ablauf, Transkript) |
-| `qey_get_feedback` | Ein Punkt (`F3`) oder alle – mit Screenshots als Bild und DOM-Ausschnitt |
-| `qey_get_screenshot` | Einzelner Screenshot per Pfad |
-| `qey_get_logs` | Konsole oder Netzwerk, standardmäßig nur Fehler |
+| `qey_list_sessions` | Most recently received recordings |
+| `qey_get_session` | Full handoff as Markdown (context, all points, flow, transcript) |
+| `qey_get_feedback` | One point (`F3`) or all – with screenshots as images and DOM snippet |
+| `qey_get_screenshot` | A single screenshot by path |
+| `qey_get_logs` | Console or network, errors only by default |
 
-`session` ist überall optional und steht standardmäßig auf `latest`.
+`session` is optional everywhere and defaults to `latest`.
 
-## Konfiguration
+## Configuration
 
-| Variable | Standard | |
+| Variable | Default | |
 | --- | --- | --- |
-| `QEY_PORT` | `4777` | Port für den Empfang (muss zum Endpunkt in der Extension passen) |
-| `QEY_DIR` | `~/.qey` | Ablageort der Aufnahmen |
+| `QEY_PORT` | `4777` | Port for receiving (must match the endpoint in the extension) |
+| `QEY_DIR` | `~/.qey` | Where recordings are stored |
 
-Mehrere Claude-Code-Sitzungen gleichzeitig sind kein Problem: Die erste hält den Port, alle lesen
-denselben Ordner.
+Multiple Claude Code sessions at the same time are fine: the first one holds the port, all of them read
+the same folder.
 
-## Sicherheit
+## Security
 
-Lauscht ausschließlich auf `127.0.0.1`. Anfragen mit einem `Origin` außer `chrome-extension://…`
-werden abgelehnt, und `application/json` erzwingt bei Web-Seiten einen CORS-Preflight, den der
-Server nie beantwortet. Pfade aus dem Handoff werden auf den Session-Ordner beschränkt.
+Listens on `127.0.0.1` only. Requests with an `Origin` other than `chrome-extension://…`
+are rejected, and `application/json` forces a CORS preflight for web pages that the
+server never answers. Paths from the handoff are confined to the session folder.
 
-## Testen
+## Testing
 
 ```bash
 pnpm --filter qey-mcp build
-node mcp/scripts/smoke.mjs        # listet Tools und ruft sie gegen die vorhandenen Aufnahmen auf
+node mcp/scripts/smoke.mjs        # lists the tools and calls them against the existing recordings
 ```

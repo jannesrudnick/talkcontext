@@ -1,6 +1,6 @@
 /**
- * AudioWorklet: wandelt das Mikrofon-Signal in 16-bit-PCM-Pakete (~100 ms).
- * Die Samplerate bestimmt der AudioContext (fuer OpenAI Realtime: 24 kHz).
+ * AudioWorklet: converts the microphone signal into 16-bit PCM packets (~100 ms).
+ * The sample rate is set by the AudioContext (for OpenAI Realtime: 24 kHz).
  */
 class PcmCapture extends AudioWorkletProcessor {
   constructor() {

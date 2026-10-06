@@ -1,20 +1,20 @@
 /**
- * Ordnet gesprochene Transkript-Segmente den DOM-Events zu, waehrend derer sie
- * gefallen sind. Events und Transkript teilen schon eine Uhr (`t` = ms seit
- * Aufnahmestart), aber ein reines Sortieren nach `t` sagt nichts darueber, ob
- * ein Satz zu einem Hover, einem Klick oder einfach zur naechsten Pause
- * gehoert - dafuer braucht jedes Event ein Zeitfenster statt eines Punkts.
+ * Assigns spoken transcript segments to the DOM events during which they were
+ * said. Events and transcript already share a clock (`t` = ms since the start
+ * of the recording), but merely sorting by `t` says nothing about whether a
+ * sentence belongs to a hover, a click or just the next pause - for that,
+ * every event needs a time window instead of a point.
  */
 import type { QaEvent, TranscriptSegment } from "./types";
 
 export interface CorrelatedEvent extends QaEvent {
-  /** Gesprochener Text, der zeitlich zu diesem Event gehoert - chronologisch. */
+  /** Spoken text that belongs to this event in time - chronological. */
   spokenContext?: string[];
 }
 
 export interface CorrelationResult {
   events: CorrelatedEvent[];
-  /** Sprache ausserhalb jedes Event-Fensters - Pausen, freies Nachdenken. */
+  /** Speech outside every event window - pauses, thinking aloud. */
   unmatched: TranscriptSegment[];
 }
 
@@ -24,8 +24,8 @@ export interface CorrelationInput {
   meta: { durationMs: number };
 }
 
-// Bei Punkt-Events (Klick etc.) wird oft vorher angekuendigt ("ich klick jetzt
-// drauf") und selten hinterher noch kommentiert - Fenster ist deshalb asymmetrisch.
+// Point events (click etc.) are often announced beforehand ("I'm clicking it
+// now") and rarely commented on afterwards - so the window is asymmetric.
 const POINT_LOOKBACK_MS = 1500;
 const POINT_LOOKAHEAD_MS = 500;
 
@@ -45,7 +45,7 @@ interface Window {
   kind: "hover" | "point";
   start: number;
   end: number;
-  /** Ankerzeit fuer die Distanzberechnung bei mehrdeutiger Ueberlappung. */
+  /** Anchor time for the distance calculation on ambiguous overlap. */
   refT: number;
 }
 
@@ -84,7 +84,7 @@ export function correlate(input: CorrelationInput): CorrelationResult {
       });
     }
   }
-  // Aufnahme endete, waehrend noch gehovert wurde - Fenster bis Aufnahmeende offen lassen.
+  // Recording ended while still hovering - keep the window open until the end of the recording.
   if (pendingHoverStart) {
     windows.push({
       eventId: pendingHoverStart.id,
@@ -109,8 +109,8 @@ export function correlate(input: CorrelationInput): CorrelationResult {
       continue;
     }
 
-    // Liegt der Satz komplett in einem Hover-Dwell, gewinnt der Hover - das ist
-    // der aktive Kontext, auch wenn zufaellig ein Klick-Fenster ueberlappt.
+    // If the sentence lies entirely within a hover dwell, the hover wins - that is
+    // the active context, even if a click window happens to overlap.
     const containingHovers = overlapping.filter((w) => w.kind === "hover" && segStart >= w.start && segEnd <= w.end);
     const candidates = containingHovers.length ? containingHovers : overlapping;
     const pick = candidates.reduce((best, w) =>

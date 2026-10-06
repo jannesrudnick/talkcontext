@@ -1,5 +1,5 @@
 /**
- * Minimaler Zustand fuer das Overlay - bewusst ohne Bibliothek.
+ * Minimal state for the overlay - deliberately without a library.
  */
 import { useSyncExternalStore } from "react";
 import type { TabState } from "@/lib/types";

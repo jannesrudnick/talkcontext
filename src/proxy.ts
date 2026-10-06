@@ -3,12 +3,12 @@ import { PROXY_PREFIX } from "@/lib/qa/proxy-url";
 import { requestHost } from "@/lib/qa/request-origin";
 
 /**
- * Sicherheitsnetz fuer den Frame-Proxy.
+ * Safety net for the frame proxy.
  *
- * Wurzel-relative URLs (`/_next/...`, `/assets/logo.svg`), die erst zur Laufzeit
- * von der Zielseite erzeugt werden, landen sonst auf unserer Origin und laufen
- * ins Leere. Kommt so ein Request mit einem Proxy-Referer, schicken wir ihn
- * zurueck in den Proxy derselben Zielseite.
+ * Root-relative URLs (`/_next/...`, `/assets/logo.svg`) that the target page
+ * only creates at runtime would otherwise hit our origin and go nowhere. If such
+ * a request arrives with a proxy referer, we send it back into the proxy of the
+ * same target page.
  */
 export default function proxy(request: NextRequest) {
   const referer = request.headers.get("referer");

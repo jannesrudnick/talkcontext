@@ -15,14 +15,14 @@ export function WelcomePage() {
       <div className="space-y-4">
         <Badge variant="secondary" className="gap-1.5">
           <span className="size-1.5 rounded-full bg-brand" />
-          Willkommen bei qey
+          Welcome to qey
         </Badge>
         <h1 className="text-4xl font-semibold tracking-tight text-balance">
-          Klick dich durch, erklär laut – der Agent bekommt ein Protokoll statt eines Videos.
+          Click through, explain out loud – the agent gets a log instead of a video.
         </h1>
         <p className="max-w-2xl text-lg text-muted-foreground text-pretty">
-          qey legt sich als Overlay über jede Web-App. Jede Session wird als Replay gespeichert – mit den
-          DOM-Elementen, Konsolenfehlern, Requests und deiner Erklärung auf einer Zeitachse.
+          qey sits as an overlay on top of any web app. Every session is saved as a replay – with DOM
+          elements, console errors, requests and your explanation on one timeline.
         </p>
       </div>
 
@@ -30,24 +30,24 @@ export function WelcomePage() {
         <Step
           index={1}
           icon={<PuzzleIcon />}
-          title="Extension anheften"
-          description="Puzzle-Symbol in der Chrome-Toolbar → qey anpinnen. Ein Klick darauf blendet das Overlay ein."
+          title="Pin the extension"
+          description="Puzzle icon in the Chrome toolbar → pin qey. Clicking it shows the overlay."
         />
         <Step
           index={2}
           icon={<MicIcon />}
-          title="Mikrofon freigeben"
-          description="Einmalig für die Extension – danach fragt Chrome bei keiner Seite mehr nach."
+          title="Allow microphone"
+          description="Once for the extension – Chrome won't ask again on any page."
           done={mic.state === "granted"}
           action={
             mic.state !== "granted" && (
               <Button
                 onClick={async () => {
-                  if (await mic.request()) toast.success("Mikrofon freigegeben");
-                  else toast.error("Freigabe abgelehnt");
+                  if (await mic.request()) toast.success("Microphone allowed");
+                  else toast.error("Permission denied");
                 }}
               >
-                Freigeben
+                Allow
               </Button>
             )
           }
@@ -55,22 +55,22 @@ export function WelcomePage() {
         <Step
           index={3}
           icon={<GlobeIcon />}
-          title="Umgebungen hinterlegen"
-          description="URLs für Lokal, Staging & Co., dazu Testnutzer, Flags und Variablen für den Agenten."
+          title="Add environments"
+          description="URLs for Local, Staging & co., plus test users, flags and variables for the agent."
           action={
             <Button variant="outline" onClick={() => navigate("settings/environments")}>
-              Einrichten
+              Set up
             </Button>
           }
         />
         <Step
           index={4}
           icon={<MousePointerClickIcon />}
-          title="Aufnehmen"
+          title="Record"
           description={
             <>
-              In deiner App <Kbd>Alt</Kbd> <Kbd>Shift</Kbd> <Kbd>Q</Kbd> drücken oder aufs Symbol klicken, dann
-              „Aufnahme starten“. <Kbd>Alt</Kbd> <Kbd>Shift</Kbd> <Kbd>R</Kbd> startet und stoppt direkt.
+              In your app, press <Kbd>Alt</Kbd> <Kbd>Shift</Kbd> <Kbd>Q</Kbd> or click the icon, then “Start
+              recording”. <Kbd>Alt</Kbd> <Kbd>Shift</Kbd> <Kbd>R</Kbd> starts and stops directly.
             </>
           }
         />
@@ -78,7 +78,7 @@ export function WelcomePage() {
 
       <div>
         <Button size="lg" onClick={() => navigate("recordings")}>
-          Zu den Aufnahmen
+          Go to recordings
           <ArrowRightIcon />
         </Button>
       </div>

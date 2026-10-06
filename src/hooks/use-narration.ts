@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { TranscriptSegment } from "@/lib/qa/types";
 
-/* Die Web Speech API ist nicht in den TypeScript-DOM-Typen enthalten. */
+/* The Web Speech API is not part of the TypeScript DOM types. */
 interface SpeechRecognitionAlternativeLike {
   transcript: string;
   confidence: number;
@@ -43,7 +43,7 @@ function getSpeechRecognition(): SpeechRecognitionCtor | null {
 const SERVER_SUPPORT = { audio: false, speech: false } as const;
 let cachedSupport: { audio: boolean; speech: boolean } | null = null;
 
-/** Stabiler Snapshot, damit useSyncExternalStore nicht dauernd neu rendert. */
+/** Stable snapshot so useSyncExternalStore doesn't re-render constantly. */
 function getSupport() {
   if (!cachedSupport) {
     cachedSupport = {
@@ -66,9 +66,9 @@ export interface NarrationState {
 }
 
 /**
- * Nimmt die gesprochene Erklaerung auf: Audiospur via MediaRecorder und -
- * sofern der Browser sie hat - ein Live-Transkript via Web Speech API.
- * Das Transkript ist der Teil, den ein Agent spaeter wirklich lesen kann.
+ * Records the spoken explanation: audio track via MediaRecorder and - if the
+ * browser has it - a live transcript via the Web Speech API.
+ * The transcript is the part an agent can actually read later.
  */
 export function useNarration(language: string) {
   const supported = useSyncExternalStore(subscribeToNothing, getSupport, () => SERVER_SUPPORT);
@@ -127,19 +127,19 @@ export function useNarration(language: string) {
 
     recognition.onerror = (event) => {
       const code = event.error;
-      // "no-speech" und "aborted" sind normale Zwischenzustaende.
+      // "no-speech" and "aborted" are normal intermediate states.
       if (code && code !== "no-speech" && code !== "aborted") {
-        setError(`Spracherkennung: ${code}`);
+        setError(`Speech recognition: ${code}`);
       }
     };
 
-    // Chrome beendet die Erkennung nach Sprechpausen - neu starten.
+    // Chrome ends recognition after pauses in speech - restart it.
     recognition.onend = () => {
       if (!keepAliveRef.current) return;
       try {
         recognition.start();
       } catch {
-        /* Neustart zu frueh - naechstes onend versucht es erneut. */
+        /* Restarted too early - the next onend tries again. */
       }
     };
 
@@ -147,7 +147,7 @@ export function useNarration(language: string) {
       recognition.start();
       recognitionRef.current = recognition;
     } catch (startError) {
-      setError(startError instanceof Error ? startError.message : "Spracherkennung nicht startbar");
+      setError(startError instanceof Error ? startError.message : "Speech recognition could not start");
     }
   }, []);
 
@@ -179,8 +179,8 @@ export function useNarration(language: string) {
       } catch (mediaError) {
         setError(
           mediaError instanceof Error
-            ? `Mikrofon nicht verfuegbar: ${mediaError.message}`
-            : "Mikrofon nicht verfuegbar",
+            ? `Microphone unavailable: ${mediaError.message}`
+            : "Microphone unavailable",
         );
         return false;
       }
@@ -213,7 +213,7 @@ export function useNarration(language: string) {
     setTranscript((previous) => [...previous, { t, endT: t, text, final: true }]);
   }, []);
 
-  /** Ersetzt das Live-Transkript, z.B. durch das genauere Whisper-Ergebnis. */
+  /** Replaces the live transcript, e.g. with the more accurate Whisper result. */
   const replaceTranscript = useCallback((segments: TranscriptSegment[]) => {
     setTranscript(segments);
   }, []);

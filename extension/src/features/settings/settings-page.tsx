@@ -47,13 +47,13 @@ import { EnvironmentsSection } from "./environments";
 import { useMicPermission } from "./use-mic-permission";
 
 const SECTIONS = [
-  { id: "general", label: "Allgemein", icon: SlidersHorizontalIcon },
-  { id: "environments", label: "Umgebungen", icon: GlobeIcon },
-  { id: "recording", label: "Aufnahme", icon: VideoIcon },
+  { id: "general", label: "General", icon: SlidersHorizontalIcon },
+  { id: "environments", label: "Environments", icon: GlobeIcon },
+  { id: "recording", label: "Recording", icon: VideoIcon },
   { id: "feedback", label: "Feedback", icon: MessageSquareDotIcon },
-  { id: "transcription", label: "Transkription", icon: SparklesIcon },
+  { id: "transcription", label: "Transcription", icon: SparklesIcon },
   { id: "claude", label: "Claude Code", icon: BotIcon },
-  { id: "data", label: "Daten", icon: DatabaseIcon },
+  { id: "data", label: "Data", icon: DatabaseIcon },
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
@@ -65,7 +65,7 @@ export function SettingsPage({ section }: { section?: string }) {
   return (
     <div className="mx-auto flex w-full max-w-5xl gap-10 px-8 py-8">
       <nav className="sticky top-8 flex w-48 shrink-0 flex-col gap-0.5 self-start">
-        <h1 className="mb-4 text-2xl font-semibold tracking-tight">Einstellungen</h1>
+        <h1 className="mb-4 text-2xl font-semibold tracking-tight">Settings</h1>
         {SECTIONS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -130,30 +130,30 @@ function SwitchField({
   );
 }
 
-/* ---------------------------------------------------------------- Allgemein */
+/* ------------------------------------------------------------------ General */
 
 const LANGUAGES = [
-  { value: "de-DE", label: "Deutsch" },
-  { value: "en-US", label: "Englisch" },
-  { value: "fr-FR", label: "Französisch" },
-  { value: "es-ES", label: "Spanisch" },
+  { value: "de-DE", label: "German" },
+  { value: "en-US", label: "English" },
+  { value: "fr-FR", label: "French" },
+  { value: "es-ES", label: "Spanish" },
 ];
 
 const THEMES = [
   { value: "system", label: "System" },
-  { value: "light", label: "Hell" },
-  { value: "dark", label: "Dunkel" },
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
 ];
 
 function GeneralSection({ settings, update }: SectionProps) {
   return (
     <section>
-      <SectionHeader title="Allgemein" description="Sprache, Erscheinungsbild und Verhalten nach der Aufnahme." />
+      <SectionHeader title="General" description="Language, appearance and what happens after recording." />
       <FieldGroup>
         <Field orientation="horizontal">
           <FieldContent>
-            <FieldLabel>Sprache der Erklärung</FieldLabel>
-            <FieldDescription>Wird für die Transkription verwendet.</FieldDescription>
+            <FieldLabel>Transcription language</FieldLabel>
+            <FieldDescription>Language you speak during recordings. Used for live and post-recording transcription.</FieldDescription>
           </FieldContent>
           <Select items={LANGUAGES} value={settings.language} onValueChange={(value) => update((s) => ({ ...s, language: String(value) }))}>
             <SelectTrigger className="w-44">
@@ -171,8 +171,8 @@ function GeneralSection({ settings, update }: SectionProps) {
         <FieldSeparator />
         <Field orientation="horizontal">
           <FieldContent>
-            <FieldLabel>Erscheinungsbild</FieldLabel>
-            <FieldDescription>Das Overlay auf der Seite ist immer dunkel, damit es sich abhebt.</FieldDescription>
+            <FieldLabel>Appearance</FieldLabel>
+            <FieldDescription>The on-page overlay is always dark so it stands out.</FieldDescription>
           </FieldContent>
           <Select
             items={THEMES}
@@ -193,17 +193,17 @@ function GeneralSection({ settings, update }: SectionProps) {
         </Field>
         <FieldSeparator />
         <SwitchField
-          label="Aufnahme nach dem Stoppen öffnen"
-          description="Öffnet das Replay in einem neuen Tab – dort startet auch die Transkription."
+          label="Open recording after stopping"
+          description="Opens the replay in a new tab – transcription starts there too."
           checked={settings.openAfterStop}
           onChange={(value) => update((s) => ({ ...s, openAfterStop: value }))}
         />
         <FieldSeparator />
         <Field>
-          <FieldLabel>Tastenkürzel</FieldLabel>
+          <FieldLabel>Keyboard shortcuts</FieldLabel>
           <FieldDescription>
-            <span className="font-mono">Alt+Shift+Q</span> blendet das Overlay ein, <span className="font-mono">Alt+Shift+R</span>{" "}
-            startet/stoppt die Aufnahme. Ändern unter{" "}
+            <span className="font-mono">Alt+Shift+Q</span> toggles the overlay, <span className="font-mono">Alt+Shift+R</span>{" "}
+            starts/stops recording. Change them at{" "}
             <button
               type="button"
               className="underline underline-offset-2"
@@ -219,7 +219,7 @@ function GeneralSection({ settings, update }: SectionProps) {
   );
 }
 
-/* ----------------------------------------------------------------- Aufnahme */
+/* ---------------------------------------------------------------- Recording */
 
 function RecordingSection({ settings, update }: SectionProps) {
   const mic = useMicPermission();
@@ -231,36 +231,36 @@ function RecordingSection({ settings, update }: SectionProps) {
   return (
     <section className="space-y-10">
       <div>
-        <SectionHeader title="Mikrofon" description="Deine gesprochene Erklärung wird mit aufgenommen und später transkribiert." />
+        <SectionHeader title="Microphone" description="Your spoken explanation is recorded and transcribed later." />
         <FieldGroup>
           <SwitchField
-            label="Mikrofon aufnehmen"
+            label="Record microphone"
             checked={settings.audio.enabled}
             onChange={(value) => update((s) => ({ ...s, audio: { ...s.audio, enabled: value } }))}
           />
           <Field orientation="horizontal">
             <FieldContent>
-              <FieldLabel>Freigabe</FieldLabel>
+              <FieldLabel>Permission</FieldLabel>
               <FieldDescription>
-                Chrome fragt einmalig für die Extension – nicht für jede Seite, die du testest.
+                Chrome asks once for the extension – not for every page you test.
               </FieldDescription>
             </FieldContent>
             {mic.state === "granted" ? (
               <Badge variant="secondary" className="gap-1.5 text-success">
                 <CheckCircle2Icon />
-                Freigegeben
+                Allowed
               </Badge>
             ) : (
               <Button
                 variant={mic.state === "denied" ? "destructive" : "default"}
                 onClick={async () => {
                   const ok = await mic.request();
-                  if (ok) toast.success("Mikrofon freigegeben");
-                  else toast.error("Freigabe abgelehnt", { description: "In den Website-Einstellungen der Extension erlauben." });
+                  if (ok) toast.success("Microphone allowed");
+                  else toast.error("Permission denied", { description: "Allow it in the extension's site settings." });
                 }}
               >
                 <MicIcon />
-                {mic.state === "denied" ? "Erneut anfragen" : "Mikrofon freigeben"}
+                {mic.state === "denied" ? "Ask again" : "Allow microphone"}
               </Button>
             )}
           </Field>
@@ -268,18 +268,18 @@ function RecordingSection({ settings, update }: SectionProps) {
       </div>
 
       <div>
-        <SectionHeader title="Protokoll" description="Was der semantische Recorder für den Agenten mitschreibt." />
+        <SectionHeader title="Log" description="What the semantic recorder captures for the agent." />
         <FieldGroup>
           <SwitchField
-            label="Element-Hervorhebung"
-            description="Rahmen um das Element unter dem Cursor während der Aufnahme."
+            label="Element highlight"
+            description="Outline the element under the cursor while recording."
             checked={recorder.highlight}
             onChange={(value) => setRecorder({ highlight: value })}
           />
           <FieldSeparator />
           <Field>
             <div className="flex items-center justify-between">
-              <FieldLabel>Hover ab</FieldLabel>
+              <FieldLabel>Hover after</FieldLabel>
               <span className="font-mono text-sm text-muted-foreground">{recorder.hoverDwellMs} ms</span>
             </div>
             <Slider
@@ -289,18 +289,18 @@ function RecordingSection({ settings, update }: SectionProps) {
               value={[recorder.hoverDwellMs]}
               onValueChange={(value) => setRecorder({ hoverDwellMs: Array.isArray(value) ? (value[0] ?? 400) : value })}
             />
-            <FieldDescription>Mindest-Verweildauer, ab der ein Hover im Protokoll landet.</FieldDescription>
+            <FieldDescription>Minimum dwell time before a hover is logged.</FieldDescription>
           </Field>
           <FieldSeparator />
           <SwitchField
-            label="HTML-Ausschnitte"
-            description="Gekürztes outerHTML angeklickter Elemente."
+            label="HTML snippets"
+            description="Truncated outerHTML of clicked elements."
             checked={recorder.captureHtml}
             onChange={(value) => setRecorder({ captureHtml: value })}
           />
           <SwitchField
-            label="Eingabewerte"
-            description="Passwörter und Felder mit data-qa-secret bleiben immer maskiert."
+            label="Input values"
+            description="Passwords and fields with data-qa-secret are always masked."
             checked={recorder.captureInputValues}
             onChange={(value) => setRecorder({ captureInputValues: value })}
           />
@@ -308,27 +308,27 @@ function RecordingSection({ settings, update }: SectionProps) {
       </div>
 
       <div>
-        <SectionHeader title="Replay" description="Wie die Seite für das Session-Replay mitgeschnitten wird." />
+        <SectionHeader title="Replay" description="How the page is captured for session replay." />
         <FieldGroup>
           <SwitchField
-            label="Alle Eingaben im Replay maskieren"
+            label="Mask all inputs in replay"
             checked={settings.replay.maskAllInputs}
             onChange={(value) => setReplay({ maskAllInputs: value })}
           />
           <SwitchField
-            label="Canvas aufzeichnen"
-            description="Für Charts und Editoren – kostet deutlich mehr Speicher."
+            label="Record canvas"
+            description="For charts and editors – uses significantly more storage."
             checked={settings.replay.recordCanvas}
             onChange={(value) => setReplay({ recordCanvas: value })}
           />
           <Field>
-            <FieldLabel>Ausblenden (CSS-Selektoren)</FieldLabel>
+            <FieldLabel>Hide (CSS selectors)</FieldLabel>
             <Input
               placeholder=".cookie-banner, [data-private]"
               defaultValue={settings.replay.blockSelector}
               onBlur={(event) => setReplay({ blockSelector: event.target.value })}
             />
-            <FieldDescription>Diese Elemente erscheinen im Replay nur als graue Fläche.</FieldDescription>
+            <FieldDescription>These elements show up as gray boxes in the replay.</FieldDescription>
           </Field>
         </FieldGroup>
       </div>
@@ -336,12 +336,12 @@ function RecordingSection({ settings, update }: SectionProps) {
   );
 }
 
-/* ------------------------------------------------------------ Transkription */
+/* ------------------------------------------------------------ Transcription */
 
 const ENGINES: Array<{ value: TranscriptionEngine; label: string }> = [
-  { value: "whisper", label: "Whisper lokal" },
+  { value: "whisper", label: "Whisper (local)" },
   { value: "openai", label: "OpenAI (Cloud)" },
-  { value: "none", label: "Aus" },
+  { value: "none", label: "Off" },
 ];
 
 function TranscriptionSection({ settings, update }: SectionProps) {
@@ -354,20 +354,20 @@ function TranscriptionSection({ settings, update }: SectionProps) {
     <section className="space-y-10">
       <div>
         <SectionHeader
-          title="Live-Transkript"
-          description="Während der Aufnahme über OpenAI Realtime. Du siehst sofort, was verstanden wird und welchem Feedback-Punkt es zugeordnet ist – danach muss nichts mehr transkribiert werden."
+          title="Live transcript"
+          description="During recording via OpenAI Realtime. You see right away what was understood and which feedback point it belongs to – nothing left to transcribe afterwards."
         />
         <FieldGroup>
           <SwitchField
-            label="Live-Transkript"
-            description={t.openaiKey ? "Braucht den OpenAI-API-Key unten." : "Erst einen OpenAI-API-Key hinterlegen (unten)."}
+            label="Live transcript"
+            description={t.openaiKey ? "Requires the OpenAI API key below." : "Add an OpenAI API key first (below)."}
             checked={t.live}
             onChange={(value) => set({ live: value })}
           />
           <Field orientation="horizontal">
             <FieldContent>
-              <FieldLabel>Modell</FieldLabel>
-              <FieldDescription>gpt-4o-transcribe ist genauer, die mini-Variante günstiger.</FieldDescription>
+              <FieldLabel>Model</FieldLabel>
+              <FieldDescription>gpt-4o-transcribe is more accurate, the mini variant is cheaper.</FieldDescription>
             </FieldContent>
             <Select items={LIVE_MODELS} value={t.liveModel} onValueChange={(value) => set({ liveModel: String(value) })}>
               <SelectTrigger className="w-56">
@@ -386,15 +386,15 @@ function TranscriptionSection({ settings, update }: SectionProps) {
       </div>
       <div>
       <SectionHeader
-        title="Nach der Aufnahme"
-        description="Falls kein Live-Transkript vorliegt, wird die Tonspur nach der Aufnahme in Text übersetzt."
+        title="After recording"
+        description="If there is no live transcript, the audio track is transcribed after recording."
       />
       <FieldGroup>
         <Field orientation="horizontal">
           <FieldContent>
-            <FieldLabel>Standard</FieldLabel>
+            <FieldLabel>Default</FieldLabel>
             <FieldDescription>
-              Whisper lokal: nichts verlässt den Rechner, einmaliger Modell-Download. OpenAI: schneller, braucht API-Key.
+              Whisper (local): nothing leaves your machine, one-time model download. OpenAI: faster, needs an API key.
             </FieldDescription>
           </FieldContent>
           <Select items={ENGINES} value={t.engine} onValueChange={(value) => set({ engine: value as TranscriptionEngine })}>
@@ -413,8 +413,8 @@ function TranscriptionSection({ settings, update }: SectionProps) {
         <FieldSeparator />
         <Field orientation="horizontal">
           <FieldContent>
-            <FieldLabel>Whisper-Modell</FieldLabel>
-            <FieldDescription>Größer = genauer, aber langsamer. Base ist ein guter Kompromiss.</FieldDescription>
+            <FieldLabel>Whisper model</FieldLabel>
+            <FieldDescription>Larger = more accurate but slower. Base is a good trade-off.</FieldDescription>
           </FieldContent>
           <Select
             items={WHISPER_MODELS.map((model) => ({ value: model.id, label: `${model.label} · ${model.size}` }))}
@@ -435,7 +435,7 @@ function TranscriptionSection({ settings, update }: SectionProps) {
         </Field>
         <FieldSeparator />
         <Field>
-          <FieldLabel>OpenAI-API-Key</FieldLabel>
+          <FieldLabel>OpenAI API key</FieldLabel>
           <div className="flex gap-2">
             <Input
               type={showKey ? "text" : "password"}
@@ -446,15 +446,15 @@ function TranscriptionSection({ settings, update }: SectionProps) {
             />
             <Button variant="outline" onClick={() => setShowKey((value) => !value)}>
               <KeyRoundIcon />
-              {showKey ? "Verbergen" : "Anzeigen"}
+              {showKey ? "Hide" : "Show"}
             </Button>
           </div>
-          <FieldDescription>Liegt nur lokal im Speicher der Extension und geht direkt an api.openai.com.</FieldDescription>
+          <FieldDescription>Stored only locally in the extension and sent directly to api.openai.com.</FieldDescription>
         </Field>
         <FieldSeparator />
         <SwitchField
-          label="Automatisch transkribieren"
-          description="Sobald eine frische Aufnahme geöffnet wird."
+          label="Transcribe automatically"
+          description="As soon as a new recording is opened."
           checked={t.auto}
           onChange={(value) => set({ auto: value })}
         />
@@ -480,34 +480,34 @@ function FeedbackSection({ settings, update }: SectionProps) {
     <section>
       <SectionHeader
         title="Feedback"
-        description="Feedback-Punkte sind ausdrückliche Befunde: Element, Aussage, Screenshot und Kontext gebündelt – das, was der Agent zum Fixen braucht."
+        description="Feedback points are explicit findings: element, comment, screenshot and context bundled – what the agent needs to fix it."
       />
       <FieldGroup>
         <SwitchField
-          label="Rechtsklick startet einen Feedback-Punkt"
-          description="Während der Aufnahme. Alles, was du danach sagst oder tippst, hängt an diesem Element. Alt+Rechtsklick öffnet das normale Kontextmenü."
+          label="Right-click starts a feedback point"
+          description="While recording. Everything you say or type afterwards is attached to that element. Alt+right-click opens the normal context menu."
           checked={f.contextMenu}
           onChange={(value) => set({ contextMenu: value })}
         />
         <FieldSeparator />
         <SwitchField
-          label="Screenshot bei Fehlern"
-          description="Bei Konsolenfehlern und fehlgeschlagenen Requests automatisch den sichtbaren Bereich festhalten."
+          label="Screenshot on errors"
+          description="Automatically capture the visible area on console errors and failed requests."
           checked={f.screenshotOnError}
           onChange={(value) => set({ screenshotOnError: value })}
         />
         <FieldSeparator />
         <Field orientation="horizontal">
           <FieldContent>
-            <FieldLabel>Stiftfarbe</FieldLabel>
-            <FieldDescription>Nach jedem Strich entsteht ein Screenshot mit Markierung.</FieldDescription>
+            <FieldLabel>Pen color</FieldLabel>
+            <FieldDescription>Each stroke creates an annotated screenshot.</FieldDescription>
           </FieldContent>
           <div className="flex gap-2">
             {PEN_COLORS.map((color) => (
               <button
                 key={color}
                 type="button"
-                aria-label={`Farbe ${color}`}
+                aria-label={`Color ${color}`}
                 onClick={() => set({ penColor: color })}
                 className={cn(
                   "size-6 rounded-full ring-offset-2 ring-offset-background transition",
@@ -541,39 +541,39 @@ function ClaudeSection({ settings, update }: SectionProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const command = "claude mcp add qey -- node <pfad-zum-repo>/mcp/dist/index.js";
+  const command = "claude mcp add qey -- node <path-to-repo>/mcp/dist/index.js";
 
   return (
     <section>
       <SectionHeader
         title="Claude Code"
-        description="Aufnahmen gehen als Handoff (Feedback-Punkte, Screenshots, DOM, Logs) an einen lokalen MCP-Server. In Claude Code reicht dann: „Fix das letzte qey-Feedback“."
+        description="Recordings are sent as a handoff (feedback points, screenshots, DOM, logs) to a local MCP server. Then in Claude Code just say: “Fix the latest qey feedback”."
       />
       <FieldGroup>
         <Field>
-          <FieldLabel>Einrichtung (einmalig)</FieldLabel>
+          <FieldLabel>Setup (one-time)</FieldLabel>
           <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 font-mono text-xs">
             <span className="min-w-0 flex-1 truncate">{command}</span>
             <Button
               size="icon-xs"
               variant="ghost"
-              aria-label="Kopieren"
+              aria-label="Copy"
               onClick={() => {
                 void navigator.clipboard.writeText(command);
-                toast.success("Befehl kopiert");
+                toast.success("Command copied");
               }}
             >
               <CopyIcon />
             </Button>
           </div>
           <FieldDescription>
-            Vorher im Repo <span className="font-mono">pnpm --filter qey-mcp build</span>. Der Server lauscht, solange Claude Code läuft, auf
-            dem Endpunkt unten und legt Aufnahmen unter <span className="font-mono">~/.qey/sessions</span> ab.
+            First run <span className="font-mono">pnpm --filter qey-mcp build</span> in the repo. While Claude Code is running, the server
+            listens on the endpoint below and stores recordings in <span className="font-mono">~/.qey/sessions</span>.
           </FieldDescription>
         </Field>
         <FieldSeparator />
         <Field>
-          <FieldLabel>Endpunkt</FieldLabel>
+          <FieldLabel>Endpoint</FieldLabel>
           <div className="flex gap-2">
             <Input
               defaultValue={h.endpoint}
@@ -586,21 +586,21 @@ function ClaudeSection({ settings, update }: SectionProps) {
             />
             <Button variant="outline" onClick={() => void test()} disabled={checking}>
               {checking ? <Loader2Icon className="animate-spin" /> : <PlugZapIcon />}
-              Testen
+              Test
             </Button>
           </div>
           <FieldDescription>
             {health === null
               ? "…"
               : health.ok
-                ? `Verbunden – qey-MCP ${health.version ?? ""}${health.dir ? ` · ${health.dir}` : ""}`
-                : `Nicht erreichbar (${health.error}). Läuft Claude Code mit dem qey-Server?`}
+                ? `Connected – qey MCP ${health.version ?? ""}${health.dir ? ` · ${health.dir}` : ""}`
+                : `Unreachable (${health.error}). Is Claude Code running with the qey server?`}
           </FieldDescription>
         </Field>
         <FieldSeparator />
         <SwitchField
-          label="Automatisch senden"
-          description="Nach dem Stoppen (und ggf. der Transkription) geht die Aufnahme direkt an Claude Code."
+          label="Send automatically"
+          description="After stopping (and transcription, if any), the recording goes straight to Claude Code."
           checked={h.autoSend}
           onChange={(value) => set({ autoSend: value })}
         />
@@ -609,7 +609,7 @@ function ClaudeSection({ settings, update }: SectionProps) {
   );
 }
 
-/* -------------------------------------------------------------------- Daten */
+/* --------------------------------------------------------------------- Data */
 
 function DataSection() {
   const [usage, setUsage] = useState<{ usage: number; quota: number } | null>(null);
@@ -623,43 +623,43 @@ function DataSection() {
 
   return (
     <section>
-      <SectionHeader title="Daten" description="Alle Aufnahmen liegen ausschließlich lokal in diesem Browser-Profil." />
+      <SectionHeader title="Data" description="All recordings are stored locally in this browser profile only." />
       <FieldGroup>
         <Field orientation="horizontal">
           <FieldContent>
-            <FieldLabel>Speicher</FieldLabel>
+            <FieldLabel>Storage</FieldLabel>
             <FieldDescription>
-              {count} Aufnahme{count === 1 ? "" : "n"} · {usage ? formatBytes(usage.usage) : "…"} belegt
+              {count} recording{count === 1 ? "" : "s"} · {usage ? formatBytes(usage.usage) : "…"} used
             </FieldDescription>
           </FieldContent>
         </Field>
         <FieldSeparator />
         <Field orientation="horizontal">
           <FieldContent>
-            <FieldLabel>Alle Aufnahmen löschen</FieldLabel>
-            <FieldDescription>Einstellungen und Umgebungen bleiben erhalten.</FieldDescription>
+            <FieldLabel>Delete all recordings</FieldLabel>
+            <FieldDescription>Settings and environments are kept.</FieldDescription>
           </FieldContent>
           <AlertDialog>
             <AlertDialogTrigger render={<Button variant="destructive" disabled={count === 0} />}>
               <Trash2Icon />
-              Alle löschen
+              Delete all
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>{count} Aufnahmen löschen?</AlertDialogTitle>
-                <AlertDialogDescription>Das kann nicht rückgängig gemacht werden.</AlertDialogDescription>
+                <AlertDialogTitle>Delete {count} recordings?</AlertDialogTitle>
+                <AlertDialogDescription>This can't be undone.</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   variant="destructive"
                   onClick={async () => {
                     for (const recording of await listRecordings()) await deleteRecording(recording.id);
-                    toast.success("Alle Aufnahmen gelöscht");
+                    toast.success("All recordings deleted");
                     refresh();
                   }}
                 >
-                  Löschen
+                  Delete
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

@@ -71,14 +71,14 @@ export function EventList({ events, autoScroll, onHighlight, emptyHint }: EventL
     return <p className="px-3 py-6 text-center text-xs text-muted-foreground">{emptyHint}</p>;
   }
 
-  // Sehr lange Sessions nicht komplett rendern - der Export enthaelt alles.
+  // Don't render very long sessions in full - the export contains everything.
   const visible = events.length > 400 ? events.slice(events.length - 400) : events;
 
   return (
     <ul className="space-y-px p-1">
       {events.length > visible.length && (
         <li className="px-2 py-1 text-[11px] text-muted-foreground">
-          … {events.length - visible.length} aeltere Events ausgeblendet (im Export enthalten)
+          … {events.length - visible.length} older events hidden (included in the export)
         </li>
       )}
       {visible.map((event) => {
@@ -112,7 +112,7 @@ export function EventList({ events, autoScroll, onHighlight, emptyHint }: EventL
                   </span>
                 )}
                 {event.effect?.dialogOpened && (
-                  <span className="block text-[10px] text-amber-500">→ Dialog geoeffnet</span>
+                  <span className="block text-[10px] text-amber-500">→ Dialog opened</span>
                 )}
                 {event.effect?.alert && (
                   <span className="block truncate text-[10px] text-amber-500">→ {event.effect.alert}</span>

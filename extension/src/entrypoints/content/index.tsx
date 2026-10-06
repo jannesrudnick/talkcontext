@@ -14,7 +14,7 @@ export default defineContentScript({
   async main(ctx) {
     const controller = new RecordingController();
 
-    // Frueh fragen: laeuft in diesem Tab eine Aufnahme (z.B. nach Seitenwechsel)?
+    // Ask early: is a recording running in this tab (e.g. after navigation)?
     const initial = await hello();
     if (!initial) return;
     if (initial.recording) controller.injectMainWorld();

@@ -1,7 +1,7 @@
 /**
- * Frame-Proxy: liefert eine fremde Seite unter unserer Origin aus und injiziert
- * den QA-Recorder. Nur dadurch darf der Recorder das DOM der Zielseite lesen -
- * ein normaler Cross-Origin-iframe ist fuer JavaScript eine Blackbox.
+ * Frame proxy: serves a foreign page under our origin and injects the QA
+ * recorder. Only this lets the recorder read the target page's DOM - a normal
+ * cross-origin iframe is a black box to JavaScript.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { decodeOrigin, PROXY_PREFIX, toProxyPath } from "@/lib/qa/proxy-url";
@@ -11,7 +11,7 @@ import { rewriteCss, rewriteHtml } from "@/lib/qa/rewrite";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-/** Header, die nie weitergereicht werden duerfen. */
+/** Headers that must never be forwarded. */
 const DROP_REQUEST_HEADERS = new Set([
   "host",
   "connection",
@@ -25,7 +25,7 @@ const DROP_REQUEST_HEADERS = new Set([
   "x-forwarded-proto",
 ]);
 
-/** Header, die die Einbettung oder das Rewriting kaputt machen wuerden. */
+/** Headers that would break embedding or rewriting. */
 const DROP_RESPONSE_HEADERS = new Set([
   "content-encoding",
   "content-length",
@@ -65,7 +65,7 @@ function forwardRequestHeaders(request: NextRequest, targetUrl: string): Headers
     if (DROP_REQUEST_HEADERS.has(key.toLowerCase())) return;
     headers.set(key, value);
   });
-  // Referer auf die reale Ziel-URL umschreiben - manche Apps pruefen ihn.
+  // Rewrite the referer to the real target URL - some apps check it.
   const referer = request.headers.get("referer");
   if (referer) {
     try {
@@ -97,7 +97,7 @@ function decodeProxyHref(url: URL): string | null {
   return origin ? `${origin}${path}${url.search}` : null;
 }
 
-/** Cookies der Zielseite auf unsere Origin ummuenzen, damit Logins funktionieren. */
+/** Rebind the target page's cookies to our origin so logins work. */
 function rewriteSetCookie(value: string, secureContext: boolean): string {
   return value
     .split(";")
@@ -115,7 +115,7 @@ function rewriteSetCookie(value: string, secureContext: boolean): string {
 }
 
 function errorPage(title: string, message: string, status: number): NextResponse {
-  const html = `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${title}</title>
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${title}</title>
 <style>
   body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0a0a0a;color:#e5e5e5;
        font:14px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif}
@@ -133,11 +133,11 @@ function errorPage(title: string, message: string, status: number): NextResponse
 
 async function handle(request: NextRequest): Promise<NextResponse> {
   const target = buildTargetUrl(request);
-  if (!target) return errorPage("Ungueltiger Proxy-Pfad", "Die Ziel-URL konnte nicht dekodiert werden.", 400);
+  if (!target) return errorPage("Invalid proxy path", "The target URL could not be decoded.", 400);
 
-  // Schleifen ueber die eigene Origin verhindern.
+  // Prevent loops through our own origin.
   if (new URL(target.url).host === requestHost(request)) {
-    return errorPage("Proxy-Schleife", "Das QA-Tool kann sich nicht selbst proxien.", 400);
+    return errorPage("Proxy loop", "The QA tool cannot proxy itself.", 400);
   }
 
   const secureContext = request.nextUrl.protocol === "https:";
@@ -154,8 +154,8 @@ async function handle(request: NextRequest): Promise<NextResponse> {
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     return errorPage(
-      "Ziel nicht erreichbar",
-      `<code>${target.url}</code> konnte nicht geladen werden: ${reason}. Laeuft der Dev-Server?`,
+      "Target unreachable",
+      `<code>${target.url}</code> could not be loaded: ${reason}. Is the dev server running?`,
       502,
     );
   }
@@ -169,10 +169,10 @@ async function handle(request: NextRequest): Promise<NextResponse> {
     headers.append("set-cookie", rewriteSetCookie(cookie, secureContext));
   }
   headers.set("cache-control", "no-store");
-  // Fuer den Referer-Fallback in der Middleware brauchen wir den vollen Pfad.
+  // The referer fallback in the middleware needs the full path.
   headers.set("referrer-policy", "same-origin");
 
-  // Redirects im Proxy halten.
+  // Keep redirects inside the proxy.
   if (upstream.status >= 300 && upstream.status < 400) {
     const location = upstream.headers.get("location");
     if (location) {

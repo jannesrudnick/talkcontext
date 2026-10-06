@@ -1,5 +1,5 @@
 /**
- * Darstellung semantischer Events in der Oberflaeche: Icon, Farbe, Kurztext.
+ * How semantic events are shown in the UI: icon, color, short label.
  */
 import {
   AlertTriangleIcon,
@@ -32,7 +32,7 @@ interface EventMeta {
 export function describeTarget(ref: ElementRef | undefined): string {
   if (!ref) return "";
   const name = ref.name ?? ref.text;
-  return name ? `${ref.role ?? ref.tag} „${name}“` : (ref.role ?? ref.tag);
+  return name ? `${ref.role ?? ref.tag} “${name}”` : (ref.role ?? ref.tag);
 }
 
 export function eventMeta(event: QaEvent): EventMeta {
@@ -40,55 +40,55 @@ export function eventMeta(event: QaEvent): EventMeta {
   const target = describeTarget(event.target);
   switch (event.type) {
     case "click":
-      return { icon: MousePointerClickIcon, label: `Klick auf ${target}`, category: "interaction", tone: "text-brand" };
+      return { icon: MousePointerClickIcon, label: `Click on ${target}`, category: "interaction", tone: "text-brand" };
     case "dblclick":
-      return { icon: MousePointerClickIcon, label: `Doppelklick auf ${target}`, category: "interaction", tone: "text-brand" };
+      return { icon: MousePointerClickIcon, label: `Double-click on ${target}`, category: "interaction", tone: "text-brand" };
     case "contextmenu":
-      return { icon: MouseIcon, label: `Rechtsklick auf ${target}`, category: "interaction", tone: "text-brand" };
+      return { icon: MouseIcon, label: `Right-click on ${target}`, category: "interaction", tone: "text-brand" };
     case "hover":
       return {
         icon: MouseIcon,
         label:
           detail.phase === "end"
-            ? `Hover beendet (${(Number(detail.durationMs ?? 0) / 1000).toFixed(1)}s)`
-            : `Hover über ${target}`,
+            ? `Hover ended (${(Number(detail.durationMs ?? 0) / 1000).toFixed(1)}s)`
+            : `Hover over ${target}`,
         category: "other",
         tone: "text-muted-foreground",
       };
     case "input":
       return {
         icon: TextCursorIcon,
-        label: `Eingabe in ${target}${detail.value !== undefined ? `: „${String(detail.value)}“` : ""}`,
+        label: `Input in ${target}${detail.value !== undefined ? `: “${String(detail.value)}”` : ""}`,
         category: "interaction",
         tone: "text-foreground",
       };
     case "change":
       return {
         icon: ListChecksIcon,
-        label: `Auswahl in ${target}: „${String(detail.label ?? detail.value ?? "")}“`,
+        label: `Selected in ${target}: “${String(detail.label ?? detail.value ?? "")}”`,
         category: "interaction",
         tone: "text-foreground",
       };
     case "key":
-      return { icon: KeyboardIcon, label: `Taste ${String(detail.key ?? "")}`, category: "interaction", tone: "text-foreground" };
+      return { icon: KeyboardIcon, label: `Key ${String(detail.key ?? "")}`, category: "interaction", tone: "text-foreground" };
     case "submit":
       return {
         icon: SendIcon,
-        label: `Formular abgeschickt (${String(detail.method ?? "GET")})`,
+        label: `Form submitted (${String(detail.method ?? "GET")})`,
         category: "interaction",
         tone: "text-foreground",
       };
     case "scroll":
       return {
         icon: ScrollIcon,
-        label: detail.scope === "page" ? `Scroll auf ${String(detail.percent ?? 0)} %` : `Scroll in ${target}`,
+        label: detail.scope === "page" ? `Scrolled to ${String(detail.percent ?? 0)}%` : `Scroll in ${target}`,
         category: "other",
         tone: "text-muted-foreground",
       };
     case "navigate":
       return {
         icon: CompassIcon,
-        label: `${detail.kind === "load" ? "Seite geladen" : "Navigation"}: ${String(detail.to ?? "")}`,
+        label: `${detail.kind === "load" ? "Page loaded" : "Navigation"}: ${String(detail.to ?? "")}`,
         category: "navigation",
         tone: "text-info",
       };
@@ -100,13 +100,13 @@ export function eventMeta(event: QaEvent): EventMeta {
         tone: "text-muted-foreground",
       };
     case "select":
-      return { icon: FormInputIcon, label: `Text markiert: „${String(detail.text ?? "")}“`, category: "other", tone: "text-foreground" };
+      return { icon: FormInputIcon, label: `Text selected: “${String(detail.text ?? "")}”`, category: "other", tone: "text-foreground" };
     case "console":
-      return { icon: AlertTriangleIcon, label: String(detail.message ?? "Fehler"), category: "error", tone: "text-destructive" };
+      return { icon: AlertTriangleIcon, label: String(detail.message ?? "Error"), category: "error", tone: "text-destructive" };
     case "network":
       return {
         icon: WifiOffIcon,
-        label: `${String(detail.method ?? "GET")} ${String(detail.url ?? "")} → ${String(detail.status || "fehlgeschlagen")}`,
+        label: `${String(detail.method ?? "GET")} ${String(detail.url ?? "")} → ${String(detail.status || "failed")}`,
         category: "error",
         tone: "text-destructive",
       };

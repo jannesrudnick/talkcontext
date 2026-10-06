@@ -14,14 +14,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "QA-Recorder",
-  description: "Manuelle QA aufzeichnen - als DOM-Protokoll fuer Coding-Agenten statt als Video.",
+  title: "QA Recorder",
+  description: "Record manual QA - as a DOM protocol for coding agents instead of a video.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="de"
+      lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">

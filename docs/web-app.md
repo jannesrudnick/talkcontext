@@ -1,164 +1,163 @@
-# QA-Recorder (Web-App)
+# QA Recorder (web app)
 
-Loom für Coding-Agenten. Du lädst eine Website in einen iframe, klickst dich durch und
-erklärst dabei laut, was du siehst. Heraus kommt **kein Video**, sondern ein strukturiertes
-Protokoll: auf welchem DOM-Element die Maus stand, was geklickt wurde, was sich daraufhin
-im DOM geändert hat — dazu das Transkript deiner Erklärung, auf der gleichen Zeitachse.
+Loom for coding agents. You load a website into an iframe, click through it and explain
+out loud what you see. What comes out is **not a video** but a structured protocol: which
+DOM element the mouse rested on, what was clicked, what changed in the DOM as a result —
+plus the transcript of your explanation, on the same timeline.
 
-Ein Agent muss also keine Screenshots interpretieren. Er liest Selektoren.
+So an agent doesn't have to interpret screenshots. It reads selectors.
 
 ```
-- **[00:01.4]** KLICK auf button "Speichern"
-  - Selektor: `[data-testid="save-btn"]`
-  - Wirkung: Attribute: #result[hidden=null]
-- **[00:01.4]** KONSOLE ERROR: Speichern fehlgeschlagen: 500
+- **[00:01.4]** CLICK on button "Save"
+  - Selector: `[data-testid="save-btn"]`
+  - Effect: Attributes: #result[hidden=null]
+- **[00:01.4]** CONSOLE ERROR: Save failed: 500
 - **[00:01.4]** REQUEST POST http://localhost:4321/api/save -> 501
-- **[00:03.5]** GESPROCHEN: "hier kommt nur eine Fehlermeldung ohne jeden Kontext"
+- **[00:03.5]** SPOKEN: "all I get here is an error message without any context"
 ```
 
-Ein vollständiges Beispiel liegt in [`beispiel-aufnahme.md`](beispiel-aufnahme.md).
+A complete example is in [`example-recording.md`](example-recording.md).
 
-> **Hinweis:** Das ist der Vorgänger der [Browser-Extension](../extension/README.md) und liegt
-> als Next.js-App im Repo-Root. Für neue Arbeit ist die Extension der Weg – kein Proxy, kein
-> Skript im Zielprojekt, dazu Replay, Feedback-Punkte und Handoff an Claude Code.
-> Diese Seite beschreibt nur die Web-App.
+> **Note:** This is the predecessor of the [browser extension](../extension/README.md) and lives
+> as a Next.js app in the repo root. For new work the extension is the way to go – no proxy, no
+> script in the target project, plus replay, feedback points and handoff to Claude Code.
+> This page only describes the web app.
 
-## Starten
+## Getting started
 
 ```bash
 npm install
 npm run dev          # http://localhost:3000
 ```
 
-URL eintragen (`localhost:3000`, `https://staging.example.com`), **Laden**, **Aufnahme**,
-durchklicken, **Stop**, exportieren.
+Enter a URL (`localhost:3000`, `https://staging.example.com`), **Load**, **Record**,
+click through, **Stop**, export.
 
-> Das *Live*-Transkript während der Aufnahme braucht Chrome oder Edge (Web Speech API).
-> Unabhängig davon lässt sich die Tonspur nach der Aufnahme in jedem Browser lokal mit
-> Whisper transkribieren — siehe unten.
+> The *live* transcript during recording needs Chrome or Edge (Web Speech API).
+> Independently of that, the audio track can be transcribed locally with Whisper in any
+> browser after recording — see below.
 
-## Warum zwei Modi
+## Why two modes
 
-Ein normaler Cross-Origin-iframe ist für JavaScript eine Blackbox: Man erfährt weder,
-wo die Maus steht, noch welches Element darunter liegt. Deshalb gibt es zwei Wege,
-den Recorder *in* die Zielseite zu bekommen:
+A normal cross-origin iframe is a black box to JavaScript: you learn neither where the
+mouse is nor which element is underneath it. That's why there are two ways to get the
+recorder *into* the target page:
 
-| Modus      | Aufwand                     | Wann                                                        |
-| ---------- | --------------------------- | ----------------------------------------------------------- |
-| **Proxy**  | keiner                      | Fremde Seiten, Staging, alles worauf du keinen Zugriff hast |
-| **Bridge** | ein `<script>` im Zielprojekt | Dein eigenes Projekt — exakter und ohne HTML-Rewriting      |
+| Mode       | Effort                          | When                                                       |
+| ---------- | ------------------------------- | ---------------------------------------------------------- |
+| **Proxy**  | none                            | Third-party sites, staging, anything you have no access to |
+| **Bridge** | one `<script>` in the target project | Your own project — more accurate and without HTML rewriting |
 
-### Proxy-Modus
+### Proxy mode
 
-Die Zielseite wird über `/p/<base64url(origin)><pfad>` von dieser App ausgeliefert. Dabei
-werden alle URLs auf den Proxy umgeschrieben und `public/qa-recorder.js` in den `<head>`
-injiziert. Weil das Dokument damit auf *unserer* Origin liegt, hat der Recorder vollen
-DOM-Zugriff.
+The target page is served by this app via `/p/<base64url(origin)><path>`. All URLs are
+rewritten to point at the proxy and `public/qa-recorder.js` is injected into the `<head>`.
+Because the document then lives on *our* origin, the recorder has full DOM access.
 
-Was der Proxy dafür tut:
+What the proxy does for this:
 
-- `X-Frame-Options`, CSP und `Referrer-Policy` der Zielseite werden entfernt (sonst keine Einbettung)
-- HTML-Attribute (`src`, `href`, `action`, `srcset`, …) und CSS-`url()` werden auf den Proxy gebogen
-- Cookies werden auf unsere Origin ummünzt, damit eingeloggte Flows funktionieren
-- Wurzel-relative URLs, die erst zur Laufzeit entstehen (`/_next/...`), fängt `src/proxy.ts`
-  über den Referer ab und leitet sie in den Proxy zurück
+- The target page's `X-Frame-Options`, CSP and `Referrer-Policy` are removed (otherwise no embedding)
+- HTML attributes (`src`, `href`, `action`, `srcset`, …) and CSS `url()` are redirected to the proxy
+- Cookies are rebound to our origin so logged-in flows work
+- Root-relative URLs created only at runtime (`/_next/...`) are caught by `src/proxy.ts`
+  via the referer and routed back into the proxy
 
-Grenzen: Seiten mit aggressivem Origin-Check, Service Workern oder WebSockets zur eigenen
-API können im Proxy anders laufen als im Original. Dann Bridge-Modus nehmen.
+Limits: pages with aggressive origin checks, service workers or WebSockets to their own
+API may behave differently in the proxy than in the original. Use bridge mode then.
 
-### Bridge-Modus
+### Bridge mode
 
-Ein Zeile im eigenen Dev-Build, danach lädt der iframe die Seite direkt:
+One line in your own dev build, after which the iframe loads the page directly:
 
 ```html
 <script src="http://localhost:3000/qa-recorder.js" data-qa-mode="bridge"></script>
 ```
 
-Kein Rewriting, keine Cookie-Tricks, exakt die App wie sie ist. Voraussetzung ist nur,
-dass die Seite überhaupt eingebettet werden darf (Dev-Server tun das in der Regel).
+No rewriting, no cookie tricks, exactly the app as it is. The only requirement is that
+the page may be embedded at all (dev servers usually allow that).
 
-## Transkription
+## Transcription
 
-Zwei Wege, beide ohne API-Key:
+Two ways, both without an API key:
 
-| | Live-Transkript | Whisper lokal |
+| | Live transcript | Local Whisper |
 | --- | --- | --- |
-| Wann | während der Aufnahme | nach dem Stoppen, auf Knopfdruck |
-| Technik | Web Speech API | `@huggingface/transformers` + ONNX, WebGPU mit WASM-Fallback |
-| Browser | Chrome, Edge | alle mit WebGPU oder WASM |
-| Qualität | brauchbar | deutlich besser, echte Zeitstempel pro Abschnitt |
-| Preis | Chrome schickt Audio an Google | nichts verlässt den Rechner |
+| When | during recording | after stopping, on demand |
+| Technology | Web Speech API | `@huggingface/transformers` + ONNX, WebGPU with WASM fallback |
+| Browser | Chrome, Edge | any with WebGPU or WASM |
+| Quality | usable | much better, real timestamps per segment |
+| Cost | Chrome sends audio to Google | nothing leaves your machine |
 
-Whisper läuft in einem Web Worker, damit weder Modell-Download noch Inferenz die Oberfläche
-blockiert. Modelle (einmaliger Download, danach im Browser-Cache):
+Whisper runs in a web worker so neither the model download nor inference blocks the UI.
+Models (one-time download, then cached by the browser):
 
-| Modell | Download | wofür |
+| Model | Download | Use for |
 | --- | --- | --- |
-| Tiny | 96 MB | schnelle Kontrolle, Stichworte |
-| Base | 146 MB | Standard, guter Kompromiss |
-| Small | 325 MB | wenn es auf jedes Wort ankommt |
+| Tiny | 96 MB | quick check, keywords |
+| Base | 146 MB | default, good compromise |
+| Small | 325 MB | when every word matters |
 
-Zur Quantisierung: die `_quantized`- und `int8`-Decoder von `onnx-community` lassen sich mit
-der mitgelieferten onnxruntime-web nicht laden (`Missing required scale ... MatMulNBits`).
-Deshalb q8-Encoder plus q4-Decoder — getestet, funktioniert auf WebGPU und WASM.
+On quantization: the `_quantized` and `int8` decoders from `onnx-community` can't be loaded
+with the bundled onnxruntime-web (`Missing required scale ... MatMulNBits`).
+Hence a q8 encoder plus q4 decoder — tested, works on WebGPU and WASM.
 
-Die WASM-Runtime von onnxruntime-web würde transformers.js zur Laufzeit von einem CDN holen.
-Für ein Werkzeug, das ausdrücklich lokal arbeitet, ist das die falsche Abhängigkeit, also
-kopiert `scripts/copy-ort-runtime.mjs` sie bei `install`/`dev`/`build` aus `node_modules`
-nach `public/ort/` (rund 74 MB, deshalb nicht im Repo).
+transformers.js would fetch the onnxruntime-web WASM runtime from a CDN at runtime.
+For a tool that explicitly works locally that's the wrong dependency, so
+`scripts/copy-ort-runtime.mjs` copies it from `node_modules` to `public/ort/` on
+`install`/`dev`/`build` (around 74 MB, hence not in the repo).
 
-## Was aufgezeichnet wird
+## What gets recorded
 
-| Event      | Inhalt                                                                        |
-| ---------- | ----------------------------------------------------------------------------- |
-| `hover`    | Element ab 400 ms Verweildauer, mit Verweildauer beim Verlassen                |
-| `click`    | Element, Maustaste, Trefferpunkt relativ zum Element, Modifier                 |
-| `input`    | Feld und Wert (Passwörter und `data-qa-secret` immer maskiert)                 |
-| `change`   | Auswahl in `<select>` inkl. Label                                             |
-| `key`      | Enter, Escape, Tab, Pfeile, Ctrl/Cmd-Kombinationen                            |
-| `scroll`   | Seite (in Prozent) oder scrollbares Element                                   |
-| `navigate` | Seitenwechsel inkl. `pushState`/`popstate`                                    |
-| `submit`   | Formular, Methode, Ziel                                                        |
-| `console`  | `console.error`/`warn`, unbehandelte Fehler und Promise-Rejections            |
-| `network`  | Requests mit Status ≥ 400 oder Netzwerkfehler                                  |
-| `note`     | Manuell gesetzter Befund, hängt am zuletzt anvisierten Element                 |
+| Event      | Content                                                                        |
+| ---------- | ------------------------------------------------------------------------------ |
+| `hover`    | Element after 400 ms dwell time, with the dwell time on leave                  |
+| `click`    | Element, mouse button, hit point relative to the element, modifiers            |
+| `input`    | Field and value (passwords and `data-qa-secret` always masked)                 |
+| `change`   | Selection in `<select>` incl. label                                            |
+| `key`      | Enter, Escape, Tab, arrows, Ctrl/Cmd combinations                              |
+| `scroll`   | Page (in percent) or scrollable element                                        |
+| `navigate` | Page changes incl. `pushState`/`popstate`                                      |
+| `submit`   | Form, method, target                                                           |
+| `console`  | `console.error`/`warn`, unhandled errors and promise rejections                |
+| `network`  | Requests with status ≥ 400 or network errors                                   |
+| `note`     | Manually added finding, attached to the last targeted element                  |
 
-Nach jedem Klick beobachtet der Recorder 700 ms lang das DOM und hängt die **Wirkung** an
-das Event: neue/entfernte Knoten, geöffnete Dialoge, Alert-Texte, geänderte Attribute,
-URL-Wechsel. Das ist der Teil, der einem Agenten „was ist passiert" beantwortet.
+After each click the recorder watches the DOM for 700 ms and attaches the **effect** to
+the event: added/removed nodes, opened dialogs, alert texts, changed attributes,
+URL changes. That's the part that answers "what happened" for an agent.
 
-Jedes Element wird beschrieben als: stabiler Selektor (bevorzugt `data-testid`, `#id`,
-`[aria-label]`), XPath, Rolle, Accessible Name, Attribute, Bounding-Box, Vorfahrenkette
-und gekürztes `outerHTML`. Die Maus-Bahn wird separat mit ~8 Hz abgetastet, damit der
-Event-Log semantisch bleibt.
+Each element is described by: a stable selector (preferring `data-testid`, `#id`,
+`[aria-label]`), XPath, role, accessible name, attributes, bounding box, ancestor chain
+and truncated `outerHTML`. The mouse path is sampled separately at ~8 Hz so the
+event log stays semantic.
 
-Was **nicht** passiert: keine Screenshots, keine Pixel. Alles ist Text.
+What does **not** happen: no screenshots, no pixels. Everything is text.
 
 ## Export
 
-- **Markdown** — die Timeline oben, direkt in einen Agenten-Prompt kopierbar
-- **JSON** — vollständige Daten (`qa-recording/1`), inklusive Cursor-Bahn und Transkript
-- **Audio** — die Tonspur als `.webm`, falls sie gebraucht wird
-- **In `./qa-sessions` ablegen** — schreibt JSON + Markdown ins Projektverzeichnis,
-  damit ein Agent die Datei direkt vom Dateisystem lesen kann
+- **Markdown** — the timeline above, ready to paste into an agent prompt
+- **JSON** — complete data (`qa-recording/1`), including cursor path and transcript
+- **Audio** — the audio track as `.webm`, in case it's needed
+- **Save to `./qa-sessions`** — writes JSON + Markdown into the project directory
+  so an agent can read the file straight from the file system
 
-## Architektur
+## Architecture
 
 ```
-src/app/p/[...slug]/route.ts   Frame-Proxy: fetch, Header bereinigen, HTML/CSS umschreiben, injizieren
-src/proxy.ts                   Referer-Fallback für wurzel-relative Requests aus dem Frame
-public/qa-recorder.js          Läuft in der Zielseite, meldet Events per postMessage
-src/hooks/use-recorder.ts      Empfängt Events, rechnet Zeitstempel auf den Sessionstart um
-src/hooks/use-narration.ts     Mikrofon (MediaRecorder) + Live-Transkript (Web Speech API)
-src/lib/qa/whisper.worker.ts   Lokale Whisper-Transkription im Web Worker
-src/hooks/use-transcription.ts Audio-Decode zu 16 kHz Mono, Fortschritt, Worker-Steuerung
-src/lib/qa/export.ts           Markdown- und JSON-Artefakt
-src/components/qa/studio.tsx   Oberfläche
+src/app/p/[...slug]/route.ts   Frame proxy: fetch, clean headers, rewrite HTML/CSS, inject
+src/proxy.ts                   Referer fallback for root-relative requests from the frame
+public/qa-recorder.js          Runs in the target page, reports events via postMessage
+src/hooks/use-recorder.ts      Receives events, converts timestamps relative to session start
+src/hooks/use-narration.ts     Microphone (MediaRecorder) + live transcript (Web Speech API)
+src/lib/qa/whisper.worker.ts   Local Whisper transcription in a web worker
+src/hooks/use-transcription.ts Audio decode to 16 kHz mono, progress, worker control
+src/lib/qa/export.ts           Markdown and JSON artifact
+src/components/qa/studio.tsx   UI
 ```
 
-## Datenschutz
+## Privacy
 
-Der Proxy leitet Cookies der Zielseite auf die Origin dieser App um — praktisch für
-eingeloggte QA, aber ein lokales Werkzeug: nicht öffentlich deployen. Eingabewerte lassen
-sich im Setup-Tab komplett abschalten; Passwortfelder und alles mit `data-qa-secret`
-werden ohnehin immer maskiert.
+The proxy rebinds the target page's cookies to this app's origin — handy for logged-in
+QA, but this is a local tool: don't deploy it publicly. Input values can be turned off
+entirely in the Setup tab; password fields and anything with `data-qa-secret` are always
+masked anyway.

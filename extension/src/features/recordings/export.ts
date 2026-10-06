@@ -16,7 +16,7 @@ export function exportJson(recording: LoadedRecording) {
   downloadFile(`${sessionFileBase(session)}.json`, buildJson(session), "application/json");
 }
 
-/** Vollstaendiges Replay inkl. Konsole/Netzwerk - zum Teilen oder Archivieren. */
+/** Full replay incl. console/network - for sharing or archiving. */
 export function exportReplay(recording: LoadedRecording) {
   const session = toQaSession(recording);
   const payload = {

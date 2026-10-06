@@ -1,6 +1,6 @@
 /**
- * Wege, einen Handoff zum Agenten zu bringen: ZIP-Download oder direkt an den
- * lokalen qey-MCP-Server (siehe mcp/), den Claude Code als Werkzeug nutzt.
+ * Ways to get a handoff to the agent: ZIP download or directly to the
+ * local qey MCP server (see mcp/), which Claude Code uses as a tool.
  */
 import { strToU8, zipSync } from "fflate";
 import type { Handoff } from "./build";
@@ -10,7 +10,7 @@ const bytes = (data: Uint8Array | string) => (typeof data === "string" ? strToU8
 export function zipHandoff(handoff: Handoff): Blob {
   const tree: Record<string, Uint8Array> = {};
   for (const file of handoff.files) tree[file.path] = bytes(file.data);
-  // Bilder sind schon komprimiert - nur Text packen.
+  // Images are already compressed - only text really shrinks.
   const zipped = zipSync(tree, { level: 6 });
   return new Blob([zipped as BlobPart], { type: "application/zip" });
 }
@@ -34,7 +34,7 @@ export async function checkEndpoint(endpoint: string): Promise<EndpointHealth> {
     if (!response.ok) return { ok: false, error: `Status ${response.status}` };
     return { ok: true, ...((await response.json()) as { version?: string; dir?: string }) };
   } catch {
-    return { ok: false, error: "nicht erreichbar" };
+    return { ok: false, error: "unreachable" };
   }
 }
 
@@ -56,8 +56,8 @@ export async function sendHandoff(endpoint: string, handoff: Handoff): Promise<{
       signal: AbortSignal.timeout(30_000),
     });
   } catch {
-    throw new Error("qey-MCP-Server nicht erreichbar – läuft Claude Code mit dem qey-Server? (Einstellungen → Claude Code)");
+    throw new Error("qey MCP server unreachable – is Claude Code running with the qey server? (Settings → Claude Code)");
   }
-  if (!response.ok) throw new Error(`qey-MCP-Server antwortete mit ${response.status}: ${await response.text()}`);
+  if (!response.ok) throw new Error(`qey MCP server responded with ${response.status}: ${await response.text()}`);
   return (await response.json()) as { path?: string };
 }

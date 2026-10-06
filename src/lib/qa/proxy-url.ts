@@ -1,13 +1,13 @@
 /**
- * URL-Schema des Frame-Proxys: /p/<base64url(origin)>/<pfad><query>
+ * URL scheme of the frame proxy: /p/<base64url(origin)>/<path><query>
  *
- * Der Pfad der Zielseite bleibt 1:1 erhalten, damit relative URLs im Dokument
- * (Bilder, ES-Module-Imports, fetch) weiterhin korrekt aufloesen.
+ * The target page's path is kept 1:1 so relative URLs in the document
+ * (images, ES module imports, fetch) still resolve correctly.
  */
 
 export const PROXY_PREFIX = "/p";
 
-/** base64url ohne Buffer, damit die Helfer auch im Browser laufen. */
+/** base64url without Buffer, so the helpers also run in the browser. */
 function b64urlEncode(value: string): string {
   const bytes = new TextEncoder().encode(value);
   let binary = "";
@@ -37,7 +37,7 @@ export function decodeOrigin(token: string): string | null {
   }
 }
 
-/** Absolute Ziel-URL -> Proxy-Pfad. Nicht-http(s) URLs bleiben unveraendert. */
+/** Absolute target URL -> proxy path. Non-http(s) URLs stay unchanged. */
 export function toProxyPath(absoluteUrl: string): string {
   let url: URL;
   try {
@@ -49,7 +49,7 @@ export function toProxyPath(absoluteUrl: string): string {
   return `${PROXY_PREFIX}/${encodeOrigin(url.origin)}${url.pathname}${url.search}${url.hash}`;
 }
 
-/** Proxy-Pfad (oder -URL) -> reale Ziel-URL. Gibt null zurueck, wenn es kein Proxy-Pfad ist. */
+/** Proxy path (or URL) -> real target URL. Returns null if it is not a proxy path. */
 export function fromProxyPath(pathnameOrUrl: string, search = ""): string | null {
   let pathname = pathnameOrUrl;
   let query = search;
@@ -74,7 +74,7 @@ export function fromProxyPath(pathnameOrUrl: string, search = ""): string | null
   return `${origin}${path}${query}${hash}`;
 }
 
-/** Normalisiert Nutzereingaben wie "localhost:3000" zu einer vollstaendigen URL. */
+/** Normalizes user input like "localhost:3000" to a full URL. */
 export function normalizeTargetUrl(input: string): string | null {
   const trimmed = input.trim();
   if (!trimmed) return null;

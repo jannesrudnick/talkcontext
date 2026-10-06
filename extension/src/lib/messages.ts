@@ -1,16 +1,16 @@
 /**
- * Nachrichten zwischen Content-Script, Background und Offscreen-Dokument.
+ * Messages between content script, background and offscreen document.
  *
- * Content-Script <-> Background laeuft ueber zwei Wege:
- *   - `runtime.sendMessage` fuer Befehle mit Antwort (start, stop, ...)
- *   - einen langlebigen Port fuer die Datenspuren, damit Reihenfolge und
- *     Zustellung beim Seitenwechsel stimmen.
+ * Content script <-> background uses two channels:
+ *   - `runtime.sendMessage` for commands with a response (start, stop, ...)
+ *   - a long-lived port for the data tracks, so ordering and delivery
+ *     stay correct across page navigations.
  */
 import type { ChunkKind, ChunkPayloads, TabState } from "./types";
 
 export const RECORDER_PORT = "qey-recorder";
 
-/** Content-Script -> Background (sendMessage). */
+/** Content script -> background (sendMessage). */
 export type ContentRequest =
   | { type: "qey:hello" }
   | { type: "qey:start"; viewport: { width: number; height: number; dpr: number }; pageTitle: string }
@@ -18,21 +18,21 @@ export type ContentRequest =
   | { type: "qey:discard" }
   | { type: "qey:overlay"; visible: boolean }
   | { type: "qey:open"; page: "recordings" | "settings"; recordingId?: string }
-  /** Sichtbaren Bereich des Tabs als Screenshot ablegen. */
+  /** Store the visible area of the tab as a screenshot. */
   | { type: "qey:capture"; reason: import("./types").Screenshot["reason"]; feedbackId?: string }
-  /** Naechste laufende Feedback-Nummer (F1, F2, ...) - zaehlt ueber Seitenwechsel hinweg. */
+  /** Next sequential feedback number (F1, F2, ...) - counts across page navigations. */
   | { type: "qey:next-feedback-index" };
 
-/** Content-Script -> Background (Port). */
+/** Content script -> background (port). */
 export type PortUpMessage =
   | { type: "chunk"; kind: ChunkKind; data: ChunkPayloads[ChunkKind] }
   | { type: "page"; url: string; title: string }
   | { type: "flushed"; token: string };
 
-/** Background -> Content-Script (Port). */
+/** Background -> content script (port). */
 export type PortDownMessage = { type: "flush"; token: string };
 
-/** Background -> Content-Script (tabs.sendMessage). */
+/** Background -> content script (tabs.sendMessage). */
 export type TabMessage =
   | { type: "qey:state"; state: TabState }
   | { type: "qey:toggle-overlay" }
@@ -41,7 +41,7 @@ export type TabMessage =
   | { type: "qey:saved"; recordingId: string }
   | { type: "qey:live"; event: LiveTextEvent };
 
-/** Live-Transkript: Zwischenstand (delta) oder fertiger Abschnitt (final). */
+/** Live transcript: interim state (delta) or finished segment (final). */
 export type LiveTextEvent =
   | { kind: "delta"; itemId: string; delta: string }
   | { kind: "final"; itemId: string; text: string; start: number; end: number };
@@ -66,7 +66,7 @@ export type OffscreenEvent =
   | { type: "qey:live-status"; recordingId: string; state: import("./types").LiveState; error?: string }
   | { type: "qey:live-text"; recordingId: string; event: LiveTextEvent };
 
-/** Seite im Fenster (MAIN world) -> Content-Script, per window.postMessage. */
+/** Page in the window (MAIN world) -> content script, via window.postMessage. */
 export const MAIN_WORLD_SOURCE = "qey-main-world";
 
 export type MainWorldMessage =
@@ -80,5 +80,5 @@ export type MainWorldMessage =
       info: import("./types").ComponentInfo | null;
     };
 
-/** Content-Script -> MAIN world: als CustomEvent direkt auf dem Element ausgeloest. */
+/** Content script -> MAIN world: dispatched as a CustomEvent directly on the element. */
 export const COMPONENT_PROBE_EVENT = "qey:component-probe";

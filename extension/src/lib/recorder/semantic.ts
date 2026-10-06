@@ -1,7 +1,7 @@
 /**
- * Semantischer Recorder: Hover, Klick, Eingabe, Navigation und die DOM-Wirkung
- * danach - als Text, nicht als Pixel. Laeuft in der isolierten Welt des
- * Content-Scripts; Konsole/Netzwerk kommen aus dem MAIN-world-Script.
+ * Semantic recorder: hover, click, input, navigation and the DOM effect
+ * afterwards - as text, not pixels. Runs in the isolated world of the
+ * content script; console/network come from the MAIN world script.
  */
 import type { DomEffect, QaEventType, RawFrameEvent, RecorderConfig } from "@shared/types";
 import { describe, isSecret, meaningful, selectorFor, truncate } from "./describe";
@@ -11,17 +11,17 @@ export interface SemanticRecorderOptions {
   onEvent: (event: RawFrameEvent) => void;
   onEffect: (id: string, effect: DomEffect) => void;
   onCursor: (sample: { ts: number; x: number; y: number }) => void;
-  /** Das anvisierte Element hat gewechselt - fuer das Highlight im Overlay. */
+  /** The targeted element changed - for the highlight in the overlay. */
   onTarget: (el: Element | null) => void;
-  /** Gehoert der Knoten zum Overlay? Dann nicht protokollieren. */
+  /** Does the node belong to the overlay? Then don't log it. */
   isOwn: (node: EventTarget | null) => boolean;
 }
 
 export interface SemanticRecorder {
   stop(): void;
-  /** Befund an das zuletzt anvisierte Element haengen. */
+  /** Attach a finding to the most recently targeted element. */
   note(text: string, kind: "note" | "marker"): void;
-  /** Aus dem MAIN-world-Script gemeldete History-Navigation. */
+  /** History navigation reported by the MAIN world script. */
   checkNavigation(kind: string): void;
 }
 
@@ -54,14 +54,14 @@ export function startSemanticRecorder(options: SemanticRecorderOptions): Semanti
       try {
         handler(event as DocumentEventMap[K]);
       } catch {
-        /* Aufnahme darf die Seite nie brechen */
+        /* Recording must never break the page */
       }
     };
     target.addEventListener(type, listener, opts);
     cleanups.push(() => target.removeEventListener(type, listener, opts));
   };
 
-  /* ----------------------------------------------------------- DOM-Wirkung */
+  /* ----------------------------------------------------------- DOM effect */
 
   function observeEffect(eventId: string) {
     const urlBefore = location.href;
@@ -128,7 +128,7 @@ export function startSemanticRecorder(options: SemanticRecorderOptions): Semanti
   let hoverReported = false;
   let lastCursor = 0;
   let pointer = { x: 0, y: 0 };
-  /** Zuletzt bewusst anvisiertes Element - Ziel fuer Notizen. */
+  /** Most recently deliberately targeted element - target for notes. */
   let focusEl: Element | null = null;
 
   function closeHover() {
@@ -174,7 +174,7 @@ export function startSemanticRecorder(options: SemanticRecorderOptions): Semanti
     options.onTarget(null);
   });
 
-  /* ------------------------------------------------------------- Klicks */
+  /* ------------------------------------------------------------- Clicks */
 
   function pointerDetail(event: MouseEvent, el: Element) {
     const rect = el.getBoundingClientRect();
@@ -220,7 +220,7 @@ export function startSemanticRecorder(options: SemanticRecorderOptions): Semanti
     emit("contextmenu", { target: describeEl(el), detail: pointerDetail(event, el) });
   });
 
-  /* ------------------------------------------------------------ Eingaben */
+  /* ------------------------------------------------------------ Inputs */
 
   const inputTimers = new WeakMap<Element, number>();
 
@@ -282,7 +282,7 @@ export function startSemanticRecorder(options: SemanticRecorderOptions): Semanti
     observeEffect(qaEvent.id);
   });
 
-  /* ------------------------------------------------------ Scroll & Auswahl */
+  /* ---------------------------------------------------- Scroll & selection */
 
   let scrollTimer: number | undefined;
   on(document, "scroll", (event) => {
@@ -328,7 +328,7 @@ export function startSemanticRecorder(options: SemanticRecorderOptions): Semanti
     emit("navigate", { detail: { from, to: lastUrl, kind } });
   }
 
-  // Jede (Neu-)Injektion ist ein Seitenaufruf - der Einstieg in die Timeline.
+  // Every (re-)injection is a page load - the entry point into the timeline.
   emit("navigate", { detail: { to: location.href, kind: "load", title: document.title } });
 
   const onHide = () => closeHover();

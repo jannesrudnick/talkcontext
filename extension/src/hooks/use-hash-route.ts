@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-/** Winziger Hash-Router - Extension-Seiten haben keinen Server fuer History-Routing. */
+/** Tiny hash router - extension pages have no server for history routing. */
 export function useHashRoute(): string[] {
   const read = () => window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
   const [segments, setSegments] = useState(read);

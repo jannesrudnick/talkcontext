@@ -31,7 +31,7 @@ export function RecordingsListPage() {
   useEffect(() => {
     const load = () => void listRecordings().then(setRecordings);
     load();
-    // Neue Aufnahmen tauchen auf, sobald sie gespeichert sind.
+    // New recordings show up as soon as they are saved.
     const timer = window.setInterval(load, 3000);
     window.addEventListener("focus", load);
     return () => {
@@ -64,22 +64,22 @@ export function RecordingsListPage() {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-8 py-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Aufnahmen</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Recordings</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Jede QA-Session als Replay, mit Klicks, Konsole, Netzwerk und deiner Erklärung auf einer Zeitachse.
+            Every QA session as a replay, with clicks, console, network and your explanation on one timeline.
           </p>
         </div>
         <InputGroup className="w-72">
           <InputGroupAddon>
             <SearchIcon />
           </InputGroupAddon>
-          <InputGroupInput placeholder="Suchen …" value={query} onChange={(event) => setQuery(event.target.value)} />
+          <InputGroupInput placeholder="Search …" value={query} onChange={(event) => setQuery(event.target.value)} />
         </InputGroup>
       </div>
 
       {environments.length > 0 && (
         <ToggleGroup value={[env]} onValueChange={(value) => setEnv((value[0] as string | undefined) ?? "all")} size="sm" variant="outline">
-          <ToggleGroupItem value="all">Alle Umgebungen</ToggleGroupItem>
+          <ToggleGroupItem value="all">All environments</ToggleGroupItem>
           {environments.map((environment) => (
             <ToggleGroupItem key={environment.name} value={environment.name}>
               <span className="size-1.5 rounded-full" style={{ background: environment.color }} />
@@ -101,31 +101,31 @@ export function RecordingsListPage() {
             <EmptyMedia variant="icon">
               <VideoIcon />
             </EmptyMedia>
-            <EmptyTitle>Noch keine Aufnahmen</EmptyTitle>
+            <EmptyTitle>No recordings yet</EmptyTitle>
             <EmptyDescription>
-              Öffne die Anwendung, die du testen willst, klick auf das qey-Symbol in der Toolbar oder drück{" "}
-              <Kbd>Alt</Kbd> <Kbd>Shift</Kbd> <Kbd>Q</Kbd> – dann auf „Aufnahme starten“.
+              Open the app you want to test, click the qey icon in the toolbar or press{" "}
+              <Kbd>Alt</Kbd> <Kbd>Shift</Kbd> <Kbd>Q</Kbd> – then “Start recording”.
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             <p className="text-xs text-muted-foreground">
-              Kein Skript in der Zielanwendung nötig – die Extension zeichnet direkt im Tab auf.
+              No script needed in the target app – the extension records right in the tab.
             </p>
           </EmptyContent>
         </Empty>
       ) : (
         <div className="overflow-hidden rounded-2xl border bg-card">
           <div className="grid grid-cols-[1fr_140px_110px_150px_110px] items-center gap-4 border-b bg-muted/40 px-5 py-2.5 text-xs font-medium text-muted-foreground">
-            <span>Aufnahme</span>
-            <span>Umgebung</span>
-            <span>Dauer</span>
-            <span>Aktivität</span>
-            <span className="text-right">Wann</span>
+            <span>Recording</span>
+            <span>Environment</span>
+            <span>Duration</span>
+            <span>Activity</span>
+            <span className="text-right">When</span>
           </div>
           {filtered.map((recording) => (
             <RecordingRow key={recording.id} recording={recording} />
           ))}
-          {filtered.length === 0 && <p className="px-5 py-10 text-center text-sm text-muted-foreground">Keine Treffer.</p>}
+          {filtered.length === 0 && <p className="px-5 py-10 text-center text-sm text-muted-foreground">No matches.</p>}
         </div>
       )}
     </div>
@@ -167,29 +167,29 @@ function RecordingRow({ recording }: { recording: RecordingMeta }) {
       </div>
       <div className="flex items-center gap-1.5 text-sm tabular-nums">
         <ClockIcon className="size-3.5 text-muted-foreground" />
-        {live ? <span className="text-recording">läuft</span> : formatDuration(recording.durationMs)}
+        {live ? <span className="text-recording">live</span> : formatDuration(recording.durationMs)}
       </div>
       <div className="flex items-center gap-3 text-xs text-muted-foreground tabular-nums">
-        <span className="flex items-center gap-1" title="Klicks">
+        <span className="flex items-center gap-1" title="Clicks">
           <MousePointerClickIcon className="size-3.5" />
           {recording.counts.clicks}
         </span>
-        <span className={cn("flex items-center gap-1", recording.counts.errors > 0 && "text-destructive")} title="Fehler">
+        <span className={cn("flex items-center gap-1", recording.counts.errors > 0 && "text-destructive")} title="Errors">
           <AlertTriangleIcon className="size-3.5" />
           {recording.counts.errors}
         </span>
         {(recording.counts.feedback ?? recording.counts.notes) > 0 && (
-          <span className="flex items-center gap-1 text-brand" title="Feedback-Punkte">
+          <span className="flex items-center gap-1 text-brand" title="Feedback points">
             <FlagIcon className="size-3.5" />
             {recording.counts.feedback ?? recording.counts.notes}
           </span>
         )}
-        {recording.sentAt && <BotIcon className="size-3.5 text-success" aria-label="An Claude gesendet" />}
+        {recording.sentAt && <BotIcon className="size-3.5 text-success" aria-label="Sent to Claude" />}
         {recording.audio &&
           (recording.transcript ? (
-            <AudioLinesIcon className="size-3.5 text-success" aria-label="Transkribiert" />
+            <AudioLinesIcon className="size-3.5 text-success" aria-label="Transcribed" />
           ) : (
-            <MicIcon className="size-3.5" aria-label="Mit Ton" />
+            <MicIcon className="size-3.5" aria-label="With audio" />
           ))}
       </div>
       <span className="text-right text-xs text-muted-foreground">{formatRelative(recording.startedAt)}</span>

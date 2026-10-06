@@ -9,7 +9,7 @@ function subscribeSystem(callback: () => void) {
   return () => media?.removeEventListener("change", callback);
 }
 
-/** Theme aus den Einstellungen, "system" folgt dem Betriebssystem. */
+/** Theme from settings; "system" follows the OS. */
 export function useTheme() {
   const [preference, setPreference] = useState<ThemePreference>("system");
   const systemDark = useSyncExternalStore(subscribeSystem, () => media?.matches ?? false);

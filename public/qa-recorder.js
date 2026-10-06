@@ -1,11 +1,11 @@
 /**
- * QA-Recorder - laeuft im Dokument der Zielseite und meldet semantische
- * Interaktionen (Hover, Klick, Eingabe, Navigation, DOM-Wirkung) per
- * postMessage an das QA-Studio im Parent-Fenster.
+ * QA recorder - runs in the target page's document and reports semantic
+ * interactions (hover, click, input, navigation, DOM effect) via
+ * postMessage to the QA studio in the parent window.
  *
- * Zwei Betriebsarten:
- *   proxy  - vom Frame-Proxy in die Seite injiziert (kein Eingriff im Zielprojekt)
- *   bridge - vom Zielprojekt selbst eingebunden: <script src=".../qa-recorder.js"></script>
+ * Two operating modes:
+ *   proxy  - injected into the page by the frame proxy (no changes to the target project)
+ *   bridge - included by the target project itself: <script src=".../qa-recorder.js"></script>
  */
 (function () {
   "use strict";
@@ -13,15 +13,15 @@
   if (window.__qaRecorderLoaded) return;
   window.__qaRecorderLoaded = true;
   if (window.parent === window) {
-    // Ohne Parent-Fenster gibt es niemanden, der zuhoert.
+    // Without a parent window there is nobody listening.
     return;
   }
 
   var script = document.currentScript;
   var dataset = (script && script.dataset) || {};
   var MODE = dataset.qaMode || "bridge";
-  // Im Proxy-Modus liegt das Dokument auf der Origin des Studios - die ist
-  // damit auch das exakte Ziel fuer postMessage.
+  // In proxy mode the document lives on the studio's origin - which makes it
+  // the exact target for postMessage as well.
   var PARENT_ORIGIN = MODE === "proxy" ? location.origin : dataset.qaOrigin || "*";
   var PROXY_PREFIX = "/p/";
 
@@ -34,10 +34,10 @@
     captureNetwork: true,
   };
 
-  // Das Studio ist die einzige Quelle der Wahrheit: Es schickt nach dem
-  // "ready"-Handshake ein "start", falls eine Aufnahme laeuft. Faengt der
-  // Recorder von sich aus an, meldet er Events, die das Studio verwirft - und
-  // schickt dabei keine Vorschau mehr, sodass die Oberflaeche tot wirkt.
+  // The studio is the single source of truth: after the "ready" handshake it
+  // sends "start" if a recording is running. If the recorder started on its
+  // own, it would report events the studio discards - and stop sending
+  // previews, so the UI would look dead.
   var recording = false;
   var queue = [];
   var cursorQueue = [];
@@ -55,7 +55,7 @@
     try {
       window.parent.postMessage(message, PARENT_ORIGIN);
     } catch (err) {
-      /* Parent weg oder Origin-Mismatch - Aufnahme darf die Seite nie brechen. */
+      /* Parent gone or origin mismatch - recording must never break the page. */
     }
   }
 
@@ -68,7 +68,7 @@
     }
   }
 
-  /** Loest ausschliesslich /p/<token>/... auf. */
+  /** Resolves only /p/<token>/... */
   function deproxyStrict(rawUrl) {
     if (!rawUrl) return rawUrl;
     var url;
@@ -93,7 +93,7 @@
     return MODE === "proxy" ? deproxyStrict(location.href) : location.href;
   }
 
-  /** Reale Origin des aktuellen Dokuments (im Proxy-Modus die des Ziels). */
+  /** Real origin of the current document (in proxy mode, the target's). */
   function documentOrigin() {
     try {
       return new URL(currentUrl()).origin;
@@ -103,9 +103,9 @@
   }
 
   /**
-   * Proxy-URL -> reale Ziel-URL. Wurzel-relative Requests der Zielseite landen
-   * ohne Token auf unserer Origin (der Referer-Fallback biegt sie serverseitig
-   * um) - fuer das Protokoll rechnen wir sie auf die Zielorigin zurueck.
+   * Proxy URL -> real target URL. Root-relative requests from the target page
+   * land on our origin without a token (the referer fallback redirects them
+   * server-side) - for the protocol we map them back to the target origin.
    */
   function deproxy(rawUrl) {
     var resolved = deproxyStrict(rawUrl);
@@ -144,11 +144,11 @@
     }
   }
 
-  /* --------------------------------------------------- Element-Beschreibung */
+  /* ---------------------------------------------------- Element description */
 
   var TEST_ATTRS = ["data-testid", "data-test-id", "data-test", "data-qa", "data-cy", "data-pw"];
 
-  // Klassen aus Utility-Frameworks und Build-Hashes taugen nicht als Identitaet.
+  // Classes from utility frameworks and build hashes are useless as identity.
   var NOISY_CLASS =
     /^(?:[a-z-]+:)?(?:flex|grid|block|inline|hidden|contents|table|absolute|relative|fixed|sticky|static|isolate|container|p[xytrbl]?-|m[xytrbl]?-|-m|w-|h-|min-|max-|size-|text-|bg-|from-|via-|to-|border|rounded|gap-|space-|items-|justify-|self-|place-|content-|order-|col-|row-|shadow|ring|opacity-|font-|leading-|tracking-|whitespace|truncate|overflow|object-|z-|top-|left-|right-|bottom-|inset-|translate|rotate|scale-|transform|transition|duration-|ease-|delay-|animate-|cursor-|select-|pointer-events|outline|underline|uppercase|lowercase|capitalize|antialiased|backdrop|filter|blur|list-|divide-|aspect-|basis-|grow|shrink|float-|clear-|align-|sr-only|group|peer)/;
   var HASHED_CLASS = /(?:^|[_-])[a-z0-9]{5,}$/i;
@@ -159,8 +159,8 @@
     for (var i = 0; i < classes.length && list.length < 2; i++) {
       var name = classes[i];
       if (!name || name.length > 40) continue;
-      // Utility-Varianten wie "data-[size=sm]:h-7" oder "hover:bg-accent" sind
-      // als Identitaet wertlos und machen den Selektor unlesbar.
+      // Utility variants like "data-[size=sm]:h-7" or "hover:bg-accent" are
+      // worthless as identity and make the selector unreadable.
       if (/[[\]:/%()]/.test(name)) continue;
       if (NOISY_CLASS.test(name)) continue;
       if (HASHED_CLASS.test(name) && !/^[a-z-]+$/i.test(name)) continue;
@@ -258,7 +258,7 @@
     if (title) return truncate(title, 120);
     var placeholder = el.getAttribute("placeholder");
     if (placeholder) return truncate(placeholder, 120);
-    // Bei Formularfeldern waere der Textinhalt (z.B. alle <option>) irrefuehrend.
+    // For form fields the text content (e.g. all <option>s) would be misleading.
     if (/^(select|input|textarea)$/i.test(el.tagName)) return undefined;
     return truncate(el.textContent, 120);
   }
@@ -285,7 +285,7 @@
     "checked",
   ];
 
-  /** Grober Groessenindikator - guenstiger als outerHTML zu bauen. */
+  /** Rough size indicator - cheaper than building outerHTML. */
   function subtreeSize(el) {
     try {
       return el.getElementsByTagName ? el.getElementsByTagName("*").length : 0;
@@ -350,8 +350,8 @@
     }
     var name = accessibleName(el);
     if (name) ref.name = name;
-    // Bei Formularfeldern ist der Textinhalt (alle <option>) kein Label, bei
-    // grossen Containern waere er der halbe Seiteninhalt.
+    // For form fields the text content (all <option>s) is no label; for large
+    // containers it would be half the page content.
     var text =
       /^(select|input|textarea)$/i.test(el.tagName) || size > 200
         ? undefined
@@ -366,8 +366,8 @@
         h: Math.round(rect.height),
       };
     }
-    // outerHTML eines grossen Containers zu bauen kostet mehr, als das Snippet
-    // je wert waere - die Zielseite soll durch die Aufnahme nicht ruckeln.
+    // Building the outerHTML of a large container costs more than the snippet
+    // would ever be worth - recording must not make the target page stutter.
     if (config.captureHtml && opts.html !== false && size <= 60) {
       var html = el.outerHTML;
       if (html) {
@@ -411,7 +411,7 @@
   var INTERACTIVE =
     'a,button,input,select,textarea,summary,label,[role],[onclick],[tabindex],[contenteditable="true"],[data-testid],[data-qa],[data-cy]';
 
-  /** Hover auf einem <span> im Button soll den Button melden, nicht den Span. */
+  /** Hovering a <span> inside a button should report the button, not the span. */
   function meaningful(el) {
     if (!el || el.nodeType !== 1) return el;
     var candidate = el.closest && el.closest(INTERACTIVE);
@@ -470,11 +470,11 @@
     }
   }
 
-  /* --------------------------------------------------------- DOM-Wirkung */
+  /* ------------------------------------------------------------ DOM effect */
 
   var DIALOG_SELECTOR = '[role="dialog"],[role="alertdialog"],dialog[open],[aria-modal="true"]';
 
-  /** Beobachtet 700ms nach einer Interaktion, was sich im DOM getan hat. */
+  /** Observes for 700ms after an interaction what changed in the DOM. */
   function observeEffect(eventId) {
     var urlBefore = currentUrl();
     var added = 0;
@@ -581,8 +581,8 @@
   }
 
   function paintOverlay(el) {
-    // Bewusst unabhaengig von `recording`: Wer die Seite laedt, soll sofort
-    // sehen, welches Element der Recorder erfassen wuerde.
+    // Deliberately independent of `recording`: whoever loads the page should
+    // immediately see which element the recorder would capture.
     if (!config.highlight) {
       if (overlay) overlay.style.display = "none";
       return;
@@ -602,7 +602,7 @@
     overlayLabel.textContent = el.tagName.toLowerCase() + (el.id ? "#" + el.id : "");
   }
 
-  /* ----------------------------------------------------------- Interaktion */
+  /* ----------------------------------------------------------- Interaction */
 
   var hoverEl = null;
   var hoverStart = 0;
@@ -647,8 +647,8 @@
     hoverTimer = setTimeout(function () {
       if (hoverEl !== el) return;
       if (!recording) {
-        // Ohne Aufnahme nichts protokollieren, aber das Studio soll zeigen
-        // koennen, was erfasst wuerde.
+        // Don't log anything without a recording, but let the studio show
+        // what would be captured.
         post({
           source: "qa-recorder",
           type: "preview",
@@ -712,7 +712,7 @@
   function onInput(event) {
     var el = event.target;
     if (!el || el.nodeType !== 1) return;
-    // Auswahlfelder meldet onChange - sonst stuende jede Auswahl doppelt im Log.
+    // Select fields are reported by onChange - otherwise every selection would be logged twice.
     if (el.tagName === "SELECT") return;
     var pending = inputTimers.get(el);
     if (pending) clearTimeout(pending);
@@ -809,7 +809,7 @@
     emit("resize", { detail: { width: window.innerWidth, height: window.innerHeight } });
   }
 
-  /* -------------------------------------------------- Navigation & Diagnose */
+  /* ------------------------------------------------ Navigation & diagnostics */
 
   var lastUrl = currentUrl();
 
@@ -876,11 +876,11 @@
   }
 
   /**
-   * Im Proxy-Modus zeigt location.origin auf das Studio - eine WebSocket-URL
-   * der Zielseite (typisch: HMR eines Dev-Servers) landet damit bei uns statt
-   * beim Ziel. Der Proxy kann kein Upgrade sprechen, also biegen wir die
-   * Verbindung direkt auf die echte Zielorigin um; WebSockets unterliegen
-   * keiner Same-Origin-Policy.
+   * In proxy mode location.origin points to the studio - so a WebSocket URL of
+   * the target page (typically a dev server's HMR) ends up with us instead of
+   * the target. The proxy can't speak Upgrade, so we redirect the connection
+   * straight to the real target origin; WebSockets are not subject to the
+   * same-origin policy.
    */
   function patchWebSocket() {
     if (MODE !== "proxy" || typeof window.WebSocket !== "function") return;
@@ -895,7 +895,7 @@
           target = deproxy(asHttp).replace(/^http/i, "ws");
         }
       } catch (err) {
-        /* nicht parsebar - unveraendert durchreichen */
+        /* not parseable - pass through unchanged */
       }
       return protocols === undefined ? new Original(target) : new Original(target, protocols);
     }
@@ -972,7 +972,7 @@
     };
   }
 
-  /* ------------------------------------------------------------- Steuerung */
+  /* --------------------------------------------------------------- Control */
 
   function applyConfig(next) {
     if (!next) return;
@@ -1007,7 +1007,7 @@
           paintOverlay(el);
         }
       } catch (err) {
-        /* ungueltiger Selektor - ignorieren */
+        /* invalid selector - ignore */
       }
     }
   });

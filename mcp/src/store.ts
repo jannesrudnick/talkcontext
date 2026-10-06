@@ -1,9 +1,9 @@
 /**
- * Ablage der Handoffs auf der Platte: ~/.qey/sessions/<id>/...
+ * Storage of handoffs on disk: ~/.qey/sessions/<id>/...
  *
- * Die Extension schickt jede Aufnahme als Dateibaum (feedback.md, handoff.json,
- * session.json, screenshots/, dom/). Mehrere Claude-Code-Sitzungen teilen sich
- * denselben Ordner - wer den HTTP-Port gerade haelt, schreibt, alle lesen.
+ * The extension sends every recording as a file tree (feedback.md, handoff.json,
+ * session.json, screenshots/, dom/). Multiple Claude Code sessions share the
+ * same folder - whoever currently holds the HTTP port writes, everyone reads.
  */
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -40,15 +40,15 @@ export interface IncomingFile {
 
 const SAFE_ID = /^[A-Za-z0-9_-]{1,80}$/;
 
-/** Pfad innerhalb des Session-Ordners - alles andere wird abgelehnt. */
+/** Path inside the session folder - anything else is rejected. */
 function resolveInside(dir: string, relative: string): string {
   const target = path.resolve(dir, relative);
-  if (target !== dir && !target.startsWith(dir + path.sep)) throw new Error(`Ungültiger Pfad: ${relative}`);
+  if (target !== dir && !target.startsWith(dir + path.sep)) throw new Error(`Invalid path: ${relative}`);
   return target;
 }
 
 export async function saveSession(manifest: HandoffManifest, files: IncomingFile[]): Promise<string> {
-  if (!SAFE_ID.test(manifest.id)) throw new Error("Ungültige Session-ID");
+  if (!SAFE_ID.test(manifest.id)) throw new Error("Invalid session ID");
   const dir = path.join(SESSIONS, manifest.id);
   await mkdir(dir, { recursive: true });
   for (const file of files) {
@@ -82,7 +82,7 @@ export async function listSessions(): Promise<SessionSummary[]> {
       const receivedAt = (await stat(path.join(dir, "received.json")).catch(() => stat(dir))).mtimeMs;
       sessions.push({ id, dir, receivedAt, manifest });
     } catch {
-      /* unvollstaendiger Ordner - ueberspringen */
+      /* incomplete folder - skip */
     }
   }
   return sessions.sort((a, b) => b.receivedAt - a.receivedAt);
@@ -92,12 +92,12 @@ export async function getSession(ref: string | undefined): Promise<SessionSummar
   const sessions = await listSessions();
   if (!sessions.length) {
     throw new Error(
-      "Noch keine qey-Aufnahmen empfangen. In der Extension eine Aufnahme öffnen und „An Claude senden“ klicken (der qey-MCP-Server muss dabei laufen).",
+      "No qey recordings received yet. Open a recording in the extension and click \"Send to Claude\" (the qey MCP server must be running).",
     );
   }
   if (!ref || ref === "latest") return sessions[0]!;
   const match = sessions.find((session) => session.id === ref || session.manifest.title === ref);
-  if (!match) throw new Error(`Aufnahme „${ref}“ nicht gefunden. Verfügbar: ${sessions.map((s) => s.id).join(", ")}`);
+  if (!match) throw new Error(`Recording "${ref}" not found. Available: ${sessions.map((s) => s.id).join(", ")}`);
   return match;
 }
 

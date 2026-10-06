@@ -1,19 +1,19 @@
 /**
- * Handoff an den Coding-Agenten.
+ * Handoff to the coding agent.
  *
- * Statt einer Timeline mit jedem Hover steht vorne, was der Tester
- * ausdruecklich als Befund markiert hat - je Punkt mit Aussage, Element,
- * Komponente, Screenshots, Schritten davor, Fehlern im Zeitfenster, Styles und
- * DOM-Ausschnitt. Die ausfuehrliche Timeline bleibt als Anhang.
+ * Instead of a timeline with every hover, the front shows what the tester
+ * explicitly marked as a finding - each point with statement, element,
+ * component, screenshots, steps before, errors in its time window, styles and
+ * DOM snippet. The detailed timeline stays as an appendix.
  *
- * Ergebnis ist ein Dateibaum, der als ZIP heruntergeladen, an den lokalen
- * qey-MCP-Server geschickt oder (nur Markdown) in die Zwischenablage kopiert wird:
+ * The result is a file tree that is downloaded as a ZIP, sent to the local
+ * qey MCP server or (Markdown only) copied to the clipboard:
  *
- *   feedback.md        Handoff zum Lesen
- *   handoff.json       Strukturiert, pro Punkt eigenes Markdown (fuer MCP-Tools)
- *   session.json       Vollstaendiges Protokoll (qa-recording/1) plus Konsole/Netzwerk
- *   screenshots/*.jpg  Mit Zeitstempel im Namen
- *   dom/f<n>.html      DOM-Ausschnitt, Ziel mit data-qey-target markiert
+ *   feedback.md        Handoff for reading
+ *   handoff.json       Structured, separate Markdown per point (for MCP tools)
+ *   session.json       Full log (qa-recording/1) plus console/network
+ *   screenshots/*.jpg  With timestamp in the name
+ *   dom/f<n>.html      DOM snippet, target marked with data-qey-target
  */
 import { buildJson, describeElement, eventHeadline, formatDuration, formatTimecode } from "@shared/export";
 import type { QaEvent } from "@shared/types";
@@ -86,7 +86,7 @@ function isFailed(entry: NetworkEntry) {
 
 function networkLine(entry: NetworkEntry, start: number) {
   const lines = [
-    `- [${formatTimecode(entry.ts - start)}] ${entry.method} ${entry.url} → **${entry.status || "Netzwerkfehler"}**${entry.error ? ` (${entry.error})` : ""} · ${entry.durationMs} ms`,
+    `- [${formatTimecode(entry.ts - start)}] ${entry.method} ${entry.url} → **${entry.status || "Network error"}**${entry.error ? ` (${entry.error})` : ""} · ${entry.durationMs} ms`,
   ];
   if (entry.requestBody) lines.push(`  - Request: \`${entry.requestBody.replace(/`/g, "'")}\``);
   if (entry.responseBody) lines.push(`  - Response: \`${entry.responseBody.replace(/`/g, "'").replace(/\n/g, " ")}\``);
@@ -95,7 +95,7 @@ function networkLine(entry: NetworkEntry, start: number) {
 
 function consoleLine(entry: ConsoleEntry, start: number) {
   const lines = [`- [${formatTimecode(entry.ts - start)}] console.${entry.level}: ${entry.message}`];
-  if (entry.source) lines.push(`  - Quelle: ${entry.source}`);
+  if (entry.source) lines.push(`  - Source: ${entry.source}`);
   if (entry.stack) lines.push(`  - Stack: \`${entry.stack.split("\n").slice(0, 4).join(" ⏎ ").replace(/`/g, "'")}\``);
   return lines.join("\n");
 }
@@ -109,27 +109,27 @@ function element(event: QaEvent) {
   const ref = event.target;
   if (!ref) return "";
   const name = ref.name ?? ref.text;
-  return name ? `${ref.role ?? ref.tag} „${short(name, 50)}“` : `\`${ref.selector}\``;
+  return name ? `${ref.role ?? ref.tag} "${short(name, 50)}"` : `\`${ref.selector}\``;
 }
 
-/** Kurzer, menschenlesbarer Schritt fuer Reproduktion und Ablauf. */
+/** Short, human-readable step for reproduction and flow. */
 function stepLine(event: QaEvent) {
   const detail = event.detail ?? {};
   switch (event.type) {
     case "click":
-      return `Klick auf ${element(event)}`;
+      return `Click on ${element(event)}`;
     case "dblclick":
-      return `Doppelklick auf ${element(event)}`;
+      return `Double-click on ${element(event)}`;
     case "input":
-      return `Eingabe in ${element(event)}: „${short(detail.value)}“`;
+      return `Input in ${element(event)}: "${short(detail.value)}"`;
     case "change":
-      return `Auswahl in ${element(event)}: „${short(detail.label ?? detail.value)}“`;
+      return `Selection in ${element(event)}: "${short(detail.label ?? detail.value)}"`;
     case "submit":
-      return `Formular abgeschickt (${String(detail.method ?? "GET")} ${short(detail.action, 80)})`;
+      return `Form submitted (${String(detail.method ?? "GET")} ${short(detail.action, 80)})`;
     case "key":
-      return `Taste ${String(detail.key ?? "")}${event.target ? ` in ${element(event)}` : ""}`;
+      return `Key ${String(detail.key ?? "")}${event.target ? ` in ${element(event)}` : ""}`;
     case "navigate":
-      return detail.kind === "load" || detail.kind === "start" ? `Seite geladen: ${String(detail.to ?? "")}` : `Navigation zu ${String(detail.to ?? "")}`;
+      return detail.kind === "load" || detail.kind === "start" ? `Page loaded: ${String(detail.to ?? "")}` : `Navigation to ${String(detail.to ?? "")}`;
     case "note":
     case "marker":
       return `Feedback ${short(detail.text, 100)}`;
@@ -142,8 +142,8 @@ const isStep = (event: QaEvent) =>
   REPRO_TYPES.has(event.type) && (event.type !== "key" || String(event.detail?.key ?? "").endsWith("Enter"));
 
 /**
- * Jeder Fehler gehoert zu hoechstens einem Punkt - dem zeitlich naechsten,
- * dessen Fenster (8 s davor bis 3 s danach) ihn enthaelt.
+ * Each error belongs to at most one point - the closest one in time
+ * whose window (8 s before to 3 s after) contains it.
  */
 export function assignErrors<T extends { id: string; ts: number }>(entries: T[], items: FeedbackItem[]): Map<string, T[]> {
   const result = new Map<string, T[]>();
@@ -198,7 +198,7 @@ export async function buildHandoff(recording: LoadedRecording): Promise<Handoff>
   const requestsByItem = assignErrors(failedRequests, recording.feedback);
   const consoleByItem = assignErrors(consoleErrors, recording.feedback);
 
-  /* ------------------------------------------------------ Feedback-Punkte */
+  /* ------------------------------------------------------ Feedback points */
 
   const items: HandoffItem[] = [];
   let previousEnd = start;
@@ -209,43 +209,43 @@ export async function buildHandoff(recording: LoadedRecording): Promise<Handoff>
     const from = item.activeFrom;
     const to = item.activeTo ?? from;
     const target = item.target;
-    const title = `${key} · [${formatTimecode(from - start)}] ${target ? describeElement(target) : "ohne Element"} – ${pathOf(item.url)}`;
+    const title = `${key} · [${formatTimecode(from - start)}] ${target ? describeElement(target) : "no element"} – ${pathOf(item.url)}`;
 
     const lines: string[] = [`## ${title}`, ""];
-    lines.push(statement.length ? quote(statement.map((text) => `„${text}“`).join("\n")) : "> _(keine Aussage – siehe Screenshot)_");
+    lines.push(statement.length ? quote(statement.map((text) => `"${text}"`).join("\n")) : "> _(no statement – see screenshot)_");
     lines.push("");
 
     if (target) {
-      lines.push(`- **Element:** \`${target.selector}\`${target.role ? ` · Rolle \`${target.role}\`` : ""}${target.name ? ` · Name „${target.name}“` : ""}`);
+      lines.push(`- **Element:** \`${target.selector}\`${target.role ? ` · role \`${target.role}\`` : ""}${target.name ? ` · name "${target.name}"` : ""}`);
       if (target.rect) lines.push(`- **Position:** ${target.rect.x},${target.rect.y} · ${target.rect.w}×${target.rect.h} px`);
     }
     if (item.component) {
       lines.push(
-        `- **Komponente (${item.component.framework}):** \`${item.component.chain.join(" › ")}\`${item.component.file ? ` – \`${item.component.file}\`` : ""}`,
+        `- **Component (${item.component.framework}):** \`${item.component.chain.join(" › ")}\`${item.component.file ? ` – \`${item.component.file}\`` : ""}`,
       );
     }
-    lines.push(`- **Seite:** ${item.url}${item.pageTitle ? ` („${item.pageTitle}“)` : ""}`);
-    lines.push(`- **Erfasst über:** ${{ contextmenu: "Rechtsklick", pen: "Stift-Markierung", note: "Notiz", marker: "Bug-Marker" }[item.source]}`);
+    lines.push(`- **Page:** ${item.url}${item.pageTitle ? ` ("${item.pageTitle}")` : ""}`);
+    lines.push(`- **Captured via:** ${{ contextmenu: "right-click", pen: "pen marking", note: "note", marker: "bug marker" }[item.source]}`);
 
     const shots = (shotsByItem.get(item.id) ?? []).map((shot) => shotPath.get(shot.id)!);
     if (shots.length) {
       lines.push("", "**Screenshots**", "");
       for (const [index, path] of shots.entries()) {
         const shot = shotsByItem.get(item.id)![index]!;
-        lines.push(`![${key} · ${formatTimecode(shot.ts - start)}${shot.reason === "stroke" ? " · mit Markierung" : ""}](${path})`);
+        lines.push(`![${key} · ${formatTimecode(shot.ts - start)}${shot.reason === "stroke" ? " · with marking" : ""}](${path})`);
       }
     }
 
     const steps = recording.events.filter((event) => isStep(event) && event.ts >= previousEnd && event.ts <= from).slice(-12);
     if (steps.length) {
-      lines.push("", "**Schritte davor**", "");
+      lines.push("", "**Steps before**", "");
       steps.forEach((event, index) => lines.push(`${index + 1}. ${stepLine(event)}`));
     }
 
     const nearRequests = requestsByItem.get(item.id) ?? [];
     const nearConsole = consoleByItem.get(item.id) ?? [];
     if (nearRequests.length || nearConsole.length) {
-      lines.push("", "**Fehler im Zeitraum**", "");
+      lines.push("", "**Errors in this window**", "");
       for (const entry of nearRequests) {
         claimedErrors.add(entry.id);
         lines.push(networkLine(entry, start));
@@ -259,7 +259,7 @@ export async function buildHandoff(recording: LoadedRecording): Promise<Handoff>
     if (item.styles && Object.keys(item.styles).length) {
       lines.push(
         "",
-        "**Berechnete Styles**",
+        "**Computed styles**",
         "",
         "```css",
         Object.entries(item.styles)
@@ -273,7 +273,7 @@ export async function buildHandoff(recording: LoadedRecording): Promise<Handoff>
     if (item.dom) {
       domPath = `dom/f${item.index}.html`;
       files.push({ path: domPath, data: item.dom });
-      lines.push("", `**DOM-Ausschnitt:** \`${domPath}\` (Ziel mit \`data-qey-target\` markiert)`);
+      lines.push("", `**DOM snippet:** \`${domPath}\` (target marked with \`data-qey-target\`)`);
     }
 
     items.push({ key, title, markdown: lines.join("\n"), screenshots: shots, dom: domPath });
@@ -284,37 +284,37 @@ export async function buildHandoff(recording: LoadedRecording): Promise<Handoff>
 
   const env = meta.environment;
   const out: string[] = [];
-  out.push(`# QA-Feedback: ${meta.title}`, "");
+  out.push(`# QA feedback: ${meta.title}`, "");
   out.push(
     quote(
       [
-        "Aufgenommen mit qey. Die Feedback-Punkte (F1, F2, …) sind ausdrückliche Befunde des Testers:",
-        "per Rechtsklick auf ein Element, mit dem Stift markiert oder als Notiz. Was dabei gesagt wurde,",
-        "ist dem Punkt direkt zugeordnet. Screenshots liegen unter `screenshots/`, DOM-Ausschnitte unter `dom/`.",
+        "Recorded with qey. The feedback points (F1, F2, …) are explicit findings by the tester:",
+        "made by right-clicking an element, marking with the pen or as a note. Whatever was said meanwhile",
+        "is attached directly to the point. Screenshots are in `screenshots/`, DOM snippets in `dom/`.",
       ].join("\n"),
     ),
     "",
   );
-  out.push("## Kontext", "");
-  out.push(`- Anwendung: ${meta.initialUrl}`);
-  if (env) out.push(`- Umgebung: **${env.name}**`);
-  out.push(`- Aufgenommen: ${new Date(start).toISOString()} · Dauer ${formatDuration(meta.durationMs)}`);
+  out.push("## Context", "");
+  out.push(`- Application: ${meta.initialUrl}`);
+  if (env) out.push(`- Environment: **${env.name}**`);
+  out.push(`- Recorded: ${new Date(start).toISOString()} · Duration ${formatDuration(meta.durationMs)}`);
   out.push(`- Viewport: ${meta.viewport.width}×${meta.viewport.height} @${meta.viewport.dpr}x`);
   out.push(`- Browser: ${meta.userAgent}`);
   out.push(
-    `- Umfang: ${items.length} Feedback-Punkte, ${consoleErrors.length} Konsolenfehler, ${failedRequests.length} fehlgeschlagene Requests, ${recording.screenshots.length} Screenshots`,
+    `- Scope: ${items.length} feedback points, ${consoleErrors.length} console errors, ${failedRequests.length} failed requests, ${recording.screenshots.length} screenshots`,
   );
   out.push("");
 
   if (env && (env.notes || env.variables.length)) {
-    out.push(`## Umgebung: ${env.name}`, "");
+    out.push(`## Environment: ${env.name}`, "");
     if (env.notes) out.push(env.notes, "");
     for (const variable of env.variables) out.push(`- \`${variable.key}\` = \`${variable.value}\``);
     if (env.variables.length) out.push("");
   }
 
   if (items.length) {
-    out.push("## Übersicht", "", "| # | Zeit | Element | Aussage |", "| --- | --- | --- | --- |");
+    out.push("## Overview", "", "| # | Time | Element | Statement |", "| --- | --- | --- | --- |");
     for (const item of recording.feedback) {
       const said = [...(speech.get(item.id) ?? []), item.text].join(" ").trim().replace(/\|/g, "/");
       out.push(
@@ -324,13 +324,13 @@ export async function buildHandoff(recording: LoadedRecording): Promise<Handoff>
     out.push("");
     for (const item of items) out.push(item.markdown, "");
   } else {
-    out.push("## Feedback-Punkte", "", "_Keine ausdrücklichen Feedback-Punkte – siehe Ablauf und Transkript._", "");
+    out.push("## Feedback points", "", "_No explicit feedback points – see flow and transcript._", "");
   }
 
   const otherRequests = failedRequests.filter((entry) => !claimedErrors.has(entry.id));
   const otherConsole = consoleErrors.filter((entry) => !claimedErrors.has(entry.id));
   if (otherRequests.length || otherConsole.length) {
-    out.push("## Weitere Fehler ohne Feedback-Bezug", "");
+    out.push("## Other errors not tied to feedback", "");
     for (const entry of otherRequests) out.push(networkLine(entry, start));
     for (const entry of otherConsole) out.push(consoleLine(entry, start));
     out.push("");
@@ -338,16 +338,16 @@ export async function buildHandoff(recording: LoadedRecording): Promise<Handoff>
 
   const otherShots = recording.screenshots.filter((shot) => !shot.feedbackId || !recording.feedback.some((item) => item.id === shot.feedbackId));
   if (otherShots.length) {
-    out.push("## Weitere Screenshots", "");
+    out.push("## Other screenshots", "");
     for (const shot of otherShots) {
-      out.push(`![${shot.reason === "error" ? "Bei Fehler" : "Screenshot"} · ${formatTimecode(shot.ts - start)}](${shotPath.get(shot.id)})`);
+      out.push(`![${shot.reason === "error" ? "On error" : "Screenshot"} · ${formatTimecode(shot.ts - start)}](${shotPath.get(shot.id)})`);
     }
     out.push("");
   }
 
   const flow = recording.events.filter((event) => isStep(event) || event.type === "note" || event.type === "marker");
   if (flow.length) {
-    out.push("## Ablauf (kompakt)", "");
+    out.push("## Flow (compact)", "");
     for (const event of flow) {
       const selector = event.target?.selector && event.type !== "navigate" ? ` – \`${event.target.selector}\`` : "";
       out.push(`- [${formatTimecode(event.ts - start)}] ${stepLine(event)}${selector}`);
@@ -357,14 +357,14 @@ export async function buildHandoff(recording: LoadedRecording): Promise<Handoff>
 
   const transcript = transcriptEpoch(recording);
   if (transcript.length) {
-    out.push("## Transkript", "");
+    out.push("## Transcript", "");
     for (const segment of transcript) out.push(`- [${formatTimecode(segment.start - start)}] ${segment.text}`);
     out.push("");
   }
 
   const markdown = out.join("\n");
 
-  /* ----------------------------------------------------------- Dateibaum */
+  /* ----------------------------------------------------------- File tree */
 
   const manifest: HandoffManifest = {
     version: HANDOFF_VERSION,

@@ -4,87 +4,87 @@
 
 # qey
 
-**Klick dich durch eine Web-App, sag laut, was dich stört – und Claude Code bekommt
-strukturiertes Feedback statt eines Videos.**
+**Click through a web app, say out loud what bugs you – and Claude Code gets structured
+feedback instead of a video.**
 
-Chrome-Extension · Live-Transkript · Session-Replay · MCP-Server für Claude Code
+Chrome extension · live transcript · session replay · MCP server for Claude Code
 
 </div>
 
-![Rechtsklick auf ein Element öffnet einen Feedback-Punkt, das Gesagte läuft live hinein](extension/docs/feedback-sprechblase.png)
+![Right-click an element to open a feedback point; what you say streams into it live](extension/docs/feedback-bubble.png)
 
-## Die Idee
+## The idea
 
-Feedback zu einer Website zu geben ist mühsam: Screenshots machen, Pfeile malen, Tickets
-schreiben, ein Loom aufnehmen – und am Ende muss trotzdem jemand raten, *welcher* Button
-gemeint war. Für einen Coding-Agenten ist ein Video erst recht eine Blackbox.
+Giving feedback on a website is tedious: take screenshots, draw arrows, write tickets, record
+a Loom – and someone still has to guess *which* button you meant. For a coding agent, a video
+is even more of a black box.
 
-qey dreht das um. Du klickst dich ganz normal durch die Seite und erzählst nebenbei, was
-gut oder schlecht ist. Die Extension schreibt im Hintergrund zwei Dinge mit:
+qey flips that around. You click through the page as usual and talk about what's good or bad
+along the way. In the background the extension captures two things:
 
-1. **Was du tust** – auf welches Element du zeigst, worüber du hoverst, was du klickst und
-   eintippst, was sich danach im DOM ändert, welche Konsolenfehler und fehlgeschlagenen
-   Requests auftauchen. Dazu ein vollständiges Session-Replay.
-2. **Was du sagst** – per Live-Transkription, auf derselben Zeitachse.
+1. **What you do** – which element you point at, what you hover, click and type, what changes
+   in the DOM as a result, which console errors and failed requests show up. Plus a full
+   session replay.
+2. **What you say** – via live transcription, on the same timeline.
 
-Wenn dir etwas auffällt, machst du einen **Rechtsklick auf das Element**. Es wird markiert,
-eine schwebende Sprechblase erscheint, und alles, was du ab jetzt sagst, landet live darin.
-Aus jedem dieser Feedback-Punkte (F1, F2, …) wird ein präziser Befund: deine Aussage, der
-Selektor, die React-/Vue-Komponentenkette, berechnete Styles, ein DOM-Ausschnitt, ein
-Screenshot und die Fehler aus dem Zeitfenster.
+When something catches your eye, **right-click the element**. It gets highlighted, a floating
+bubble appears, and everything you say from then on streams into it live. Each of these
+feedback points (F1, F2, …) becomes a precise finding: your comment, the selector, the
+React/Vue component chain, computed styles, a DOM snippet, a screenshot and the errors from
+that time window.
 
-Nach dem Stoppen geht das Ganze an einen lokalen **MCP-Server**. Claude Code holt sich das
-Feedback dann selbst – inklusive Screenshots als Bilder:
+When you stop, everything goes to a local **MCP server**. Claude Code then fetches the
+feedback itself – screenshots included, as images:
 
-> Fix das letzte qey-Feedback
+> Fix the latest qey feedback
 
-## So sieht das aus
+## What it looks like
 
-| Reden ohne Ziel → Untertitel „allgemein“ | Stift: umkreisen → Punkt mit Markierung |
+| Talking without a target → caption "general" | Pen: circle something → point with markup |
 | --- | --- |
-| ![Live-Untertitel über der Leiste](extension/docs/live-untertitel.png) | ![Stift](extension/docs/stift.png) |
+| ![Live captions above the dock](extension/docs/live-captions.png) | ![Pen](extension/docs/pen.png) |
 
-| Alle Punkte mit Screenshots, Selektor und Komponente | Replay mit Aktivität, Sprache, Konsole und Netz |
+| All points with screenshots, selector and component | Replay with activity, speech, console and network |
 | --- | --- |
-| ![Feedback-Tab](extension/docs/feedback-tab.png) | ![Replay](extension/docs/replay.png) |
+| ![Feedback tab](extension/docs/feedback-tab.png) | ![Replay](extension/docs/replay.png) |
 
-Und das kommt bei Claude an (Ausschnitt aus `qey_get_feedback`):
+And this is what Claude receives (excerpt from `qey_get_feedback`):
 
 ````markdown
-## F1 · [00:16.5] button "Zahlungspflichtig bestellen" – /
+## F1 · [00:16.5] button "Place order" – /
 
-> „Der Button sieht deaktiviert aus, obwohl man ihn klicken kann. Grauer Text auf dunklem Grund ist kaum lesbar.“
+> "This button looks disabled even though you can click it. Grey text on a dark background is hard to read."
 
-- **Element:** `[data-testid="place-order"]` · Rolle `button` · Name „Zahlungspflichtig bestellen“
-- **Komponente (react):** `CheckoutPage › CheckoutForm › SubmitButton`
-- **Erfasst über:** Rechtsklick
+- **Element:** `[data-testid="place-order"]` · role `button` · name "Place order"
+- **Component (react):** `CheckoutPage › CheckoutForm › SubmitButton`
+- **Captured via:** right-click
 
-**Schritte davor**
-1. Seite geladen: http://localhost:5199/
-2. Klick auf textbox „du@example.com“
-3. Eingabe in textbox „du@example.com“: „alex@example.com“
+**Steps before**
+1. Page loaded: http://localhost:5199/
+2. Click on textbox "you@example.com"
+3. Input in textbox "you@example.com": "alex@example.com"
 
-**Fehler im Zeitraum**
-- [00:21.3] POST http://localhost:5199/api/orders → **404** · 10 ms
-- [00:21.3] console.error: Bestellung fehlgeschlagen: 404
+**Errors in this window**
+- [00:21.4] POST http://localhost:5199/api/orders → **404** · 12 ms
+- [00:21.4] console.error: Order failed: 404
 
-**Berechnete Styles**
+**Computed styles**
 ```css
 color: rgb(168, 162, 158);
 background-color: rgb(41, 37, 36);
 ```
 ````
 
-## Installation (ohne Chrome Web Store)
+## Installation (without the Chrome Web Store)
 
-qey ist (noch) nicht im Chrome Web Store. Chrome installiert Extensions von außerhalb des
-Stores nicht per Doppelklick oder Drag & Drop – der Weg führt über den **Entwicklermodus**
-und einen entpackten Ordner. Das dauert keine fünf Minuten.
+qey isn't in the Chrome Web Store (yet). Chrome won't install extensions from outside the
+store by double-click or drag & drop – the way in is **developer mode** and an unpacked
+folder. It takes less than five minutes.
 
-**Voraussetzungen:** Chrome (oder ein anderer Chromium-Browser), [Node.js](https://nodejs.org) ≥ 22
-und [pnpm](https://pnpm.io) 11 (`npm i -g pnpm`).
+**Requirements:** Chrome (or another Chromium-based browser), [Node.js](https://nodejs.org) ≥ 22
+and [pnpm](https://pnpm.io) 11 (`npm i -g pnpm`).
 
-### 1. Bauen
+### 1. Build
 
 ```bash
 git clone https://github.com/jannesrudnick/qey.git
@@ -93,173 +93,176 @@ pnpm install
 pnpm --filter qey-extension build
 ```
 
-Das Ergebnis liegt in `extension/.output/chrome-mv3`.
+The result lands in `extension/.output/chrome-mv3`.
 
-### 2. In Chrome laden
+### 2. Load it in Chrome
 
-1. `chrome://extensions` öffnen
-2. Oben rechts den **Entwicklermodus** einschalten
-3. **Entpackte Erweiterung laden** → den Ordner `extension/.output/chrome-mv3` wählen
-4. Über das Puzzle-Symbol in der Toolbar qey **anpinnen**
+1. Open `chrome://extensions`
+2. Turn on **Developer mode** (top right)
+3. **Load unpacked** → pick the `extension/.output/chrome-mv3` folder
+4. **Pin** qey via the puzzle icon in the toolbar
 
-Es öffnet sich die Seite *Erste Schritte*. Dort einmal das **Mikrofon freigeben** – die
-Freigabe gilt für die Extension, nicht pro Website.
+The *Getting started* page opens. **Allow the microphone** there once – the permission applies
+to the extension, not to each website.
 
-![Erste Schritte](extension/docs/erste-schritte.png)
+![Getting started](extension/docs/getting-started.png)
 
-> **An andere weitergeben:** `pnpm --filter qey-extension zip` erzeugt
-> `extension/.output/qey-extension-<version>-chrome.zip`. Empfänger entpacken die ZIP und laden
-> den entpackten Ordner wie oben beschrieben – Node ist dafür nicht nötig.
+> **Sharing with others:** `pnpm --filter qey-extension zip` creates
+> `extension/.output/qey-extension-<version>-chrome.zip`. Recipients unzip it and load the
+> unpacked folder as described above – no Node required.
 
-> **Aktualisieren:** `git pull && pnpm install && pnpm --filter qey-extension build`, dann auf
-> `chrome://extensions` bei qey auf ↻ klicken. Den Ordner dabei nicht verschieben: Chrome leitet
-> die ID einer entpackten Extension aus ihrem Pfad ab, und an der ID hängen die gespeicherten
-> Aufnahmen.
+> **Updating:** `git pull && pnpm install && pnpm --filter qey-extension build`, then click ↻ on
+> qey in `chrome://extensions`. Don't move the folder: Chrome derives an unpacked extension's ID
+> from its path, and your saved recordings are tied to that ID.
 
-### 3. Claude Code verbinden (optional)
+### 3. Connect Claude Code (optional)
 
-Der MCP-Server wurde von `pnpm install` schon gebaut. Im Repo-Root einmalig:
+`pnpm install` already built the MCP server. Once, from the repo root:
 
 ```bash
 claude mcp add qey -- node "$(pwd)/mcp/dist/index.js"
 ```
 
-Solange Claude Code läuft, nimmt der Server auf `127.0.0.1:4777` Aufnahmen entgegen. In der
-Extension unter *Einstellungen → Claude Code* auf **Testen** klicken – „Verbunden“ heißt, es
-klappt. Ab jetzt geht jede Aufnahme nach dem Stoppen automatisch an Claude. Details:
+While Claude Code is running, the server accepts recordings on `127.0.0.1:4777`. In the
+extension, go to *Settings → Claude Code* and click **Test** – "Connected" means you're set.
+From then on every recording is sent to Claude automatically when you stop. Details:
 [`mcp/README.md`](mcp/README.md).
 
-### 4. Live-Transkript (optional)
+### 4. Live transcript (optional)
 
-Für die Live-Sprechblasen braucht qey einen OpenAI-API-Key (*Einstellungen → Transkription*);
-das Mikrofon wird dann per Realtime-API transkribiert. **Ohne Key** funktioniert alles andere
-genauso: Die Tonspur wird nach der Aufnahme lokal mit Whisper im Browser transkribiert (einmaliger
-Modell-Download, danach offline) und das Gesagte über die Zeitachse den Punkten zugeordnet.
+For the live bubbles qey needs an OpenAI API key (*Settings → Transcription*); the microphone
+is then transcribed via the Realtime API. **Without a key** everything else works the same:
+the audio is transcribed locally with Whisper in the browser after recording (one-time model
+download, offline afterwards) and assigned to the points via the timeline.
 
-## Bedienung
+Pick the language you speak under *Settings → General → Transcription language* (English,
+German, French, Spanish).
 
-![Die Leiste im Ruhezustand](extension/docs/overlay.png)
+![Settings with the transcription language](extension/docs/settings.png)
+
+## Usage
+
+![The dock at rest](extension/docs/overlay.png)
 
 | | |
 | --- | --- |
-| Leiste ein-/ausblenden | Klick aufs qey-Symbol oder `Alt+Shift+Q` |
-| Aufnahme starten/stoppen | Button in der Leiste oder `Alt+Shift+R` |
-| Feedback-Punkt | **Rechtsklick** aufs Element – was du in den 10 Sekunden davor gesagt hast, wird mitgenommen |
-| Punkt abschließen | `Enter`, `Esc`, „Fertig“ oder einfach der nächste Rechtsklick |
-| Normales Kontextmenü | `Alt` + Rechtsklick |
-| Markieren | **Stift** in der Leiste, auf der Seite zeichnen – das umkreiste Element wird zum Punkt |
-| Aufnahmen, Replay, Einstellungen | Buttons in der Leiste oder Rechtsklick aufs qey-Symbol |
+| Show/hide the dock | Click the qey icon or `Alt+Shift+Q` |
+| Start/stop recording | Button in the dock or `Alt+Shift+R` |
+| Feedback point | **Right-click** the element – whatever you said in the 10 seconds before is picked up |
+| Finish a point | `Enter`, `Esc`, "Done" or simply the next right-click |
+| Regular context menu | `Alt` + right-click |
+| Mark something | **Pen** in the dock, draw on the page – the circled element becomes a point |
+| Recordings, replay, settings | Buttons in the dock or right-click the qey icon |
 
-Die Aufnahme läuft über Seitenwechsel hinweg weiter. Bei Konsolen- oder Netzwerkfehlern macht
-qey automatisch einen Screenshot.
+Recording continues across page navigations. On console or network errors qey takes a
+screenshot automatically.
 
-In den Einstellungen lassen sich **Umgebungen** hinterlegen (URL-Muster für Lokal, Staging,
-Produktion – mit Notizen und Variablen wie Testnutzern). Sie landen im Kontext jedes Handoffs,
-damit der Agent weiß, wo getestet wurde. Als geheim markierte Werte werden nie exportiert.
+In the settings you can define **environments** (URL patterns for local, staging, production –
+with notes and variables such as test users). They're included in every handoff so the agent
+knows where you tested. Values marked as secret are never exported.
 
-## Entwicklung
+## Development
 
 ```bash
 pnpm install
-pnpm --filter qey-extension dev         # startet Chrome mit geladener Extension und Hot Reload
+pnpm --filter qey-extension dev         # launches Chrome with the extension loaded and hot reload
 pnpm --filter qey-extension typecheck
 pnpm --filter qey-extension build       # → extension/.output/chrome-mv3
 
 pnpm --filter qey-mcp build
-node mcp/scripts/smoke.mjs              # ruft alle MCP-Tools gegen die vorhandenen Aufnahmen auf
+node mcp/scripts/smoke.mjs              # calls every MCP tool against the existing recordings
 ```
 
-Die Extension ist mit [WXT](https://wxt.dev), React 19, Tailwind v4 und shadcn/ui gebaut.
-Für einen schnellen Test reicht eine beliebige lokale App mit React- oder Vue-Dev-Build –
-dann zeigt qey auch die Komponentenkette.
+The extension is built with [WXT](https://wxt.dev), React 19, Tailwind v4 and shadcn/ui. For a
+quick test any local app with a React or Vue dev build will do – then qey also shows the
+component chain.
 
 ```
-extension/   Die Chrome-Extension (Manifest V3) – Overlay, Recorder, Replay-App, Einstellungen
-mcp/         MCP-Server: nimmt Handoffs per HTTP an, stellt sie Claude Code als Tools bereit
-src/lib/qa/  Datenmodell, Sprache↔Event-Korrelation und Markdown-Export (von der Extension
-             als @shared importiert)
-src/, public/  Der Vorgänger: QA-Recorder als Next.js-Web-App mit iframe-Proxy (docs/web-app.md)
+extension/     The Chrome extension (Manifest V3) – overlay, recorder, replay app, settings
+mcp/           MCP server: receives handoffs over HTTP, exposes them to Claude Code as tools
+src/lib/qa/    Data model, speech↔event correlation and Markdown export (imported by the
+               extension as @shared)
+src/, public/  The predecessor: the QA recorder as a Next.js web app with an iframe proxy
+               (docs/web-app.md)
 ```
 
-Architektur, Designentscheidungen und Stolpersteine im Detail:
+Architecture, design decisions and gotchas in detail:
 [`extension/README.md`](extension/README.md).
 
-## Technische Details
+## Technical details
 
 ```
-┌─ Tab ─────────────────────────────────────┐      ┌─ Service Worker ───────────────┐
-│ Content-Script (isolierte Welt)           │ Port │ Zustand, Kürzel, Kontextmenü   │
-│  · Overlay im Shadow Root                 │─────▶│ schreibt Chunks nach IndexedDB │
-│  · rrweb (Replay) + semantischer Recorder │      │ captureVisibleTab (Screenshots)│
-│  · Feedback-Punkte, Stift                 │◀─────│                                │
-│ MAIN-World-Script (nur während Aufnahme)  │ live └──────┬─────────────────────────┘
+┌─ Tab ─────────────────────────────────────┐      ┌─ Service worker ───────────────┐
+│ Content script (isolated world)           │ Port │ State, shortcuts, context menu │
+│  · Overlay in a shadow root               │─────▶│ writes chunks to IndexedDB     │
+│  · rrweb (replay) + semantic recorder     │      │ captureVisibleTab (screenshots)│
+│  · Feedback points, pen                   │◀─────│                                │
+│ MAIN-world script (only while recording)  │ live └──────┬─────────────────────────┘
 │  · console, fetch/XHR, history,           │             │
-│    React-Fiber / Vue-Instanz              │      ┌──────▼─────────────────────────┐
-└───────────────────────────────────────────┘      │ Offscreen-Dokument             │
-                                                   │ Mikrofon → MediaRecorder       │
-┌─ Extension-App ───────────────────────────┐      │ PCM16 → OpenAI Realtime (WS)   │
-│ Aufnahmen · Replay · Whisper (WASM/WebGPU)│      └────────────────────────────────┘
-│ Handoff: Markdown + JSON + Screenshots    │
+│    React fiber / Vue instance             │      ┌──────▼─────────────────────────┐
+└───────────────────────────────────────────┘      │ Offscreen document             │
+                                                   │ Microphone → MediaRecorder     │
+┌─ Extension app ───────────────────────────┐      │ PCM16 → OpenAI Realtime (WS)   │
+│ Recordings · Replay · Whisper (WASM/WebGPU)│     └────────────────────────────────┘
+│ Handoff: Markdown + JSON + screenshots    │
 └──────────────┬────────────────────────────┘
                │ POST /sessions
         ┌──────▼──────────────┐   stdio/MCP   ┌─────────────┐
-        │ qey-MCP 127.0.0.1   │──────────────▶│ Claude Code │
+        │ qey MCP 127.0.0.1   │──────────────▶│ Claude Code │
         │ ~/.qey/sessions/    │               └─────────────┘
         └─────────────────────┘
 ```
 
-**Zwei Spuren statt einem Video.** rrweb zeichnet das DOM für das Replay auf. Parallel läuft
-ein semantischer Recorder, der für Agenten schreibt: Hover ab 400 ms Verweildauer, Klicks,
-Eingaben (Passwörter maskiert), Navigation, Scrollen – jedes Element mit stabilem Selektor
-(bevorzugt `data-testid`, `id`, `aria-label`), Rolle und Accessible Name. Nach jedem Klick
-beobachtet er das DOM kurz und hängt die **Wirkung** an: neue Knoten, geöffnete Dialoge,
-Meldungen, URL-Wechsel.
+**Two tracks instead of one video.** rrweb records the DOM for the replay. In parallel, a
+semantic recorder writes for agents: hovers after 400 ms dwell, clicks, input (passwords
+masked), navigation, scrolling – each element with a stable selector (preferring
+`data-testid`, `id`, `aria-label`), role and accessible name. After every click it briefly
+watches the DOM and attaches the **effect**: new nodes, opened dialogs, messages, URL changes.
 
-**Feedback-Punkte.** Ein Rechtsklick erzeugt einen Punkt am Element unter dem Cursor. Dazu
-gehören ein Screenshot (die eigene Oberfläche wird dafür kurz ausgeblendet), die
-Komponentenkette aus dem React-Fiber bzw. der Vue-Instanz (inklusive Quelldatei, wenn der
-Dev-Build sie mitliefert), die relevanten berechneten Styles (inklusive Hinweis auf
-abgeschnittenen Inhalt), ein DOM-Ausschnitt um das Element und die Schritte davor.
+**Feedback points.** A right-click creates a point at the element under the cursor. It comes
+with a screenshot (qey's own UI is hidden for the capture), the component chain from the React
+fiber or Vue instance (including the source file when the dev build provides it), the relevant
+computed styles (including a hint about clipped content), a DOM snippet around the element and
+the steps before.
 
-**Sprache zuordnen.** Live-Sätze gehören zum gerade offenen Punkt. Sätze, die noch keinem Punkt
-gehören, merkt sich qey zehn Sekunden lang – wer erst redet und dann rechtsklickt, verliert
-nichts. Ohne Live-Transkript ordnet qey die Abschnitte nach der Aufnahme über die Aktivzeit
-der Punkte zu.
+**Assigning speech.** Live sentences belong to the currently open point. Sentences that don't
+belong to a point yet are kept for ten seconds – if you talk first and right-click afterwards,
+nothing is lost. Without a live transcript, qey assigns the segments after recording based on
+each point's active time.
 
-**Robust aufnehmen.** Jede Spur wird sekundenweise als Chunk nach IndexedDB geschrieben.
-Stürzt der Service Worker oder der Browser ab, fehlt höchstens die letzte Sekunde. Das
-Mikrofon läuft in einem Offscreen-Dokument, damit Chrome die Freigabe nicht für jede getestete
-Seite einzeln abfragt. `console` und `fetch` werden nur während einer Aufnahme gepatcht –
-außerhalb bleibt die Seite unangetastet.
+**Robust recording.** Every track is written to IndexedDB in one-second chunks. If the service
+worker or the browser crashes, at most the last second is missing. The microphone runs in an
+offscreen document so Chrome doesn't ask for permission on every page you test. `console` and
+`fetch` are only patched while recording – otherwise the page stays untouched.
 
-**Handoff.** Nach dem Stoppen baut die Extension ein Paket aus `feedback.md`, `handoff.json`,
-Screenshots und DOM-Ausschnitten und schickt es an den MCP-Server. Der legt es unter
-`~/.qey/sessions/` ab und bietet Claude die Tools `qey_list_sessions`, `qey_get_session`,
-`qey_get_feedback`, `qey_get_screenshot` und `qey_get_logs`. Alternativ gibt es das Paket als
-ZIP oder das Markdown in der Zwischenablage.
+**Handoff.** After stopping, the extension builds a package of `feedback.md`, `handoff.json`,
+screenshots and DOM snippets and sends it to the MCP server. The server stores it under
+`~/.qey/sessions/` and offers Claude the tools `qey_list_sessions`, `qey_get_session`,
+`qey_get_feedback`, `qey_get_screenshot` and `qey_get_logs`. Alternatively you can download
+the package as a ZIP or copy the Markdown to the clipboard.
 
-### Datenschutz & Berechtigungen
+### Privacy & permissions
 
-Aufnahmen bleiben lokal in der IndexedDB der Extension. Audio verlässt den Rechner nur, wenn du
-einen OpenAI-Key hinterlegst. Der MCP-Server lauscht ausschließlich auf `127.0.0.1` und nimmt
-nur Anfragen von `chrome-extension://`-Origins an.
+Recordings stay local in the extension's IndexedDB. Audio only leaves your machine if you add
+an OpenAI key. The MCP server listens on `127.0.0.1` only and accepts requests from
+`chrome-extension://` origins only.
 
-| Berechtigung | Wofür |
+| Permission | Used for |
 | --- | --- |
-| `<all_urls>`, `scripting` | Leiste und Recorder auf der Seite, die du testest |
-| `tabs` | Screenshots des sichtbaren Tabs, Aufnahme über Seitenwechsel |
-| `offscreen` | Mikrofon, ohne dass jede Website eine eigene Freigabe braucht |
-| `storage`, `unlimitedStorage` | Aufnahmen, Replay und Audio lokal speichern |
-| `contextMenus` | „Aufnahmen öffnen“ / „Einstellungen“ am qey-Symbol |
+| `<all_urls>`, `scripting` | The dock and recorder on the page you're testing |
+| `tabs` | Screenshots of the visible tab, recording across navigations |
+| `offscreen` | Microphone without every website needing its own permission |
+| `storage`, `unlimitedStorage` | Storing recordings, replay and audio locally |
+| `contextMenus` | "Open recordings" / "Settings" on the qey icon |
 
-## Status & Mitmachen
+## Status & contributing
 
-qey ist ein früher, aber benutzbarer Stand: getestet in Chrome, Oberfläche auf Deutsch. Ideen
-für die nächsten Schritte – Issues und Pull Requests sind willkommen:
+qey is early but usable: tested in Chrome. Ideas for what's next – issues and pull requests
+are welcome:
 
-- **Firefox** – dort gibt es kein Offscreen-API, Audio muss anders gelöst werden
-- **Englische Oberfläche** und weitere Sprachen
-- **Chrome Web Store** – Installation ohne Entwicklermodus
-- **Teilen** – Aufnahmen hochladen und direkt als Issue oder Agent-Task anlegen
-- **Cross-Origin-iframes** im Replay
-- Handoff an weitere Agenten neben Claude Code (das MCP-Protokoll ist offen)
+- **Firefox** – there's no offscreen API there, so audio needs a different approach
+- **Chrome Web Store** – install without developer mode
+- **Sharing** – upload recordings and create an issue or agent task straight from them
+- **Cross-origin iframes** in the replay
+- Handoff to other agents besides Claude Code (MCP is an open protocol)
+- Localized UI

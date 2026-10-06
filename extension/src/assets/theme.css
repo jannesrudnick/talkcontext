@@ -1,6 +1,6 @@
 /*
- * Design-Tokens fuer Seiten (Aufnahmen, Einstellungen) und das Overlay.
- * Neutrales Zinc-Grau, ein Indigo-Violett als Marke, Rot fuer "Aufnahme laeuft".
+ * Design tokens for pages (recordings, settings) and the overlay.
+ * Neutral zinc gray, an indigo-violet as brand, red for "recording in progress".
  */
 @custom-variant dark (&:is(.dark *));
 

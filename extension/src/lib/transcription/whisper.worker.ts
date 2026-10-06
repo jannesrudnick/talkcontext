@@ -1,26 +1,26 @@
 /// <reference lib="webworker" />
 /**
- * Lokale Transkription mit Whisper (ONNX) via transformers.js.
+ * Local transcription with Whisper (ONNX) via transformers.js.
  *
- * Laeuft im Worker, damit weder Modell-Download noch Inferenz die Oberflaeche
- * blockieren. Das Audio kommt bereits als 16-kHz-Mono-Float32Array aus dem
- * Hauptthread - AudioContext gibt es im Worker nicht.
+ * Runs in a worker so neither the model download nor inference blocks the UI.
+ * The audio already arrives as a 16 kHz mono Float32Array from the main
+ * thread - AudioContext does not exist in workers.
  *
- * Alles bleibt im Browser: kein Upload, kein API-Key.
+ * Everything stays in the browser: no upload, no API key.
  */
 import { env, pipeline, type AutomaticSpeechRecognitionPipeline } from "@huggingface/transformers";
 import type { WhisperModelId } from "@/lib/types";
 
-// Nur Modelle vom Hub, nichts aus /models im eigenen Public-Ordner suchen.
+// Only models from the Hub, don't look in /models of our own public folder.
 env.allowLocalModels = false;
-// Die WASM-Runtime liegt im Extension-Paket (scripts/copy-ort-runtime.mjs) statt
-// auf einem CDN - die CSP der Extension wuerde fremden Code ohnehin blockieren.
+// The WASM runtime ships in the extension package (scripts/copy-ort-runtime.mjs) instead
+// of a CDN - the extension's CSP would block foreign code anyway.
 if (env.backends.onnx.wasm) env.backends.onnx.wasm.wasmPaths = `${self.location.origin}/ort/`;
 
 export interface WhisperRequest {
   type: "transcribe";
   model: WhisperModelId;
-  /** BCP-47 wie "de-DE" - Whisper will nur den Sprachteil. */
+  /** BCP-47 like "en-US" - Whisper only wants the language part. */
   language: string;
   audio: Float32Array;
 }
@@ -64,10 +64,10 @@ async function getPipeline(model: WhisperModelId) {
   cachedDevice = webgpu ? "webgpu" : "wasm";
   post({ type: "device", device: cachedDevice });
 
-  // Geprueft gegen onnxruntime-web 1.26: die "_quantized"/"int8"-Decoder von
-  // onnx-community lassen sich nicht laden ("Missing required scale ... for
-  // MatMulNBits"). q4 funktioniert, der Encoder darf q8 sein - das spart
-  // gegenueber fp32 rund 20 MB Download ohne Qualitaetsverlust im Test.
+  // Verified against onnxruntime-web 1.26: the "_quantized"/"int8" decoders from
+  // onnx-community fail to load ("Missing required scale ... for
+  // MatMulNBits"). q4 works, the encoder may be q8 - compared to fp32 that
+  // saves about 20 MB of download with no quality loss in testing.
   const dtype = { encoder_model: "q8", decoder_model_merged: "q4" } as const;
 
   const pipe = (await pipeline("automatic-speech-recognition", model, {
@@ -90,10 +90,10 @@ scope.addEventListener("message", async (event: MessageEvent<WhisperRequest>) =>
   if (!request || request.type !== "transcribe") return;
 
   try {
-    post({ type: "status", stage: "load", message: "Modell wird geladen" });
+    post({ type: "status", stage: "load", message: "Loading model" });
     const transcriber = await getPipeline(request.model);
 
-    post({ type: "status", stage: "run", message: "Audio wird transkribiert" });
+    post({ type: "status", stage: "run", message: "Transcribing audio" });
     const output = (await transcriber(request.audio, {
       language: request.language.split("-")[0],
       task: "transcribe",
