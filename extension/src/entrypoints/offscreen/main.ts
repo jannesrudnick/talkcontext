@@ -8,8 +8,10 @@
  * The audio track is written to IndexedDB every second.
  */
 import { appendChunk } from "@/lib/db";
-import type { OffscreenEvent, OffscreenRequest } from "@/lib/messages";
+import type { LiveTextEvent, OffscreenEvent, OffscreenRequest } from "@/lib/messages";
+import type { LiveState } from "@/lib/types";
 import { LiveTranscriber } from "./live-transcriber";
+import { SonioxTranscriber } from "./soniox-transcriber";
 
 let recorder: MediaRecorder | null = null;
 let stream: MediaStream | null = null;
@@ -19,7 +21,7 @@ let currentId: string | null = null;
 let startedAt = 0;
 let size = 0;
 let writes: Promise<unknown> = Promise.resolve();
-let live: LiveTranscriber | null = null;
+let live: LiveTranscriber | SonioxTranscriber | null = null;
 
 const send = (event: OffscreenEvent) => browser.runtime.sendMessage(event).catch(() => undefined);
 
@@ -83,11 +85,15 @@ async function start(recordingId: string, liveConfig: Extract<OffscreenRequest, 
   void send({ type: "talkcontext:audio-started", recordingId, startedAt, mimeType: recorder.mimeType || "audio/webm" });
 
   if (liveConfig) {
-    live = new LiveTranscriber({
-      ...liveConfig,
-      onText: (event) => void send({ type: "talkcontext:live-text", recordingId, event }),
-      onState: (state, error) => void send({ type: "talkcontext:live-status", recordingId, state, error }),
-    });
+    const callbacks = {
+      onText: (event: LiveTextEvent) => void send({ type: "talkcontext:live-text", recordingId, event }),
+      onState: (state: LiveState, error?: string) =>
+        void send({ type: "talkcontext:live-status", recordingId, state, error }),
+    };
+    live =
+      liveConfig.provider === "soniox"
+        ? new SonioxTranscriber({ apiKey: liveConfig.apiKey, language: liveConfig.language, ...callbacks })
+        : new LiveTranscriber({ ...liveConfig, ...callbacks });
     live.start(stream).catch((error: unknown) => {
       void send({
         type: "talkcontext:live-status",

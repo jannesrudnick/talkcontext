@@ -52,7 +52,7 @@ export type OffscreenRequest =
       target: "offscreen";
       type: "start-audio";
       recordingId: string;
-      live: { apiKey: string; model: string; language: string } | null;
+      live: { provider: "openai" | "soniox"; apiKey: string; model: string; language: string } | null;
     }
   | { target: "offscreen"; type: "stop-audio" };
 

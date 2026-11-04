@@ -89,8 +89,11 @@ export interface Settings {
     auto: boolean;
     /** Live transcript during the recording via OpenAI Realtime. */
     live: boolean;
-    /** Model for the live transcript. */
+    /** Provider for the live transcript. */
+    liveProvider: "openai" | "soniox";
+    /** OpenAI model for the live transcript. */
     liveModel: string;
+    sonioxKey: string;
   };
   feedback: FeedbackConfig;
   handoff: HandoffConfig;
@@ -259,7 +262,7 @@ export interface RecordingMeta {
   };
   audioError?: string;
   transcript?: {
-    source: "whisper" | "openai" | "openai-live";
+    source: "whisper" | "openai" | "openai-live" | "soniox-live";
     model: string;
     /** Times relative to the start of the audio track. */
     segments: TranscriptSegment[];

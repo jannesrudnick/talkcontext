@@ -103,7 +103,7 @@ export interface QaSessionMeta {
   userAgent: string;
   language: string;
   /** Where the transcript came from. */
-  transcriptSource?: "webspeech" | "whisper" | "openai" | "openai-live" | "none";
+  transcriptSource?: "webspeech" | "whisper" | "openai" | "openai-live" | "soniox-live" | "none";
   /** Model, if transcribed locally with Whisper or via OpenAI. */
   transcriptModel?: string;
   /** Environment (e.g. "Staging") the recording was made in - extension only. */

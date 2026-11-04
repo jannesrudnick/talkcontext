@@ -158,13 +158,11 @@ export default defineBackground(() => {
     };
     await putRecording(meta);
 
+    const tr = settings.transcription;
+    const liveKey = (tr.liveProvider === "soniox" ? tr.sonioxKey : tr.openaiKey).trim();
     const liveConfig =
-      settings.audio.enabled && settings.transcription.live && settings.transcription.openaiKey.trim()
-        ? {
-            apiKey: settings.transcription.openaiKey.trim(),
-            model: settings.transcription.liveModel,
-            language: settings.language,
-          }
+      settings.audio.enabled && tr.live && liveKey
+        ? { provider: tr.liveProvider, apiKey: liveKey, model: tr.liveModel, language: settings.language }
         : null;
 
     const active: ActiveRecording = {
@@ -303,8 +301,8 @@ export default defineBackground(() => {
         meta.transcript ??
         (live.length && meta.audio
           ? {
-              source: "openai-live" as const,
-              model: settings.transcription.liveModel,
+              source: settings.transcription.liveProvider === "soniox" ? ("soniox-live" as const) : ("openai-live" as const),
+              model: settings.transcription.liveProvider === "soniox" ? "stt-rt-v5" : settings.transcription.liveModel,
               createdAt: endedAt,
               segments: live
                 .filter((segment) => segment.text)

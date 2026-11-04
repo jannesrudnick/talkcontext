@@ -48,6 +48,9 @@ dock ("→ general"). The finished segments become the transcript directly at th
 re-transcription needed. Without a key it falls back to local Whisper / OpenAI after recording,
 and speech is assigned to points via their active time.
 
+Alternatively, pick **Soniox** as the provider (Settings → Transcription): same live behaviour,
+about 3x cheaper (~$0.12/h of streamed audio), key from console.soniox.com.
+
 The spoken language is set under Settings → General → Transcription language.
 
 ## Handoff to Claude Code

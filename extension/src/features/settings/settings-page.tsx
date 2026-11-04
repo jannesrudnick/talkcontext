@@ -355,15 +355,38 @@ function TranscriptionSection({ settings, update }: SectionProps) {
       <div>
         <SectionHeader
           title="Live transcript"
-          description="During recording via OpenAI Realtime. You see right away what was understood and which feedback point it belongs to – nothing left to transcribe afterwards."
+          description="During recording via OpenAI Realtime or Soniox. You see right away what was understood and which feedback point it belongs to – nothing left to transcribe afterwards."
         />
         <FieldGroup>
           <SwitchField
             label="Live transcript"
-            description={t.openaiKey ? "Requires the OpenAI API key below." : "Add an OpenAI API key first (below)."}
+            description={(t.liveProvider === "soniox" ? t.sonioxKey : t.openaiKey) ? "Uses the API key below." : "Add an API key for the provider first (below)."}
             checked={t.live}
             onChange={(value) => set({ live: value })}
           />
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel>Provider</FieldLabel>
+              <FieldDescription>Soniox is about 3x cheaper than gpt-4o-transcribe (~$0.12/h).</FieldDescription>
+            </FieldContent>
+            <Select
+              items={LIVE_PROVIDERS}
+              value={t.liveProvider}
+              onValueChange={(value) => set({ liveProvider: value as "openai" | "soniox" })}
+            >
+              <SelectTrigger className="w-56">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LIVE_PROVIDERS.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          {t.liveProvider === "openai" && (
           <Field orientation="horizontal">
             <FieldContent>
               <FieldLabel>Model</FieldLabel>
@@ -382,6 +405,7 @@ function TranscriptionSection({ settings, update }: SectionProps) {
               </SelectContent>
             </Select>
           </Field>
+          )}
         </FieldGroup>
       </div>
       <div>
@@ -452,6 +476,17 @@ function TranscriptionSection({ settings, update }: SectionProps) {
           <FieldDescription>Stored only locally in the extension and sent directly to api.openai.com.</FieldDescription>
         </Field>
         <FieldSeparator />
+        <Field>
+          <FieldLabel>Soniox API key</FieldLabel>
+          <Input
+            type={showKey ? "text" : "password"}
+            defaultValue={t.sonioxKey}
+            onBlur={(event) => set({ sonioxKey: event.target.value.trim() })}
+            className="font-mono"
+          />
+          <FieldDescription>Only for the live transcript. Stored locally, sent directly to soniox.com.</FieldDescription>
+        </Field>
+        <FieldSeparator />
         <SwitchField
           label="Transcribe automatically"
           description="As soon as a new recording is opened."
@@ -463,6 +498,11 @@ function TranscriptionSection({ settings, update }: SectionProps) {
     </section>
   );
 }
+
+const LIVE_PROVIDERS = [
+  { value: "openai", label: "OpenAI Realtime" },
+  { value: "soniox", label: "Soniox" },
+];
 
 const LIVE_MODELS = [
   { value: "gpt-4o-transcribe", label: "gpt-4o-transcribe" },
