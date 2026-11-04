@@ -92,7 +92,7 @@ async function start(recordingId: string, liveConfig: Extract<OffscreenRequest, 
     };
     live =
       liveConfig.provider === "soniox"
-        ? new SonioxTranscriber({ apiKey: liveConfig.apiKey, language: liveConfig.language, ...callbacks })
+        ? new SonioxTranscriber({ ...liveConfig, ...callbacks })
         : new LiveTranscriber({ ...liveConfig, ...callbacks });
     live.start(stream).catch((error: unknown) => {
       void send({

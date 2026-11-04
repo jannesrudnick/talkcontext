@@ -11,6 +11,7 @@
  */
 import type { LiveTextEvent } from "@/lib/messages";
 import type { LiveState } from "@/lib/types";
+import { resolveSonioxModel } from "@/lib/transcription/soniox";
 
 const URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 const SAMPLE_RATE = 16000;
@@ -18,6 +19,8 @@ const GAP_MS = 1500;
 
 export interface SonioxTranscriberOptions {
   apiKey: string;
+  /** Model id or "latest". */
+  model: string;
   language: string;
   onText: (event: LiveTextEvent) => void;
   onState: (state: LiveState, error?: string) => void;
@@ -53,11 +56,14 @@ export class SonioxTranscriber {
     this.node.port.onmessage = (event: MessageEvent<ArrayBuffer>) => this.onAudio(event.data);
     this.context.createMediaStreamSource(stream).connect(this.node);
 
+    // Audio is buffered in `pending` meanwhile.
+    const model = await resolveSonioxModel(this.options.apiKey, this.options.model);
+    if (this.closed) return;
     this.socket = new WebSocket(URL, ["soniox-api-key", this.options.apiKey]);
     this.socket.addEventListener("open", () => {
       this.socket?.send(
         JSON.stringify({
-          model: "stt-rt-v5",
+          model,
           audio_format: "pcm_s16le",
           sample_rate: SAMPLE_RATE,
           num_channels: 1,

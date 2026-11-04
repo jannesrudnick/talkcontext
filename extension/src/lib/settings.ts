@@ -19,6 +19,7 @@ export const DEFAULT_SETTINGS: Settings = {
     liveProvider: "openai",
     liveModel: "gpt-4o-transcribe",
     sonioxKey: "",
+    sonioxModel: "latest",
   },
   feedback: { contextMenu: true, screenshotOnError: true, penColor: "#ef4444" },
   handoff: { endpoint: "http://127.0.0.1:4777", autoSend: true },

@@ -17,6 +17,7 @@ import {
   VideoIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { listSonioxModels, SONIOX_LATEST } from "@/lib/transcription/soniox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -386,6 +387,7 @@ function TranscriptionSection({ settings, update }: SectionProps) {
               </SelectContent>
             </Select>
           </Field>
+          {t.liveProvider === "soniox" && <SonioxModelField apiKey={t.sonioxKey} value={t.sonioxModel} onChange={(sonioxModel) => set({ sonioxModel })} />}
           {t.liveProvider === "openai" && (
           <Field orientation="horizontal">
             <FieldContent>
@@ -496,6 +498,55 @@ function TranscriptionSection({ settings, update }: SectionProps) {
       </FieldGroup>
       </div>
     </section>
+  );
+}
+
+function SonioxModelField({ apiKey, value, onChange }: { apiKey: string; value: string; onChange: (value: string) => void }) {
+  const [models, setModels] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setModels([]);
+    setError(null);
+    if (!apiKey) return;
+    let cancelled = false;
+    listSonioxModels(apiKey).then(
+      (list) => !cancelled && setModels(list),
+      (err: unknown) => !cancelled && setError(err instanceof Error ? err.message : String(err)),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [apiKey]);
+
+  const items = [
+    { value: SONIOX_LATEST, label: models[0] ? `Latest (${models[0]})` : "Latest" },
+    ...models.map((id) => ({ value: id, label: id })),
+    // Keep a pinned model selectable even if the list didn't load.
+    ...(value !== SONIOX_LATEST && !models.includes(value) ? [{ value, label: value }] : []),
+  ];
+
+  return (
+    <Field orientation="horizontal">
+      <FieldContent>
+        <FieldLabel>Model</FieldLabel>
+        <FieldDescription>
+          {error ?? (apiKey ? "Latest picks the newest real-time model at each recording start." : "Add the Soniox API key below to load the models.")}
+        </FieldDescription>
+      </FieldContent>
+      <Select items={items} value={value} onValueChange={(next) => onChange(String(next))}>
+        <SelectTrigger className="w-56">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {items.map((item) => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </Field>
   );
 }
 

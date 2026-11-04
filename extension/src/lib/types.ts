@@ -94,6 +94,8 @@ export interface Settings {
     /** OpenAI model for the live transcript. */
     liveModel: string;
     sonioxKey: string;
+    /** Soniox real-time model id, or "latest" = newest available at recording start. */
+    sonioxModel: string;
   };
   feedback: FeedbackConfig;
   handoff: HandoffConfig;

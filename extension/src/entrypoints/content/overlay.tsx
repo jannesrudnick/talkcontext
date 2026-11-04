@@ -696,17 +696,22 @@ function AudioIndicator() {
   );
 }
 
-let highlightOverride: boolean | null = null;
+/** Toggled in the dock - only for the recording it was toggled in, a new one starts from the setting. */
+let highlightOverride: { recordingId: string; on: boolean } | null = null;
+
+const highlightFor = (recordingId: string | undefined, configured: boolean) =>
+  highlightOverride && highlightOverride.recordingId === recordingId ? highlightOverride.on : configured;
 
 function HighlightToggle() {
-  const configured = useOverlay((s) => s.tab?.settings.recorder.highlight ?? true);
-  const [on, setOn] = useState(highlightOverride ?? configured);
+  const configured = useOverlay((s) => s.tab?.settings.recorder.highlight ?? false);
+  const recordingId = useOverlay((s) => s.tab?.recording?.recordingId);
+  const [on, setOn] = useState(() => highlightFor(recordingId, configured));
   return (
     <DockButton
       title={on ? "Turn off element highlight" : "Turn on element highlight"}
       active={on}
       onClick={() => {
-        highlightOverride = !on;
+        if (recordingId) highlightOverride = { recordingId, on: !on };
         setOn(!on);
         window.dispatchEvent(new CustomEvent("talkcontext:highlight", { detail: !on }));
       }}
@@ -718,7 +723,8 @@ function HighlightToggle() {
 
 function TargetHighlight({ controller, enabled }: { controller: RecordingController; enabled: boolean }) {
   const [target, setTarget] = useState<TargetInfo | null>(null);
-  const [on, setOn] = useState(highlightOverride ?? enabled);
+  const recordingId = useOverlay((s) => s.tab?.recording?.recordingId);
+  const [on, setOn] = useState(() => highlightFor(recordingId, enabled));
   const capturing = useFeedback((s) => s.capturing);
 
   useEffect(() => controller.onTarget(setTarget), [controller]);

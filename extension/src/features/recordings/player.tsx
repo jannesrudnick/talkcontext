@@ -106,9 +106,11 @@ export const ReplayPlayer = forwardRef<PlayerHandle, PlayerProps>(function Repla
       // Chrome injects `body { font-family: system-ui; font-size: 75% }` into
       // extension pages (including the replay iframe). Without a reset the
       // replay would be smaller than the original and pen annotations would be off.
+      // `inherit`, not `initial`: many pages (e.g. Tailwind preflight) set the font
+      // on <html> only - `initial` would cut that off and show the serif default.
       // rrweb puts this rule before the page's styles - so the page's own
       // body rules still win.
-      insertStyleRules: ["body { font-size: medium; font-family: initial; }"],
+      insertStyleRules: ["body { font-size: inherit; font-family: inherit; }"],
     });
     replayerRef.current = replayer;
     replayer.on("resize", (payload) => {

@@ -24,6 +24,11 @@
   --radius: 10px;
 }
 
+/* The host is a top-layer popover (see keepOnTop) - its backdrop must not swallow clicks. */
+:host::backdrop {
+  display: none;
+}
+
 @layer base {
   /*
    * Tailwind v4 initializes --tw-* via @property - which is ignored in shadow

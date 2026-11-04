@@ -1,4 +1,5 @@
 import ReactDOM from "react-dom/client";
+import type { ContentScriptContext } from "wxt/utils/content-script-context";
 import type { TabMessage } from "@/lib/messages";
 import { RecordingController, OVERLAY_TAG } from "./controller";
 import { Overlay } from "./overlay";
@@ -39,6 +40,7 @@ export default defineContentScript({
       },
     });
     ui.mount();
+    keepOnTop(ui.shadowHost, ctx);
 
     const sync = () => {
       const { tab } = overlayStore.getState();
@@ -76,6 +78,43 @@ export default defineContentScript({
     ctx.onInvalidated(() => controller.stop());
   },
 });
+
+/**
+ * Page dialogs (showModal), popovers and fullscreen sit in the browser's top layer, above any z-index.
+ * So the host is a manual popover itself and is re-shown on top whenever something else enters
+ * the top layer. A modal dialog makes everything outside it inert -> while one is open, the host
+ * moves into it (top-layer layout keeps the panel fixed to the viewport anyway).
+ */
+function keepOnTop(host: HTMLElement, ctx: ContentScriptContext) {
+  if (!("showPopover" in host)) return;
+  host.setAttribute("popover", "manual");
+
+  const raise = () => {
+    if (ctx.isInvalid) return;
+    // ponytail: document order, not top-layer order - fine unless modals are stacked in reverse DOM order.
+    const modal = Array.from(document.querySelectorAll("dialog:modal")).pop();
+    const parent = modal ?? document.documentElement;
+    if (host.parentNode !== parent) parent.append(host);
+    try {
+      if (host.matches(":popover-open")) host.hidePopover();
+      host.showPopover();
+    } catch {
+      // Not connected or popover unsupported - stays a plain overlay.
+    }
+  };
+  raise();
+
+  ctx.addEventListener(window, "toggle", (event: Event) => {
+    if (event.target !== host) queueMicrotask(raise);
+  }, { capture: true });
+  ctx.addEventListener(document, "fullscreenchange", raise);
+  // Dialogs don't always fire "toggle"; a removed dialog would take the host with it.
+  const observer = new MutationObserver((mutations) => {
+    if (!host.isConnected || mutations.some((m) => m.type === "attributes")) raise();
+  });
+  observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ["open"] });
+  ctx.onInvalidated(() => observer.disconnect());
+}
 
 function domReady() {
   if (document.readyState !== "loading") return Promise.resolve();

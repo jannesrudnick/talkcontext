@@ -157,7 +157,7 @@ export interface RecorderConfig {
 }
 
 export const DEFAULT_RECORDER_CONFIG: RecorderConfig = {
-  highlight: true,
+  highlight: false,
   hoverDwellMs: 400,
   captureHtml: true,
   captureInputValues: true,
