@@ -9,6 +9,7 @@
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import { ROOT, saveSession, type HandoffManifest, type IncomingFile } from "./store.js";
 import { updateCheckout } from "./update.js";
+import { setTeamSession, type TeamSession } from "./team.js";
 
 const MAX_BODY = 200 * 1024 * 1024;
 
@@ -58,6 +59,29 @@ export function startHttp(port: number, version: string, log: (message: string) 
         const dir = await saveSession(payload.manifest, payload.files);
         log(`Recording received: ${payload.manifest.title} (${payload.manifest.items.length} feedback points) → ${dir}`);
         return send(200, { ok: true, path: dir });
+      } catch (error) {
+        return send(400, { error: error instanceof Error ? error.message : String(error) });
+      }
+    }
+    if (request.method === "POST" && request.url === "/team-session") {
+      // The user's Supabase access token: only from the extension, kept in memory only.
+      if (!isExtension(request.headers.origin)) return send(403, { error: "Only the extension may hand over a session" });
+      if (!String(request.headers["content-type"] ?? "").includes("application/json")) {
+        return send(415, { error: "application/json expected" });
+      }
+      try {
+        const body = JSON.parse(await readBody(request)) as Partial<TeamSession> & { signedOut?: boolean };
+        if (body.signedOut) {
+          setTeamSession(null);
+          return send(200, { ok: true });
+        }
+        const valid =
+          typeof body.url === "string" && /^https?:\/\//.test(body.url) &&
+          typeof body.anonKey === "string" && typeof body.accessToken === "string" &&
+          typeof body.expiresAt === "number" && typeof body.email === "string";
+        if (!valid) return send(400, { error: "url, anonKey, accessToken, expiresAt and email expected" });
+        setTeamSession(body as TeamSession);
+        return send(200, { ok: true });
       } catch (error) {
         return send(400, { error: error instanceof Error ? error.message : String(error) });
       }

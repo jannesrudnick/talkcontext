@@ -15,6 +15,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { startHttp } from "./http.js";
 import { getSession, listSessions, readSessionFile, type SessionSummary } from "./store.js";
+import * as team from "./team.js";
 
 const VERSION = "0.1.0";
 const PORT = Number(process.env.TALKCONTEXT_PORT ?? 4777);
@@ -211,6 +212,102 @@ server.registerPrompt(
       },
     ],
   }),
+);
+
+/* ------------------------------------------------------------ Team comments */
+
+const featureArg = z.string().optional().describe('Feature tag, e.g. "checkout" – omit for all features');
+
+server.registerTool(
+  "talkcontext_list_comments",
+  {
+    title: "List on-page comments",
+    description:
+      "Comment threads the team pinned on elements of the app (Figma-style), with the full conversation, page URL, element label and CSS selector. Filter by feature; open threads by default. Use the selector and label to find the code, then answer with talkcontext_reply_comment or close with talkcontext_resolve_comment.",
+    inputSchema: {
+      feature: featureArg,
+      status: z.enum(["open", "resolved", "all"]).optional().describe("Default: open"),
+      url: z.string().optional().describe("Only threads on pages starting with this URL"),
+      limit: z.number().int().min(1).max(200).optional().describe("Default 50"),
+    },
+  },
+  async ({ feature, status, url, limit }) => {
+    try {
+      const threads = await team.listThreads({ feature, url, limit, status: status === "all" ? undefined : (status ?? "open") });
+      if (!threads.length) return { content: [text("No matching comment threads.")] };
+      return { content: [text(threads.map(team.threadMarkdown).join("\n\n"))] };
+    } catch (error) {
+      return fail(error);
+    }
+  },
+);
+
+server.registerTool(
+  "talkcontext_reply_comment",
+  {
+    title: "Reply to a comment thread",
+    description: "Adds a reply to an on-page comment thread. It shows up in the team's overlay and comments list as “Claude, for <you>”.",
+    inputSchema: {
+      thread: z.string().describe("Thread ID from talkcontext_list_comments"),
+      body: z.string().min(1).max(10000).describe("Reply text"),
+    },
+  },
+  async ({ thread, body }) => {
+    try {
+      await team.reply(thread, body);
+      return { content: [text(team.threadMarkdown(await team.getThread(thread)))] };
+    } catch (error) {
+      return fail(error);
+    }
+  },
+);
+
+server.registerTool(
+  "talkcontext_resolve_comment",
+  {
+    title: "Resolve a comment thread",
+    description: "Marks an on-page comment thread as resolved, optionally with a closing reply (e.g. what was changed). `reopen: true` reopens it.",
+    inputSchema: {
+      thread: z.string().describe("Thread ID from talkcontext_list_comments"),
+      reply: z.string().max(10000).optional().describe("Optional closing reply, e.g. what you changed"),
+      reopen: z.boolean().optional(),
+    },
+  },
+  async ({ thread, reply, reopen }) => {
+    try {
+      if (reply?.trim()) await team.reply(thread, reply);
+      await team.setStatus(thread, reopen ? "open" : "resolved");
+      return { content: [text(team.threadMarkdown(await team.getThread(thread)))] };
+    } catch (error) {
+      return fail(error);
+    }
+  },
+);
+
+server.registerTool(
+  "talkcontext_get_spec",
+  {
+    title: "Read a feature spec",
+    description:
+      "The team's collaborative spec text for a feature (goals, decisions, open questions). Without `feature`, lists all features with their open comment count and whether a spec exists.",
+    inputSchema: { feature: featureArg },
+  },
+  async ({ feature }) => {
+    try {
+      if (!feature) {
+        const features = await team.listFeatures();
+        if (!features.length) return { content: [text("No features yet.")] };
+        return {
+          content: [text(features.map((f) => `- #${f.feature} · ${f.open} open comment(s) · ${f.hasSpec ? "spec" : "no spec"}`).join("\n"))],
+        };
+      }
+      const spec = await team.getSpec(feature);
+      if (!spec?.body.trim()) return { content: [text(`#${feature} has no spec yet.`)] };
+      return { content: [text(`# Spec #${feature}\n_Last edited by ${spec.updated_by_email} at ${spec.updated_at}_\n\n${spec.body}`)] };
+    } catch (error) {
+      return fail(error);
+    }
+  },
 );
 
 await startHttp(PORT, VERSION, log);

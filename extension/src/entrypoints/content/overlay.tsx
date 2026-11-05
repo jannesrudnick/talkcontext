@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import type { RecordingController, TargetInfo } from "./controller";
 import { feedbackStore, type FeedbackState } from "./feedback";
 import { overlayStore, useOverlay, useStore } from "./store";
+import { CommentDockControls, CommentError, CommentLayer } from "./comments";
 
 const useFeedback = <T,>(selector: (state: FeedbackState) => T) => useStore(feedbackStore, selector);
 
@@ -45,6 +46,7 @@ export function Overlay({ controller }: { controller: RecordingController }) {
       {recording && <StrokeLayer controller={controller} />}
       {recording && active && <PinnedTarget item={active} />}
       {recording && active && <FeedbackBubble controller={controller} item={active} />}
+      <CommentLayer feature={tab.settings.team.feature} />
       <Dock controller={controller} />
     </div>
   );
@@ -78,6 +80,7 @@ function Dock({ controller }: { controller: RecordingController }) {
       style={{ transform: `translate(${offset.x}px, ${offset.y}px)`, visibility: capturing ? "hidden" : "visible" }}
     >
       <div className="pointer-events-auto flex flex-col items-center gap-2">
+        <CommentError />
         <Panels controller={controller} />
         <div className="flex items-center gap-1 rounded-full border border-white/10 bg-zinc-950/92 p-1.5 pl-1 text-zinc-100 shadow-[0_12px_40px_-8px_rgb(0_0_0/0.55),0_0_0_1px_rgb(0_0_0/0.4)] backdrop-blur-xl">
           <button
@@ -91,6 +94,7 @@ function Dock({ controller }: { controller: RecordingController }) {
             <GripVerticalIcon className="size-3.5" />
           </button>
           <DockContent controller={controller} />
+          <CommentDockControls dockButton={(props) => <DockButton {...props} />} />
         </div>
       </div>
     </div>
@@ -360,7 +364,7 @@ function PenPanel({ controller }: { controller: RecordingController }) {
 
 /* ------------------------------------------------------ Feedback points */
 
-function useElementRect(selector: string | undefined) {
+export function useElementRect(selector: string | undefined) {
   const [rect, setRect] = useState<DOMRect | null>(null);
   useEffect(() => {
     if (!selector) {

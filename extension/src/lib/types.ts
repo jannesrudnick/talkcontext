@@ -79,6 +79,8 @@ export interface HandoffConfig {
 export interface TeamConfig {
   url: string;
   anonKey: string;
+  /** Feature you are working on - new comments are filed under it, pins on the page are filtered by it. */
+  feature: string;
 }
 
 export interface Settings {

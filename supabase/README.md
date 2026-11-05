@@ -27,6 +27,23 @@ the database rules in `setup.sql` decide who may see and change what.
 
 In the extension: Settings → Team sharing → paste URL and key → sign in with your work email.
 
+## On-page comments and specs
+
+Section 4 of `setup.sql` adds Figma-style comments: in the extension overlay, click the comment
+button, pick an element, write. Threads (`talkcontext_threads` + `talkcontext_comments`) are filed
+under the feature you work on and show as pins on that element for everyone on the team. Every
+feature also has one shared spec text (`talkcontext_specs`). Claude Code reads, answers and
+resolves threads through the TalkContext MCP server.
+
+| | Team member |
+|---|---|
+| Read threads, comments, specs | all |
+| Open a thread, comment | as yourself only |
+| Resolve / reopen | any thread (who and when is recorded server-side) |
+| Edit / delete a comment | your own |
+| Delete a thread | the one who opened it |
+| Edit a spec | any (last write wins) |
+
 ## What is shared and who sees it
 
 | | Without sign-in | Signed in, team domain |

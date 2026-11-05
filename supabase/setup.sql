@@ -147,3 +147,167 @@ drop policy if exists "talkcontext delete own" on storage.objects;
 create policy "talkcontext delete own" on storage.objects
   for delete to authenticated
   using (bucket_id = 'talkcontext' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- 4. On-page comments ------------------------------------------------------------------------
+-- Figma-style threads pinned to an element of a page, grouped by the feature someone works on.
+-- Members read everything, write their own comments, and anyone in the team may resolve.
+
+create table if not exists public.talkcontext_threads (
+  id uuid primary key default gen_random_uuid(),
+  feature text not null check (char_length(btrim(feature)) between 1 and 100),
+  url text not null check (char_length(url) <= 2000),
+  page_title text check (char_length(page_title) <= 300),
+  selector text not null check (char_length(selector) <= 1000),
+  -- Human-readable element description, e.g. "button “Save”".
+  element_label text check (char_length(element_label) <= 300),
+  -- Pin position inside the element, 0..1.
+  pin_x real not null default 0.5 check (pin_x between 0 and 1),
+  pin_y real not null default 0.5 check (pin_y between 0 and 1),
+  status text not null default 'open' check (status in ('open', 'resolved')),
+  created_by uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  created_by_email text not null default (auth.jwt() ->> 'email'),
+  created_at timestamptz not null default now(),
+  last_activity_at timestamptz not null default now(),
+  resolved_at timestamptz,
+  resolved_by_email text
+);
+create index if not exists talkcontext_threads_feature on public.talkcontext_threads (feature, last_activity_at desc);
+create index if not exists talkcontext_threads_url on public.talkcontext_threads (url);
+
+create table if not exists public.talkcontext_comments (
+  id uuid primary key default gen_random_uuid(),
+  thread_id uuid not null references public.talkcontext_threads (id) on delete cascade,
+  body text not null check (char_length(btrim(body)) between 1 and 10000),
+  author_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  author_email text not null default (auth.jwt() ->> 'email'),
+  -- Written by Claude Code through the TalkContext MCP server, on behalf of author_email.
+  via_claude boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists talkcontext_comments_thread on public.talkcontext_comments (thread_id, created_at);
+
+-- Collaborative spec per feature: one text everybody in the team edits.
+create table if not exists public.talkcontext_specs (
+  feature text primary key check (char_length(btrim(feature)) between 1 and 100),
+  body text not null default '' check (char_length(body) <= 200000),
+  updated_at timestamptz not null default now(),
+  updated_by_email text not null default (auth.jwt() ->> 'email')
+);
+
+alter table public.talkcontext_threads enable row level security;
+alter table public.talkcontext_comments enable row level security;
+alter table public.talkcontext_specs enable row level security;
+revoke all on public.talkcontext_threads, public.talkcontext_comments, public.talkcontext_specs from anon, authenticated;
+grant select, insert, delete on public.talkcontext_threads to authenticated;
+-- Only the status is changeable; who and when is set by the trigger below.
+grant update (status) on public.talkcontext_threads to authenticated;
+grant select, insert, delete on public.talkcontext_comments to authenticated;
+grant update (body) on public.talkcontext_comments to authenticated;
+grant select, insert on public.talkcontext_specs to authenticated;
+grant update (body) on public.talkcontext_specs to authenticated;
+
+drop policy if exists "members read" on public.talkcontext_threads;
+create policy "members read" on public.talkcontext_threads
+  for select to authenticated using (public.talkcontext_is_member());
+drop policy if exists "members open own" on public.talkcontext_threads;
+create policy "members open own" on public.talkcontext_threads
+  for insert to authenticated
+  with check (public.talkcontext_is_member() and created_by = auth.uid() and created_by_email = auth.jwt() ->> 'email');
+drop policy if exists "members resolve" on public.talkcontext_threads;
+create policy "members resolve" on public.talkcontext_threads
+  for update to authenticated using (public.talkcontext_is_member()) with check (public.talkcontext_is_member());
+drop policy if exists "creator deletes" on public.talkcontext_threads;
+create policy "creator deletes" on public.talkcontext_threads
+  for delete to authenticated using (created_by = auth.uid());
+
+drop policy if exists "members read" on public.talkcontext_comments;
+create policy "members read" on public.talkcontext_comments
+  for select to authenticated using (public.talkcontext_is_member());
+drop policy if exists "members write own" on public.talkcontext_comments;
+create policy "members write own" on public.talkcontext_comments
+  for insert to authenticated
+  with check (public.talkcontext_is_member() and author_id = auth.uid() and author_email = auth.jwt() ->> 'email');
+drop policy if exists "author edits" on public.talkcontext_comments;
+create policy "author edits" on public.talkcontext_comments
+  for update to authenticated using (author_id = auth.uid()) with check (author_id = auth.uid());
+drop policy if exists "author deletes" on public.talkcontext_comments;
+create policy "author deletes" on public.talkcontext_comments
+  for delete to authenticated using (author_id = auth.uid());
+
+drop policy if exists "members read" on public.talkcontext_specs;
+create policy "members read" on public.talkcontext_specs
+  for select to authenticated using (public.talkcontext_is_member());
+drop policy if exists "members create" on public.talkcontext_specs;
+create policy "members create" on public.talkcontext_specs
+  for insert to authenticated
+  with check (public.talkcontext_is_member() and updated_by_email = auth.jwt() ->> 'email');
+drop policy if exists "members edit" on public.talkcontext_specs;
+create policy "members edit" on public.talkcontext_specs
+  for update to authenticated using (public.talkcontext_is_member()) with check (public.talkcontext_is_member());
+
+-- Resolve/reopen: record who and when, server-side.
+create or replace function public.talkcontext_thread_status()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.status is distinct from old.status then
+    new.resolved_at := case when new.status = 'resolved' then now() end;
+    new.resolved_by_email := case when new.status = 'resolved' then auth.jwt() ->> 'email' end;
+    new.last_activity_at := now();
+  end if;
+  return new;
+end
+$$;
+drop trigger if exists talkcontext_thread_status on public.talkcontext_threads;
+create trigger talkcontext_thread_status before update on public.talkcontext_threads
+  for each row execute function public.talkcontext_thread_status();
+
+-- A new comment bumps the thread's activity (members can't update that column themselves).
+create or replace function public.talkcontext_comment_activity()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update public.talkcontext_threads set last_activity_at = now() where id = new.thread_id;
+  return new;
+end
+$$;
+revoke execute on function public.talkcontext_comment_activity() from public, anon, authenticated;
+drop trigger if exists talkcontext_comment_activity on public.talkcontext_comments;
+create trigger talkcontext_comment_activity after insert on public.talkcontext_comments
+  for each row execute function public.talkcontext_comment_activity();
+
+-- Spec edits: record who and when, server-side.
+create or replace function public.talkcontext_spec_touch()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.updated_at := now();
+  new.updated_by_email := auth.jwt() ->> 'email';
+  return new;
+end
+$$;
+drop trigger if exists talkcontext_spec_touch on public.talkcontext_specs;
+create trigger talkcontext_spec_touch before update on public.talkcontext_specs
+  for each row execute function public.talkcontext_spec_touch();
+
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['talkcontext_threads', 'talkcontext_comments', 'talkcontext_specs'] loop
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t
+    ) then
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    end if;
+  end loop;
+end
+$$;

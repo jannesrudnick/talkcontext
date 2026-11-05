@@ -20,7 +20,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   feedback: { contextMenu: true, screenshotOnError: true, penColor: "#ef4444" },
   handoff: { endpoint: "http://127.0.0.1:4777", autoSend: true },
-  team: { url: "", anonKey: "" },
+  team: { url: "", anonKey: "", feature: "" },
   openAfterStop: true,
   environments: [
     {

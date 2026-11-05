@@ -80,6 +80,17 @@ and the Recordings page gets a **Team** view that updates live. Opening a team r
 it once and imports it (badge "From <email>"). "Shared → Update shared copy" re-uploads, e.g. after
 transcribing; "Stop sharing" removes the row and the file.
 
+## On-page comments (Figma-style)
+
+Needs team sharing. In the overlay (Alt+Shift+Q): **comment button** → click any element → write.
+The thread sticks to that element as a pin; click a pin for the conversation, reply (⌘↵) or
+resolve. The **#feature** chip in the dock sets what you work on: new threads are filed under it
+and only its pins are shown (empty = all features). **Comments** in the sidebar lists every
+thread with filters for feature and status, and "Open on page" jumps back to the element.
+**Specs** holds one shared text per feature. Claude Code sees all of it through the MCP tools
+`talkcontext_list_comments`, `talkcontext_reply_comment`, `talkcontext_resolve_comment` and
+`talkcontext_get_spec`.
+
 ## Development
 
 Requires **Node ≥ 22** (WXT uses `util.parseEnv`), see `.nvmrc` – e.g. `nvm use` or `fnm use`.

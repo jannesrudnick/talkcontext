@@ -32,7 +32,18 @@ export interface TeamRecording {
 
 let cached: { key: string; client: SupabaseClient } | null = null;
 
-/** One client per project - it keeps the sign-in session in localStorage of the extension. */
+/**
+ * Session lives in extension storage, so background (comments, MCP) and the
+ * extension pages share one sign-in. Refreshes are serialised by supabase-js
+ * through Web Locks, which span all extension contexts.
+ */
+const authStorage = {
+  getItem: async (key: string) => ((await browser.storage.local.get(key))[key] as string | undefined) ?? null,
+  setItem: (key: string, value: string) => browser.storage.local.set({ [key]: value }),
+  removeItem: (key: string) => browser.storage.local.remove(key),
+};
+
+/** One client per project. */
 export function teamClient(team: TeamConfig): SupabaseClient | null {
   const url = team.url.trim().replace(/\/$/, "");
   const key = team.anonKey.trim();
@@ -40,7 +51,9 @@ export function teamClient(team: TeamConfig): SupabaseClient | null {
   if (cached?.key !== `${url}|${key}`) {
     cached = {
       key: `${url}|${key}`,
-      client: createClient(url, key, { auth: { storageKey: "talkcontext-team-auth", persistSession: true, autoRefreshToken: true } }),
+      client: createClient(url, key, {
+        auth: { storageKey: "talkcontext-team-auth", storage: authStorage, persistSession: true, autoRefreshToken: true },
+      }),
     };
   }
   return cached.client;

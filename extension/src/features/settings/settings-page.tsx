@@ -711,15 +711,31 @@ function TeamSection({ settings, update }: SectionProps) {
         ) : session === undefined ? (
           <FieldDescription>…</FieldDescription>
         ) : session ? (
-          <Field orientation="horizontal">
-            <FieldContent>
-              <FieldLabel>Signed in</FieldLabel>
-              <FieldDescription>{session.user.email}</FieldDescription>
-            </FieldContent>
-            <Button variant="outline" onClick={() => void signOut(team)}>
-              Sign out
-            </Button>
-          </Field>
+          <>
+            <Field orientation="horizontal">
+              <FieldContent>
+                <FieldLabel>Signed in</FieldLabel>
+                <FieldDescription>{session.user.email}</FieldDescription>
+              </FieldContent>
+              <Button variant="outline" onClick={() => void signOut(team)}>
+                Sign out
+              </Button>
+            </Field>
+            <FieldSeparator />
+            <Field orientation="horizontal">
+              <FieldContent>
+                <FieldLabel>Feature you're working on</FieldLabel>
+                <FieldDescription>New on-page comments are filed under it, and pins are filtered by it. Also switchable in the overlay.</FieldDescription>
+              </FieldContent>
+              <Input
+                key={team.feature}
+                placeholder="e.g. checkout"
+                defaultValue={team.feature}
+                onBlur={(event) => set({ feature: event.target.value.trim() })}
+                className="w-56"
+              />
+            </Field>
+          </>
         ) : (
           <TeamSignIn team={team} />
         )}
