@@ -11,11 +11,8 @@ export const DEFAULT_SETTINGS: Settings = {
   replay: { maskAllInputs: false, recordCanvas: false, blockSelector: "" },
   audio: { enabled: true },
   transcription: {
-    engine: "whisper",
     whisperModel: "onnx-community/whisper-base",
     openaiKey: "",
-    auto: true,
-    live: true,
     liveProvider: "openai",
     liveModel: "gpt-4o-transcribe",
     sonioxKey: "",

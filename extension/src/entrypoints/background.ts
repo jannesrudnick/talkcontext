@@ -161,7 +161,7 @@ export default defineBackground(() => {
     const tr = settings.transcription;
     const liveKey = (tr.liveProvider === "soniox" ? tr.sonioxKey : tr.openaiKey).trim();
     const liveConfig =
-      settings.audio.enabled && tr.live && liveKey
+      settings.audio.enabled && liveKey
         ? {
             provider: tr.liveProvider,
             apiKey: liveKey,

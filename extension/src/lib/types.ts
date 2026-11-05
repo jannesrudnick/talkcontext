@@ -81,14 +81,15 @@ export interface Settings {
   recorder: RecorderConfig;
   replay: ReplayConfig;
   audio: { enabled: boolean };
+  /**
+   * Live transcript is always on when the provider has a key. Without one (or if live
+   * fails), the audio is transcribed right after stopping: OpenAI if there is an
+   * OpenAI key, otherwise Whisper locally.
+   */
   transcription: {
-    engine: TranscriptionEngine;
+    /** Whisper model for the local fallback. */
     whisperModel: WhisperModelId;
     openaiKey: string;
-    /** Transcribe right after stopping (when the recording is opened). */
-    auto: boolean;
-    /** Live transcript during the recording via OpenAI Realtime. */
-    live: boolean;
     /** Provider for the live transcript. */
     liveProvider: "openai" | "soniox";
     /** OpenAI model for the live transcript. */

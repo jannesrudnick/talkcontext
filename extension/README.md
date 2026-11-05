@@ -45,8 +45,9 @@ With an OpenAI API key (Settings → Transcription) the offscreen document strea
 as PCM16/24 kHz over WebSocket to `wss://api.openai.com/v1/realtime?intent=transcription`. The
 overlay shows interim results live – in the active point's bubble or as a caption above the
 dock ("→ general"). The finished segments become the transcript directly at the end; no
-re-transcription needed. Without a key it falls back to local Whisper / OpenAI after recording,
-and speech is assigned to points via their active time.
+re-transcription needed. Live is always on once the provider has a key. Without one (or if the
+connection fails) the audio is transcribed right after stopping – with OpenAI if an OpenAI key
+is set, otherwise locally with Whisper – and speech is assigned to points via their active time.
 
 Alternatively, pick **Soniox** as the provider (Settings → Transcription): same live behaviour,
 about 3x cheaper (~$0.12/h of streamed audio), key from console.soniox.com.
