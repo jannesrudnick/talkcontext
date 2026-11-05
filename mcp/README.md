@@ -47,11 +47,20 @@ or use the bundled prompt `/mcp__talkcontext__fix_feedback`.
 Multiple Claude Code sessions at the same time are fine: the first one holds the port, all of them read
 the same folder.
 
+## Updating the extension
+
+*Settings → Claude Code → Update* in the extension calls `POST /update`: the server runs
+`git pull --ff-only` in the checkout it runs from (current branch), `pnpm install` if the
+lockfile changed, rebuilds the extension (and itself if `mcp/` changed), and the extension
+reloads itself from the fresh build. If the server changed, restart Claude Code to load it.
+Needs `git` and `pnpm` on the `PATH` Claude Code starts the server with.
+
 ## Security
 
 Listens on `127.0.0.1` only. Requests with an `Origin` other than `chrome-extension://…`
 are rejected, and `application/json` forces a CORS preflight for web pages that the
-server never answers. Paths from the handoff are confined to the session folder.
+server never answers. `POST /update` additionally requires an extension `Origin` (requests
+without one are rejected too) and only ever pulls and builds this repo. Paths from the handoff are confined to the session folder.
 
 ## Testing
 

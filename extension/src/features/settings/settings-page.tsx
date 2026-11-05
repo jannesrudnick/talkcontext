@@ -8,6 +8,7 @@ import {
   Loader2Icon,
   MessageSquareDotIcon,
   PlugZapIcon,
+  RefreshCwIcon,
   GlobeIcon,
   KeyRoundIcon,
   MicIcon,
@@ -40,7 +41,7 @@ import { useSettings } from "@/hooks/use-settings";
 import { navigate } from "@/hooks/use-hash-route";
 import { deleteRecording, estimateUsage, listRecordings } from "@/lib/db";
 import { formatBytes } from "@/lib/format";
-import { checkEndpoint, type EndpointHealth } from "@/lib/handoff/transport";
+import { checkEndpoint, updateFromCheckout, type EndpointHealth } from "@/lib/handoff/transport";
 import { WHISPER_MODELS } from "@/lib/transcription/transcribe";
 import type { Settings, TranscriptionEngine, WhisperModelId } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -695,8 +696,49 @@ function ClaudeSection({ settings, update }: SectionProps) {
           checked={h.autoSend}
           onChange={(value) => set({ autoSend: value })}
         />
+        <FieldSeparator />
+        <UpdateField endpoint={h.endpoint} />
       </FieldGroup>
     </section>
+  );
+}
+
+function UpdateField({ endpoint }: { endpoint: string }) {
+  const [busy, setBusy] = useState(false);
+
+  const run = async () => {
+    setBusy(true);
+    try {
+      const result = await updateFromCheckout(endpoint);
+      if (!result.updated) {
+        toast.success(`Already up to date (${result.after})`);
+        return;
+      }
+      toast.success(`Updated ${result.before} → ${result.after} – reloading …`, {
+        description: result.serverChanged ? "The MCP server changed too: restart Claude Code to load it." : undefined,
+      });
+      // Unpacked extension: reload picks up the fresh build from disk (closes this page).
+      window.setTimeout(() => browser.runtime.reload(), 1500);
+    } catch (error) {
+      toast.error("Update failed", { description: error instanceof Error ? error.message : String(error) });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Field orientation="horizontal">
+      <FieldContent>
+        <FieldLabel>Update extension</FieldLabel>
+        <FieldDescription>
+          Pulls the repo the MCP server runs from, rebuilds the extension and reloads it. Only for an unpacked install from a git checkout.
+        </FieldDescription>
+      </FieldContent>
+      <Button variant="outline" onClick={() => void run()} disabled={busy}>
+        {busy ? <Loader2Icon className="animate-spin" /> : <RefreshCwIcon />}
+        {busy ? "Updating …" : "Update"}
+      </Button>
+    </Field>
   );
 }
 

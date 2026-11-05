@@ -1,5 +1,6 @@
 /**
- * Receiving endpoint for the extension: POST /sessions with the handoff as JSON.
+ * Receiving endpoint for the extension: POST /sessions with the handoff as JSON,
+ * POST /update to pull and rebuild the local checkout (see update.ts).
  *
  * Listens on 127.0.0.1 only. Web pages can send requests to localhost, but
  * `content-type: application/json` forces a CORS preflight that we never
@@ -7,6 +8,7 @@
  */
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import { ROOT, saveSession, type HandoffManifest, type IncomingFile } from "./store.js";
+import { updateCheckout } from "./update.js";
 
 const MAX_BODY = 200 * 1024 * 1024;
 
@@ -28,8 +30,11 @@ function readBody(request: IncomingMessage): Promise<string> {
   });
 }
 
+const isExtension = (origin: string | undefined) =>
+  Boolean(origin?.startsWith("chrome-extension://") || origin?.startsWith("moz-extension://"));
+
 function allowedOrigin(origin: string | undefined) {
-  return !origin || origin.startsWith("chrome-extension://") || origin.startsWith("moz-extension://");
+  return !origin || isExtension(origin);
 }
 
 export function startHttp(port: number, version: string, log: (message: string) => void): Promise<Server | null> {
@@ -55,6 +60,19 @@ export function startHttp(port: number, version: string, log: (message: string) 
         return send(200, { ok: true, path: dir });
       } catch (error) {
         return send(400, { error: error instanceof Error ? error.message : String(error) });
+      }
+    }
+    if (request.method === "POST" && request.url === "/update") {
+      // Runs git + build: only from an extension page, never without an Origin.
+      if (!isExtension(request.headers.origin)) return send(403, { error: "Only the extension may trigger an update" });
+      if (!String(request.headers["content-type"] ?? "").includes("application/json")) {
+        return send(415, { error: "application/json expected" });
+      }
+      try {
+        return send(200, { ok: true, ...(await updateCheckout(log)) });
+      } catch (error) {
+        log(`Update failed: ${error instanceof Error ? error.message : String(error)}`);
+        return send(500, { error: error instanceof Error ? error.message : String(error) });
       }
     }
     return send(404, { error: "Not found" });
