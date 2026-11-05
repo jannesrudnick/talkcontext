@@ -62,6 +62,14 @@ as real images. Alternatively:
 - **Handoff package (.zip)**: `feedback.md`, `handoff.json`, `session.json`, `screenshots/`, `dom/`
 - **Copy**: just the Markdown (without images) to the clipboard
 
+## Sharing recordings with teammates
+
+**Export → Share recording (.talkcontext)** packs the whole recording – replay, audio, transcript,
+feedback points, screenshots, console and network – into one file (a ZIP with `recording.json`,
+`audio.*` and `screenshots/`). The other person clicks **Import** on the Recordings page and gets
+it as a regular recording, marked "Imported". Imported recordings get a new id, are never sent
+to Claude or transcribed automatically, and can be handed off from there like your own.
+
 ## Development
 
 Requires **Node ≥ 22** (WXT uses `util.parseEnv`), see `.nvmrc` – e.g. `nvm use` or `fnm use`.

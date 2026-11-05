@@ -10,6 +10,7 @@ import {
   MusicIcon,
   PackageIcon,
   PlayCircleIcon,
+  Share2Icon,
   SendIcon,
   Trash2Icon,
 } from "lucide-react";
@@ -49,7 +50,7 @@ import { downloadFile, sessionFileBase } from "@/lib/qa/export";
 import { buildHandoff } from "@/lib/handoff/build";
 import { sendHandoff, zipHandoff } from "@/lib/handoff/transport";
 import { formatRelative } from "@/lib/format";
-import { exportAudio, exportJson, exportMarkdown, exportReplay } from "./export";
+import { exportAudio, exportJson, exportMarkdown, exportReplay, exportShare } from "./export";
 import { FeedbackPanel } from "./feedback-panel";
 import { correlated, loadRecording, toQaSession, transcriptInReplayTime, type LoadedRecording } from "./load";
 import { NetworkPanel } from "./network-panel";
@@ -196,7 +197,8 @@ function RecordingView({
   useEffect(() => {
     if (!settingsLoaded || autoStarted.current) return;
     autoStarted.current = true;
-    const fresh = meta.endedAt && Date.now() - meta.endedAt < 5 * 60_000;
+    // Imported recordings are someone else's - only transcribe on request.
+    const fresh = !meta.imported && meta.endedAt && Date.now() - meta.endedAt < 5 * 60_000;
     if (settings.transcription.auto && settings.transcription.engine !== "none" && recording.audio && !meta.transcript && fresh) {
       void transcribe();
     }
@@ -245,7 +247,8 @@ function RecordingView({
   // Fresh recording: send to Claude Code automatically after transcription.
   useEffect(() => {
     if (!settingsLoaded || autoSent.current || !settings.handoff.autoSend || meta.sentAt || transcribing) return;
-    const fresh = meta.endedAt && Date.now() - meta.endedAt < 10 * 60_000;
+    // Imported recordings are never sent automatically.
+    const fresh = !meta.imported && meta.endedAt && Date.now() - meta.endedAt < 10 * 60_000;
     if (!fresh) return;
     const waitingForTranscript =
       Boolean(recording.audio) && !meta.transcript && settings.transcription.auto && settings.transcription.engine !== "none" && !transcriptError;
@@ -290,6 +293,11 @@ function RecordingView({
                 {meta.environment.name}
               </Badge>
             )}
+            {meta.imported && (
+              <Badge variant="secondary" title={`Imported ${formatRelative(meta.imported.at)}`}>
+                Imported
+              </Badge>
+            )}
           </div>
         </div>
         <Button variant="outline" onClick={() => void copyMarkdown()}>
@@ -305,7 +313,17 @@ function RecordingView({
             Export
             <ChevronDownIcon />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-60">
+          <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuItem
+              onClick={() =>
+                void exportShare(recording).catch((error: unknown) =>
+                  toast.error("Export failed", { description: error instanceof Error ? error.message : String(error) }),
+                )
+              }
+            >
+              <Share2Icon />
+              Share recording (.talkcontext)
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => void downloadPackage()}>
               <PackageIcon />
               Handoff package (.zip)

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangleIcon,
   AudioLinesIcon,
@@ -6,12 +6,16 @@ import {
   CircleDotIcon,
   ClockIcon,
   FlagIcon,
+  ImportIcon,
+  Loader2Icon,
   MicIcon,
   MousePointerClickIcon,
   SearchIcon,
   VideoIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Kbd } from "@/components/ui/kbd";
@@ -19,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { navigate } from "@/hooks/use-hash-route";
 import { listRecordings } from "@/lib/db";
+import { importRecording, SHARE_EXTENSION } from "@/lib/share";
 import { formatDuration, formatRelative, hostOf, pathOf } from "@/lib/format";
 import type { RecordingMeta } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -69,12 +74,15 @@ export function RecordingsListPage() {
             Every QA session as a replay, with clicks, console, network and your explanation on one timeline.
           </p>
         </div>
-        <InputGroup className="w-72">
-          <InputGroupAddon>
-            <SearchIcon />
-          </InputGroupAddon>
-          <InputGroupInput placeholder="Search …" value={query} onChange={(event) => setQuery(event.target.value)} />
-        </InputGroup>
+        <div className="flex items-center gap-2">
+          <InputGroup className="w-72">
+            <InputGroupAddon>
+              <SearchIcon />
+            </InputGroupAddon>
+            <InputGroupInput placeholder="Search …" value={query} onChange={(event) => setQuery(event.target.value)} />
+          </InputGroup>
+          <ImportButton />
+        </div>
       </div>
 
       {environments.length > 0 && (
@@ -132,6 +140,43 @@ export function RecordingsListPage() {
   );
 }
 
+/** Opens someone else's `.talkcontext` file and adds it to the recordings. */
+function ImportButton() {
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  const onFile = async (file: File | undefined) => {
+    if (!file) return;
+    setBusy(true);
+    try {
+      const meta = await importRecording(file);
+      toast.success("Recording imported", { description: meta.title });
+      navigate(`recordings/${meta.id}`);
+    } catch (error) {
+      toast.error("Import failed", { description: error instanceof Error ? error.message : String(error) });
+    } finally {
+      setBusy(false);
+      if (input.current) input.current.value = "";
+    }
+  };
+
+  return (
+    <>
+      <input
+        ref={input}
+        type="file"
+        accept={`${SHARE_EXTENSION},application/zip`}
+        className="hidden"
+        onChange={(event) => void onFile(event.target.files?.[0])}
+      />
+      <Button variant="outline" disabled={busy} onClick={() => input.current?.click()} title={`Import a shared ${SHARE_EXTENSION} recording`}>
+        {busy ? <Loader2Icon className="animate-spin" /> : <ImportIcon />}
+        Import
+      </Button>
+    </>
+  );
+}
+
 function RecordingRow({ recording }: { recording: RecordingMeta }) {
   const live = recording.status === "recording";
   return (
@@ -184,6 +229,7 @@ function RecordingRow({ recording }: { recording: RecordingMeta }) {
             {recording.counts.feedback ?? recording.counts.notes}
           </span>
         )}
+        {recording.imported && <ImportIcon className="size-3.5" aria-label="Imported" />}
         {recording.sentAt && <BotIcon className="size-3.5 text-success" aria-label="Sent to Claude" />}
         {recording.audio &&
           (recording.transcript ? (
