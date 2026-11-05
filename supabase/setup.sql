@@ -77,6 +77,8 @@ create index if not exists talkcontext_recordings_shared_at on public.talkcontex
 
 alter table public.talkcontext_recordings enable row level security;
 revoke all on public.talkcontext_recordings from anon;
+-- Newer projects no longer expose new tables to the API by default: grant explicitly, RLS below decides per row.
+grant select, insert, update, delete on public.talkcontext_recordings to authenticated;
 
 drop policy if exists "members read" on public.talkcontext_recordings;
 create policy "members read" on public.talkcontext_recordings
