@@ -61,3 +61,30 @@ export async function sendHandoff(endpoint: string, handoff: Handoff): Promise<{
   if (!response.ok) throw new Error(`TalkContext MCP server responded with ${response.status}: ${await response.text()}`);
   return (await response.json()) as { path?: string };
 }
+
+export interface UpdateResult {
+  before: string;
+  after: string;
+  updated: boolean;
+  serverChanged: boolean;
+}
+
+/** Lets the MCP server pull the repo and rebuild the extension (see mcp/src/update.ts). */
+export async function updateFromCheckout(endpoint: string): Promise<UpdateResult> {
+  let response: Response;
+  try {
+    response = await fetch(`${endpoint.replace(/\/$/, "")}/update`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+      signal: AbortSignal.timeout(6 * 60_000),
+    });
+  } catch {
+    throw new Error("TalkContext MCP server unreachable – is Claude Code running with the TalkContext server?");
+  }
+  const body = (await response.json().catch(() => ({}))) as Partial<UpdateResult> & { error?: string };
+  if (!response.ok) {
+    throw new Error(response.status === 404 ? "This MCP server has no update yet – pull and rebuild once by hand, then restart Claude Code." : (body.error ?? `Status ${response.status}`));
+  }
+  return body as UpdateResult;
+}
