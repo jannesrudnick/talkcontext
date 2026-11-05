@@ -113,7 +113,7 @@ function RecordingView({
   const { meta } = recording;
 
   const effectiveChoice: TranscriptionChoice = choice ?? {
-    engine: settings.transcription.engine === "openai" ? "openai" : "whisper",
+    engine: settings.transcription.openaiKey ? "openai" : "whisper",
     model: settings.transcription.whisperModel,
   };
 
@@ -199,7 +199,7 @@ function RecordingView({
     autoStarted.current = true;
     // Imported recordings are someone else's - only transcribe on request.
     const fresh = !meta.imported && meta.endedAt && Date.now() - meta.endedAt < 5 * 60_000;
-    if (settings.transcription.auto && settings.transcription.engine !== "none" && recording.audio && !meta.transcript && fresh) {
+    if (recording.audio && !meta.transcript && fresh) {
       void transcribe();
     }
   }, [meta.endedAt, meta.transcript, recording.audio, settings, settingsLoaded, transcribe]);
@@ -251,7 +251,7 @@ function RecordingView({
     const fresh = !meta.imported && meta.endedAt && Date.now() - meta.endedAt < 10 * 60_000;
     if (!fresh) return;
     const waitingForTranscript =
-      Boolean(recording.audio) && !meta.transcript && settings.transcription.auto && settings.transcription.engine !== "none" && !transcriptError;
+      Boolean(recording.audio) && !meta.transcript && !transcriptError;
     if (waitingForTranscript) return;
     autoSent.current = true;
     void send({ silent: true });

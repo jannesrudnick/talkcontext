@@ -42,8 +42,7 @@ import { navigate } from "@/hooks/use-hash-route";
 import { deleteRecording, estimateUsage, listRecordings } from "@/lib/db";
 import { formatBytes } from "@/lib/format";
 import { checkEndpoint, updateFromCheckout, type EndpointHealth } from "@/lib/handoff/transport";
-import { WHISPER_MODELS } from "@/lib/transcription/transcribe";
-import type { Settings, TranscriptionEngine, WhisperModelId } from "@/lib/types";
+import type { Settings } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { EnvironmentsSection } from "./environments";
 import { useMicPermission } from "./use-mic-permission";
@@ -340,56 +339,70 @@ function RecordingSection({ settings, update }: SectionProps) {
 
 /* ------------------------------------------------------------ Transcription */
 
-const ENGINES: Array<{ value: TranscriptionEngine; label: string }> = [
-  { value: "whisper", label: "Whisper (local)" },
-  { value: "openai", label: "OpenAI (Cloud)" },
-  { value: "none", label: "Off" },
-];
-
 function TranscriptionSection({ settings, update }: SectionProps) {
   const t = settings.transcription;
   const set = (patch: Partial<Settings["transcription"]>) =>
     update((s) => ({ ...s, transcription: { ...s.transcription, ...patch } }));
   const [showKey, setShowKey] = useState(false);
+  const soniox = t.liveProvider === "soniox";
+  const key = soniox ? t.sonioxKey : t.openaiKey;
 
   return (
-    <section className="space-y-10">
-      <div>
-        <SectionHeader
-          title="Live transcript"
-          description="During recording via OpenAI Realtime or Soniox. You see right away what was understood and which feedback point it belongs to – nothing left to transcribe afterwards."
-        />
-        <FieldGroup>
-          <SwitchField
-            label="Live transcript"
-            description={(t.liveProvider === "soniox" ? t.sonioxKey : t.openaiKey) ? "Uses the API key below." : "Add an API key for the provider first (below)."}
-            checked={t.live}
-            onChange={(value) => set({ live: value })}
-          />
-          <Field orientation="horizontal">
-            <FieldContent>
-              <FieldLabel>Provider</FieldLabel>
-              <FieldDescription>Soniox is about 3x cheaper than gpt-4o-transcribe (~$0.12/h).</FieldDescription>
-            </FieldContent>
-            <Select
-              items={LIVE_PROVIDERS}
-              value={t.liveProvider}
-              onValueChange={(value) => set({ liveProvider: value as "openai" | "soniox" })}
-            >
-              <SelectTrigger className="w-56">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LIVE_PROVIDERS.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          {t.liveProvider === "soniox" && <SonioxModelField apiKey={t.sonioxKey} value={t.sonioxModel} onChange={(sonioxModel) => set({ sonioxModel })} />}
-          {t.liveProvider === "openai" && (
+    <section>
+      <SectionHeader
+        title="Transcription"
+        description="Live during recording via OpenAI Realtime or Soniox: you see right away what was understood and which feedback point it belongs to. Without a key, the audio is transcribed locally with Whisper after stopping."
+      />
+      <FieldGroup>
+        <Field orientation="horizontal">
+          <FieldContent>
+            <FieldLabel>Provider</FieldLabel>
+            <FieldDescription>Soniox is about 3x cheaper than gpt-4o-transcribe (~$0.12/h).</FieldDescription>
+          </FieldContent>
+          <Select
+            items={LIVE_PROVIDERS}
+            value={t.liveProvider}
+            onValueChange={(value) => set({ liveProvider: value as "openai" | "soniox" })}
+          >
+            <SelectTrigger className="w-56">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LIVE_PROVIDERS.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field>
+          <FieldLabel>{soniox ? "Soniox API key" : "OpenAI API key"}</FieldLabel>
+          <div className="flex gap-2">
+            <Input
+              // Remount per provider - the field is uncontrolled.
+              key={t.liveProvider}
+              type={showKey ? "text" : "password"}
+              placeholder={soniox ? "" : "sk-…"}
+              defaultValue={key}
+              onBlur={(event) => set(soniox ? { sonioxKey: event.target.value.trim() } : { openaiKey: event.target.value.trim() })}
+              className="font-mono"
+            />
+            <Button variant="outline" onClick={() => setShowKey((value) => !value)}>
+              <KeyRoundIcon />
+              {showKey ? "Hide" : "Show"}
+            </Button>
+          </div>
+          <FieldDescription>
+            {soniox
+              ? "From console.soniox.com. Stored only locally in the extension, sent directly to soniox.com."
+              : "Stored only locally in the extension, sent directly to api.openai.com."}
+          </FieldDescription>
+        </Field>
+        <FieldSeparator />
+        {soniox ? (
+          <SonioxModelField apiKey={t.sonioxKey} value={t.sonioxModel} onChange={(sonioxModel) => set({ sonioxModel })} />
+        ) : (
           <Field orientation="horizontal">
             <FieldContent>
               <FieldLabel>Model</FieldLabel>
@@ -408,96 +421,8 @@ function TranscriptionSection({ settings, update }: SectionProps) {
               </SelectContent>
             </Select>
           </Field>
-          )}
-        </FieldGroup>
-      </div>
-      <div>
-      <SectionHeader
-        title="After recording"
-        description="If there is no live transcript, the audio track is transcribed after recording."
-      />
-      <FieldGroup>
-        <Field orientation="horizontal">
-          <FieldContent>
-            <FieldLabel>Default</FieldLabel>
-            <FieldDescription>
-              Whisper (local): nothing leaves your machine, one-time model download. OpenAI: faster, needs an API key.
-            </FieldDescription>
-          </FieldContent>
-          <Select items={ENGINES} value={t.engine} onValueChange={(value) => set({ engine: value as TranscriptionEngine })}>
-            <SelectTrigger className="w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ENGINES.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-        <FieldSeparator />
-        <Field orientation="horizontal">
-          <FieldContent>
-            <FieldLabel>Whisper model</FieldLabel>
-            <FieldDescription>Larger = more accurate but slower. Base is a good trade-off.</FieldDescription>
-          </FieldContent>
-          <Select
-            items={WHISPER_MODELS.map((model) => ({ value: model.id, label: `${model.label} · ${model.size}` }))}
-            value={t.whisperModel}
-            onValueChange={(value) => set({ whisperModel: value as WhisperModelId })}
-          >
-            <SelectTrigger className="w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {WHISPER_MODELS.map((model) => (
-                <SelectItem key={model.id} value={model.id}>
-                  {model.label} · {model.size}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-        <FieldSeparator />
-        <Field>
-          <FieldLabel>OpenAI API key</FieldLabel>
-          <div className="flex gap-2">
-            <Input
-              type={showKey ? "text" : "password"}
-              placeholder="sk-…"
-              defaultValue={t.openaiKey}
-              onBlur={(event) => set({ openaiKey: event.target.value.trim() })}
-              className="font-mono"
-            />
-            <Button variant="outline" onClick={() => setShowKey((value) => !value)}>
-              <KeyRoundIcon />
-              {showKey ? "Hide" : "Show"}
-            </Button>
-          </div>
-          <FieldDescription>Stored only locally in the extension and sent directly to api.openai.com.</FieldDescription>
-        </Field>
-        <FieldSeparator />
-        <Field>
-          <FieldLabel>Soniox API key</FieldLabel>
-          <Input
-            type={showKey ? "text" : "password"}
-            defaultValue={t.sonioxKey}
-            onBlur={(event) => set({ sonioxKey: event.target.value.trim() })}
-            className="font-mono"
-          />
-          <FieldDescription>Only for the live transcript. Stored locally, sent directly to soniox.com.</FieldDescription>
-        </Field>
-        <FieldSeparator />
-        <SwitchField
-          label="Transcribe automatically"
-          description="As soon as a new recording is opened."
-          checked={t.auto}
-          onChange={(value) => set({ auto: value })}
-        />
+        )}
       </FieldGroup>
-      </div>
     </section>
   );
 }
