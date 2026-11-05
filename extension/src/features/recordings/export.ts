@@ -1,4 +1,5 @@
 import { buildJson, buildMarkdown, downloadFile, sessionFileBase } from "@/lib/qa/export";
+import { packRecording, SHARE_EXTENSION } from "@/lib/share";
 import type { LoadedRecording } from "./load";
 import { toQaSession } from "./load";
 
@@ -34,4 +35,10 @@ export function exportAudio(recording: LoadedRecording) {
   if (!recording.audio) return;
   const session = toQaSession(recording);
   downloadFile(`${sessionFileBase(session)}.webm`, recording.audio, recording.audio.type || "audio/webm");
+}
+
+/** Everything incl. audio and screenshots - someone else can import it into their recordings. */
+export async function exportShare(recording: LoadedRecording) {
+  const file = await packRecording(recording.meta.id);
+  downloadFile(`${sessionFileBase(toQaSession(recording))}${SHARE_EXTENSION}`, file, "application/zip");
 }

@@ -255,6 +255,8 @@ export interface RecordingMeta {
   };
   /** Last sent to the TalkContext MCP server. */
   sentAt?: number;
+  /** Set when the recording came from someone else's `.talkcontext` file. */
+  imported?: { at: number; originalId: string };
   audio?: {
     mimeType: string;
     /** epoch ms at which the audio track starts. */
