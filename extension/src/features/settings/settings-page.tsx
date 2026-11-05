@@ -9,6 +9,7 @@ import {
   MessageSquareDotIcon,
   PlugZapIcon,
   RefreshCwIcon,
+  UsersIcon,
   GlobeIcon,
   KeyRoundIcon,
   MicIcon,
@@ -42,6 +43,7 @@ import { navigate } from "@/hooks/use-hash-route";
 import { deleteRecording, estimateUsage, listRecordings } from "@/lib/db";
 import { formatBytes } from "@/lib/format";
 import { checkEndpoint, updateFromCheckout, type EndpointHealth } from "@/lib/handoff/transport";
+import { sendCode, signOut, useTeamSession, verifyCode } from "@/lib/team";
 import type { Settings } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { EnvironmentsSection } from "./environments";
@@ -54,6 +56,7 @@ const SECTIONS = [
   { id: "feedback", label: "Feedback", icon: MessageSquareDotIcon },
   { id: "transcription", label: "Transcription", icon: SparklesIcon },
   { id: "claude", label: "Claude Code", icon: BotIcon },
+  { id: "team", label: "Team sharing", icon: UsersIcon },
   { id: "data", label: "Data", icon: DatabaseIcon },
 ] as const;
 
@@ -89,6 +92,7 @@ export function SettingsPage({ section }: { section?: string }) {
         {loaded && active === "feedback" && <FeedbackSection settings={settings} update={update} />}
         {loaded && active === "transcription" && <TranscriptionSection settings={settings} update={update} />}
         {loaded && active === "claude" && <ClaudeSection settings={settings} update={update} />}
+        {loaded && active === "team" && <TeamSection settings={settings} update={update} />}
         {loaded && active === "data" && <DataSection />}
       </div>
     </div>
@@ -663,6 +667,125 @@ function UpdateField({ endpoint }: { endpoint: string }) {
         {busy ? <Loader2Icon className="animate-spin" /> : <RefreshCwIcon />}
         {busy ? "Updating …" : "Update"}
       </Button>
+    </Field>
+  );
+}
+
+/* ------------------------------------------------------------ Team sharing */
+
+function TeamSection({ settings, update }: SectionProps) {
+  const team = settings.team;
+  const set = (patch: Partial<Settings["team"]>) => update((s) => ({ ...s, team: { ...s.team, ...patch } }));
+  const session = useTeamSession(team);
+  const configured = Boolean(team.url.trim() && team.anonKey.trim());
+
+  return (
+    <section>
+      <SectionHeader
+        title="Team sharing"
+        description="Share recordings with your team through your own Supabase project – teammates see them in the Team folder and can watch, listen and hand them off to Claude. Set up once with supabase/setup.sql in the repo."
+      />
+      <FieldGroup>
+        <Field>
+          <FieldLabel>Project URL</FieldLabel>
+          <Input
+            placeholder="https://xyz.supabase.co"
+            defaultValue={team.url}
+            onBlur={(event) => set({ url: event.target.value.trim() })}
+            className="font-mono"
+          />
+        </Field>
+        <Field>
+          <FieldLabel>Anon key</FieldLabel>
+          <Input
+            placeholder="eyJ… / sb_publishable_…"
+            defaultValue={team.anonKey}
+            onBlur={(event) => set({ anonKey: event.target.value.trim() })}
+            className="font-mono"
+          />
+          <FieldDescription>Supabase → Settings → API. Public by design – never paste the service_role key here.</FieldDescription>
+        </Field>
+        <FieldSeparator />
+        {!configured ? (
+          <FieldDescription>Enter URL and key to sign in.</FieldDescription>
+        ) : session === undefined ? (
+          <FieldDescription>…</FieldDescription>
+        ) : session ? (
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel>Signed in</FieldLabel>
+              <FieldDescription>{session.user.email}</FieldDescription>
+            </FieldContent>
+            <Button variant="outline" onClick={() => void signOut(team)}>
+              Sign out
+            </Button>
+          </Field>
+        ) : (
+          <TeamSignIn team={team} />
+        )}
+      </FieldGroup>
+    </section>
+  );
+}
+
+function TeamSignIn({ team }: { team: Settings["team"] }) {
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const run = async (task: () => Promise<void>) => {
+    setBusy(true);
+    try {
+      await task();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Field>
+      <FieldLabel>Sign in with your work email</FieldLabel>
+      <div className="flex gap-2">
+        <Input type="email" placeholder="you@company.com" value={email} onChange={(event) => setEmail(event.target.value)} disabled={sent} />
+        {!sent && (
+          <Button
+            disabled={busy || !email.includes("@")}
+            onClick={() =>
+              void run(async () => {
+                await sendCode(team, email);
+                setSent(true);
+                toast.success("Code sent", { description: email });
+              })
+            }
+          >
+            {busy && <Loader2Icon className="animate-spin" />}
+            Send code
+          </Button>
+        )}
+      </div>
+      {sent && (
+        <div className="flex gap-2">
+          <Input
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="6-digit code"
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
+            className="font-mono"
+          />
+          <Button disabled={busy || code.trim().length < 6} onClick={() => void run(() => verifyCode(team, email, code))}>
+            {busy && <Loader2Icon className="animate-spin" />}
+            Sign in
+          </Button>
+          <Button variant="ghost" onClick={() => setSent(false)}>
+            Back
+          </Button>
+        </div>
+      )}
+      <FieldDescription>Only emails of your team's domain can sign in.</FieldDescription>
     </Field>
   );
 }

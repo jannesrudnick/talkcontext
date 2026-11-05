@@ -20,6 +20,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   feedback: { contextMenu: true, screenshotOnError: true, penColor: "#ef4444" },
   handoff: { endpoint: "http://127.0.0.1:4777", autoSend: true },
+  team: { url: "", anonKey: "" },
   openAfterStop: true,
   environments: [
     {
@@ -47,6 +48,7 @@ function withDefaults(value: Partial<Settings> | null | undefined): Settings {
     transcription: { ...DEFAULT_SETTINGS.transcription, ...v.transcription },
     feedback: { ...DEFAULT_SETTINGS.feedback, ...v.feedback },
     handoff: { ...DEFAULT_SETTINGS.handoff, ...v.handoff },
+    team: { ...DEFAULT_SETTINGS.team, ...v.team },
     environments: v.environments ?? DEFAULT_SETTINGS.environments,
   };
 }

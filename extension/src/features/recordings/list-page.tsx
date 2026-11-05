@@ -11,6 +11,7 @@ import {
   MicIcon,
   MousePointerClickIcon,
   SearchIcon,
+  UsersIcon,
   VideoIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -24,6 +25,9 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { navigate } from "@/hooks/use-hash-route";
 import { listRecordings } from "@/lib/db";
 import { importRecording, SHARE_EXTENSION } from "@/lib/share";
+import { useSettings } from "@/hooks/use-settings";
+import { useTeamSession } from "@/lib/team";
+import { TeamFolder } from "./team-folder";
 import { formatDuration, formatRelative, hostOf, pathOf } from "@/lib/format";
 import type { RecordingMeta } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -32,6 +36,10 @@ export function RecordingsListPage() {
   const [recordings, setRecordings] = useState<RecordingMeta[] | null>(null);
   const [query, setQuery] = useState("");
   const [env, setEnv] = useState("all");
+  const { settings } = useSettings();
+  const session = useTeamSession(settings.team);
+  const [view, setView] = useState<"mine" | "team">("mine");
+  const showTeam = Boolean(session) && view === "team";
 
   useEffect(() => {
     const load = () => void listRecordings().then(setRecordings);
@@ -85,6 +93,20 @@ export function RecordingsListPage() {
         </div>
       </div>
 
+      {session && (
+        <ToggleGroup value={[view]} onValueChange={(value) => setView((value[0] as "mine" | "team" | undefined) ?? view)} size="sm" variant="outline">
+          <ToggleGroupItem value="mine">My recordings</ToggleGroupItem>
+          <ToggleGroupItem value="team">
+            <UsersIcon />
+            Team
+          </ToggleGroupItem>
+        </ToggleGroup>
+      )}
+
+      {showTeam ? (
+        <TeamFolder team={settings.team} query={query} />
+      ) : (
+        <>
       {environments.length > 0 && (
         <ToggleGroup value={[env]} onValueChange={(value) => setEnv((value[0] as string | undefined) ?? "all")} size="sm" variant="outline">
           <ToggleGroupItem value="all">All environments</ToggleGroupItem>
@@ -135,6 +157,8 @@ export function RecordingsListPage() {
           ))}
           {filtered.length === 0 && <p className="px-5 py-10 text-center text-sm text-muted-foreground">No matches.</p>}
         </div>
+      )}
+        </>
       )}
     </div>
   );
@@ -230,6 +254,7 @@ function RecordingRow({ recording }: { recording: RecordingMeta }) {
           </span>
         )}
         {recording.imported && <ImportIcon className="size-3.5" aria-label="Imported" />}
+        {recording.sharedAt && <UsersIcon className="size-3.5 text-success" aria-label="Shared with the team" />}
         {recording.sentAt && <BotIcon className="size-3.5 text-success" aria-label="Sent to Claude" />}
         {recording.audio &&
           (recording.transcript ? (

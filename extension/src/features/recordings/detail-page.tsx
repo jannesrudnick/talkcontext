@@ -51,6 +51,7 @@ import { buildHandoff } from "@/lib/handoff/build";
 import { sendHandoff, zipHandoff } from "@/lib/handoff/transport";
 import { formatRelative } from "@/lib/format";
 import { exportAudio, exportJson, exportMarkdown, exportReplay, exportShare } from "./export";
+import { TeamShareButton } from "./team-share-button";
 import { FeedbackPanel } from "./feedback-panel";
 import { correlated, loadRecording, toQaSession, transcriptInReplayTime, type LoadedRecording } from "./load";
 import { NetworkPanel } from "./network-panel";
@@ -295,11 +296,14 @@ function RecordingView({
             )}
             {meta.imported && (
               <Badge variant="secondary" title={`Imported ${formatRelative(meta.imported.at)}`}>
-                Imported
+                {meta.imported.by ? `From ${meta.imported.by}` : "Imported"}
               </Badge>
             )}
           </div>
         </div>
+        {!meta.imported && (
+          <TeamShareButton team={settings.team} meta={meta} onMeta={(next) => onChange({ ...recording, meta: next })} />
+        )}
         <Button variant="outline" onClick={() => void copyMarkdown()}>
           <ClipboardCopyIcon />
           Copy

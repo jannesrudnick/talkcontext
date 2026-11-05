@@ -37,6 +37,8 @@ In the extension: Settings → Team sharing → paste URL and key → sign in wi
 | Edit title / unshare | – | only your own |
 
 Shared recordings land in the table `talkcontext_recordings` and the private bucket
-`talkcontext` under `<your user id>/<recording id>/`. Recordings can contain what was on screen,
+`talkcontext` under `<your user id>/<recording id>/recording.talkcontext` – the full recording
+(replay, audio, transcript, feedback, screenshots, console, network) in the extension's
+`.talkcontext` format, so teammates can watch and listen to it, not just read the handoff. Recordings can contain what was on screen,
 including customer data: share only what the whole team may see. Masking settings in the
 extension apply before upload.

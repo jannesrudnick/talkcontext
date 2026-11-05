@@ -75,6 +75,12 @@ export interface HandoffConfig {
   autoSend: boolean;
 }
 
+/** The team's Supabase project - URL and anon key are public by design, RLS does the rest. */
+export interface TeamConfig {
+  url: string;
+  anonKey: string;
+}
+
 export interface Settings {
   language: string;
   theme: ThemePreference;
@@ -100,6 +106,7 @@ export interface Settings {
   };
   feedback: FeedbackConfig;
   handoff: HandoffConfig;
+  team: TeamConfig;
   /** Open the recording in a new tab after stopping. */
   openAfterStop: boolean;
   environments: Environment[];
@@ -257,7 +264,9 @@ export interface RecordingMeta {
   /** Last sent to the TalkContext MCP server. */
   sentAt?: number;
   /** Set when the recording came from someone else's `.talkcontext` file. */
-  imported?: { at: number; originalId: string };
+  imported?: { at: number; originalId: string; /** Email of the teammate, when opened from the team folder. */ by?: string };
+  /** Shared to the team folder (Supabase). */
+  sharedAt?: number;
   audio?: {
     mimeType: string;
     /** epoch ms at which the audio track starts. */

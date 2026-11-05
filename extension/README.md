@@ -71,6 +71,15 @@ feedback points, screenshots, console and network – into one file (a ZIP with 
 it as a regular recording, marked "Imported". Imported recordings get a new id, are never sent
 to Claude or transcribed automatically, and can be handed off from there like your own.
 
+### Team folder (Supabase)
+
+With your team's own Supabase project ([setup](../supabase/README.md)) the same file can be
+shared without sending it around: *Settings → Team sharing* → project URL + anon key → sign in
+with your work email and the 6-digit code. Then a recording has **Share with team** in its header,
+and the Recordings page gets a **Team** view that updates live. Opening a team recording downloads
+it once and imports it (badge "From <email>"). "Shared → Update shared copy" re-uploads, e.g. after
+transcribing; "Stop sharing" removes the row and the file.
+
 ## Development
 
 Requires **Node ≥ 22** (WXT uses `util.parseEnv`), see `.nvmrc` – e.g. `nvm use` or `fnm use`.
