@@ -65,7 +65,7 @@ export async function packRecording(id: string): Promise<Blob> {
  * checked for the expected shape, and gets a fresh id so it never overwrites
  * or mixes with an existing recording.
  */
-export async function importRecording(file: Blob): Promise<RecordingMeta> {
+export async function importRecording(file: Blob, by?: string): Promise<RecordingMeta> {
   let entries: Record<string, Uint8Array>;
   try {
     entries = unzipSync(new Uint8Array(await file.arrayBuffer()));
@@ -91,14 +91,14 @@ export async function importRecording(file: Blob): Promise<RecordingMeta> {
 
   const id = newId("rec_");
   try {
-    return await writeImport(id, manifest, entries);
+    return await writeImport(id, manifest, entries, by);
   } catch (error) {
     await deleteRecording(id).catch(() => undefined);
     throw error;
   }
 }
 
-async function writeImport(id: string, manifest: Manifest, entries: Record<string, Uint8Array>): Promise<RecordingMeta> {
+async function writeImport(id: string, manifest: Manifest, entries: Record<string, Uint8Array>, by?: string): Promise<RecordingMeta> {
   const { meta, tracks } = manifest;
   for (const kind of JSON_TRACKS) {
     const data = tracks[kind];
@@ -122,8 +122,9 @@ async function writeImport(id: string, manifest: Manifest, entries: Record<strin
     id,
     status: "ready",
     sentAt: undefined,
+    sharedAt: undefined,
     audio: audioBytes ? meta.audio : undefined,
-    imported: { at: Date.now(), originalId: meta.id },
+    imported: { at: Date.now(), originalId: meta.id, by },
   };
   // Meta last: the recording only shows up once all tracks are written.
   await putRecording(imported);

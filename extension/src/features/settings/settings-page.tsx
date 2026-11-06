@@ -9,6 +9,7 @@ import {
   MessageSquareDotIcon,
   PlugZapIcon,
   RefreshCwIcon,
+  UsersIcon,
   GlobeIcon,
   KeyRoundIcon,
   MicIcon,
@@ -42,6 +43,7 @@ import { navigate } from "@/hooks/use-hash-route";
 import { deleteRecording, estimateUsage, listRecordings } from "@/lib/db";
 import { formatBytes } from "@/lib/format";
 import { checkEndpoint, updateFromCheckout, type EndpointHealth } from "@/lib/handoff/transport";
+import { connectTeam, signOut, useTeamSession } from "@/lib/team";
 import type { Settings } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { EnvironmentsSection } from "./environments";
@@ -54,6 +56,7 @@ const SECTIONS = [
   { id: "feedback", label: "Feedback", icon: MessageSquareDotIcon },
   { id: "transcription", label: "Transcription", icon: SparklesIcon },
   { id: "claude", label: "Claude Code", icon: BotIcon },
+  { id: "team", label: "Team sharing", icon: UsersIcon },
   { id: "data", label: "Data", icon: DatabaseIcon },
 ] as const;
 
@@ -89,6 +92,7 @@ export function SettingsPage({ section }: { section?: string }) {
         {loaded && active === "feedback" && <FeedbackSection settings={settings} update={update} />}
         {loaded && active === "transcription" && <TranscriptionSection settings={settings} update={update} />}
         {loaded && active === "claude" && <ClaudeSection settings={settings} update={update} />}
+        {loaded && active === "team" && <TeamSection settings={settings} update={update} />}
         {loaded && active === "data" && <DataSection />}
       </div>
     </div>
@@ -664,6 +668,112 @@ function UpdateField({ endpoint }: { endpoint: string }) {
         {busy ? "Updating …" : "Update"}
       </Button>
     </Field>
+  );
+}
+
+/* ------------------------------------------------------------ Team sharing */
+
+function TeamSection({ settings, update }: SectionProps) {
+  const team = settings.team;
+  const set = (patch: Partial<Settings["team"]>) => update((s) => ({ ...s, team: { ...s.team, ...patch } }));
+  const session = useTeamSession(team);
+  const [busy, setBusy] = useState(false);
+  const ready = Boolean(team.url.trim() && team.anonKey.trim() && team.key.trim() && team.name.trim());
+
+  const connect = async () => {
+    setBusy(true);
+    try {
+      // Fields save on blur, which React flushes before the click - `team` is current.
+      await connectTeam(team);
+      toast.success(`Connected as ${team.name.trim()}`);
+    } catch (error) {
+      toast.error("Could not connect", { description: error instanceof Error ? error.message : String(error) });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section>
+      <SectionHeader
+        title="Team sharing"
+        description="Share recordings and comment on pages with your team through your own Supabase project. Set up once with supabase/setup.sql in the repo – it also creates the team key."
+      />
+      <FieldGroup>
+        <Field>
+          <FieldLabel>Project URL</FieldLabel>
+          <Input
+            placeholder="https://xyz.supabase.co"
+            defaultValue={team.url}
+            onBlur={(event) => set({ url: event.target.value.trim() })}
+            className="font-mono"
+          />
+        </Field>
+        <Field>
+          <FieldLabel>Anon key</FieldLabel>
+          <Input
+            placeholder="eyJ… / sb_publishable_…"
+            defaultValue={team.anonKey}
+            onBlur={(event) => set({ anonKey: event.target.value.trim() })}
+            className="font-mono"
+          />
+          <FieldDescription>Supabase → Settings → API. Public by design – never paste the service_role key here.</FieldDescription>
+        </Field>
+        <Field>
+          <FieldLabel>Team key</FieldLabel>
+          <Input
+            type="password"
+            placeholder="from talkcontext_new_team_key()"
+            defaultValue={team.key}
+            onBlur={(event) => set({ key: event.target.value.trim() })}
+            className="font-mono"
+          />
+          <FieldDescription>The secret that grants access. Supabase only stores its hash; keep it inside the team.</FieldDescription>
+        </Field>
+        <Field>
+          <FieldLabel>Your name</FieldLabel>
+          <Input placeholder="e.g. Jannes" defaultValue={team.name} onBlur={(event) => set({ name: event.target.value.trim() })} />
+          <FieldDescription>Shown on your shared recordings and comments.</FieldDescription>
+        </Field>
+        <Field orientation="horizontal">
+          <FieldContent>
+            <FieldLabel>{session ? "Connected" : "Not connected"}</FieldLabel>
+            <FieldDescription>
+              {session ? `As ${team.name}. Changing the name or key? Connect again.` : ready ? "…" : "Fill in all four fields."}
+            </FieldDescription>
+          </FieldContent>
+          <div className="flex gap-2">
+            {session && (
+              <Button variant="ghost" onClick={() => void signOut(team)}>
+                Disconnect
+              </Button>
+            )}
+            <Button variant={session ? "outline" : "default"} disabled={busy} onClick={() => void connect()}>
+              {busy && <Loader2Icon className="animate-spin" />}
+              {session ? "Reconnect" : "Connect"}
+            </Button>
+          </div>
+        </Field>
+        {session && (
+          <>
+            <FieldSeparator />
+            <Field orientation="horizontal">
+              <FieldContent>
+                <FieldLabel>Feature you're working on</FieldLabel>
+                <FieldDescription>New on-page comments are filed under it, and pins are filtered by it. Also switchable in the overlay.</FieldDescription>
+              </FieldContent>
+              <Input
+                key={team.feature}
+                placeholder="e.g. checkout"
+                defaultValue={team.feature}
+                onBlur={(event) => set({ feature: event.target.value.trim() })}
+                className="w-56"
+              />
+            </Field>
+          </>
+        )}
+      </FieldGroup>
+    </section>
   );
 }
 
