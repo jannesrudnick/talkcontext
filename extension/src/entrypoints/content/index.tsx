@@ -5,6 +5,7 @@ import { RecordingController, OVERLAY_TAG } from "./controller";
 import { Overlay } from "./overlay";
 import { overlayStore } from "./store";
 import { hello } from "./api";
+import { openThread } from "./comments";
 import "./overlay.css";
 
 export default defineContentScript({
@@ -71,6 +72,12 @@ export default defineContentScript({
         case "talkcontext:live":
           controller.onLive(message.event);
           break;
+        case "talkcontext:open-thread": {
+          const { tab, actions } = overlayStore.getState();
+          if (tab && !tab.overlayVisible) actions.toggleOverlay();
+          openThread(message.threadId);
+          break;
+        }
       }
       return undefined;
     });

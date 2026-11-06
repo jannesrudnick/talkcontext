@@ -19,7 +19,7 @@ const TABLE = "talkcontext_recordings";
 export interface TeamRecording {
   id: string;
   owner_id: string;
-  owner_email: string;
+  owner_name: string;
   title: string;
   url: string;
   environment: string | null;
@@ -32,7 +32,18 @@ export interface TeamRecording {
 
 let cached: { key: string; client: SupabaseClient } | null = null;
 
-/** One client per project - it keeps the sign-in session in localStorage of the extension. */
+/**
+ * Session lives in extension storage, so background (comments, MCP) and the
+ * extension pages share one sign-in. Refreshes are serialised by supabase-js
+ * through Web Locks, which span all extension contexts.
+ */
+const authStorage = {
+  getItem: async (key: string) => ((await browser.storage.local.get(key))[key] as string | undefined) ?? null,
+  setItem: (key: string, value: string) => browser.storage.local.set({ [key]: value }),
+  removeItem: (key: string) => browser.storage.local.remove(key),
+};
+
+/** One client per project. */
 export function teamClient(team: TeamConfig): SupabaseClient | null {
   const url = team.url.trim().replace(/\/$/, "");
   const key = team.anonKey.trim();
@@ -40,7 +51,9 @@ export function teamClient(team: TeamConfig): SupabaseClient | null {
   if (cached?.key !== `${url}|${key}`) {
     cached = {
       key: `${url}|${key}`,
-      client: createClient(url, key, { auth: { storageKey: "talkcontext-team-auth", persistSession: true, autoRefreshToken: true } }),
+      client: createClient(url, key, {
+        auth: { storageKey: "talkcontext-team-auth", storage: authStorage, persistSession: true, autoRefreshToken: true },
+      }),
     };
   }
   return cached.client;
@@ -55,9 +68,10 @@ export function useTeamSession(team: TeamConfig): Session | null | undefined {
       setSession(null);
       return;
     }
-    void client.auth.getSession().then(({ data }) => setSession(data.session));
+    void ensureConnected(team).then(() => client.auth.getSession().then(({ data }) => setSession(data.session)));
     const { data } = client.auth.onAuthStateChange((_event, next) => setSession(next));
     return () => data.subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client]);
   return session;
 }
@@ -74,20 +88,40 @@ function requireClient(team: TeamConfig): SupabaseClient {
 
 async function requireUser(client: SupabaseClient) {
   const { data } = await client.auth.getSession();
-  if (!data.session) throw new Error("Not signed in to team sharing (Settings → Team sharing).");
+  if (!data.session) throw new Error("Not connected to team sharing (Settings → Team sharing).");
   return data.session.user;
 }
 
 /* ---------------------------------------------------------------- Sign-in */
 
-export async function sendCode(team: TeamConfig, email: string) {
-  const { error } = await requireClient(team).auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: true } });
-  fail(error);
+/**
+ * Anonymous sign-in + `talkcontext_join(team_key, name)`. Only the database can
+ * check the key; on success this (anonymous) user is a team member for good.
+ */
+export async function connectTeam(team: TeamConfig): Promise<void> {
+  const client = requireClient(team);
+  if (!team.key.trim() || !team.name.trim()) throw new Error("Team key and your name are required.");
+  const { data } = await client.auth.getSession();
+  if (!data.session) fail((await client.auth.signInAnonymously()).error);
+  const { error } = await client.rpc("talkcontext_join", { team_key: team.key.trim(), member_name: team.name.trim() });
+  if (error) {
+    await client.auth.signOut();
+    throw new Error(error.message);
+  }
 }
 
-export async function verifyCode(team: TeamConfig, email: string, code: string) {
-  const { error } = await requireClient(team).auth.verifyOtp({ email: email.trim(), token: code.trim(), type: "email" });
-  fail(error);
+/** Reconnect silently when the session got lost but key and name are known. */
+export async function ensureConnected(team: TeamConfig): Promise<boolean> {
+  const client = teamClient(team);
+  if (!client) return false;
+  if ((await client.auth.getSession()).data.session) return true;
+  if (!team.key.trim() || !team.name.trim()) return false;
+  try {
+    await connectTeam(team);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function signOut(team: TeamConfig) {
@@ -136,7 +170,7 @@ export async function unshareRecording(team: TeamConfig, meta: RecordingMeta): P
 export async function listTeamRecordings(team: TeamConfig): Promise<TeamRecording[]> {
   const { data, error } = await requireClient(team)
     .from(TABLE)
-    .select("id, owner_id, owner_email, title, url, environment, started_at, duration_ms, feedback_count, error_count, shared_at")
+    .select("id, owner_id, owner_name, title, url, environment, started_at, duration_ms, feedback_count, error_count, shared_at")
     .order("shared_at", { ascending: false })
     .limit(200);
   fail(error);
@@ -166,6 +200,6 @@ export async function openTeamRecording(team: TeamConfig, row: TeamRecording): P
   const { data, error } = await requireClient(team).storage.from(BUCKET).download(filePath(row.owner_id, row.id));
   fail(error);
   if (!data) throw new Error("Shared file is missing.");
-  const meta = await importRecording(data, row.owner_email);
+  const meta = await importRecording(data, row.owner_name);
   return meta.id;
 }

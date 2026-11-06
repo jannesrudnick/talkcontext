@@ -34,6 +34,10 @@ or use the bundled prompt `/mcp__talkcontext__fix_feedback`.
 | `talkcontext_get_feedback` | One point (`F3`) or all – with screenshots as images and DOM snippet |
 | `talkcontext_get_screenshot` | A single screenshot by path |
 | `talkcontext_get_logs` | Console or network, errors only by default |
+| `talkcontext_list_comments` | On-page comment threads of the team (per feature, open by default) with conversation, page, element label and selector |
+| `talkcontext_reply_comment` | Reply in a thread – shows up as “Claude, for <you>” |
+| `talkcontext_resolve_comment` | Resolve (or reopen) a thread, optionally with a closing reply |
+| `talkcontext_get_spec` | The collaborative spec text of a feature; without a feature, all features with open comment counts |
 
 `session` is optional everywhere and defaults to `latest`.
 
@@ -46,6 +50,11 @@ or use the bundled prompt `/mcp__talkcontext__fix_feedback`.
 
 Multiple Claude Code sessions at the same time are fine: the first one holds the port, all of them read
 the same folder.
+
+The comment tools need team sharing (see [supabase/README.md](../supabase/README.md)): once you are
+connected in the extension (Settings → Team sharing), it hands your access token to this server (`POST /team-session`,
+memory only, refreshed every 20 minutes while Chrome runs). Claude then acts with your rights –
+RLS applies exactly as for you.
 
 ## Updating the extension
 

@@ -18,6 +18,7 @@ import {
   type TabMessage,
 } from "@/lib/messages";
 import { findEnvironment, getSettings, newId } from "@/lib/settings";
+import { handleCommentOp, startTeamBridge, type CommentOp } from "@/lib/team-bridge";
 import type { ActiveRecording, EnvironmentSnapshot, RecordingMeta, Screenshot, TabState } from "@/lib/types";
 
 const activeItem = storage.defineItem<ActiveRecording | null>("session:active", { fallback: null });
@@ -26,6 +27,8 @@ const overlayItem = storage.defineItem<Record<string, boolean>>("session:overlay
 const OFFSCREEN_PATH = "/offscreen.html";
 
 export default defineBackground(() => {
+  startTeamBridge();
+
   /* ----------------------------------------------------------- Helpers */
 
   const ports = new Map<number, Browser.runtime.Port>();
@@ -475,6 +478,8 @@ export default defineBackground(() => {
           const request = message as Extract<ContentRequest, { type: "talkcontext:capture" }>;
           return capture(active.recordingId, tab, request.reason, request.feedbackId);
         }
+        case "talkcontext:comments":
+          return handleCommentOp((message as { request: CommentOp }).request);
         case "talkcontext:next-feedback-index": {
           const active = await activeItem.getValue();
           if (!active) return 1;

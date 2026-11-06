@@ -36,7 +36,7 @@ export default defineConfig({
     short_name: "TalkContext",
     description:
       "Records manual QA sessions as session replay plus DOM log and voice – no script needed in the target app.",
-    permissions: ["storage", "unlimitedStorage", "offscreen", "scripting", "tabs", "contextMenus"],
+    permissions: ["storage", "unlimitedStorage", "offscreen", "scripting", "tabs", "contextMenus", "alarms"],
     host_permissions: ["<all_urls>"],
     action: { default_title: "TalkContext – Show/hide overlay" },
     commands: {

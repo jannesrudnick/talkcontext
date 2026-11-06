@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
-import { KeyboardIcon, ListVideoIcon, SettingsIcon, SparklesIcon } from "lucide-react";
+import { FileTextIcon, KeyboardIcon, ListVideoIcon, MessageSquareIcon, SettingsIcon, SparklesIcon } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
 import { navigate } from "@/hooks/use-hash-route";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { path: "recordings", label: "Recordings", icon: ListVideoIcon },
+  { path: "comments", label: "Comments", icon: MessageSquareIcon },
+  { path: "specs", label: "Specs", icon: FileTextIcon },
   { path: "settings", label: "Settings", icon: SettingsIcon },
   { path: "welcome", label: "Getting started", icon: SparklesIcon },
 ];

@@ -21,7 +21,9 @@ export type ContentRequest =
   /** Store the visible area of the tab as a screenshot. */
   | { type: "talkcontext:capture"; reason: import("./types").Screenshot["reason"]; feedbackId?: string }
   /** Next sequential feedback number (F1, F2, ...) - counts across page navigations. */
-  | { type: "talkcontext:next-feedback-index" };
+  | { type: "talkcontext:next-feedback-index" }
+  /** Team comments - the background holds the Supabase client. */
+  | { type: "talkcontext:comments"; request: import("./team-bridge").CommentOp };
 
 /** Content script -> background (port). */
 export type PortUpMessage =
@@ -39,7 +41,9 @@ export type TabMessage =
   | { type: "talkcontext:toggle-recording" }
   | { type: "talkcontext:audio-level"; level: number }
   | { type: "talkcontext:saved"; recordingId: string }
-  | { type: "talkcontext:live"; event: LiveTextEvent };
+  | { type: "talkcontext:live"; event: LiveTextEvent }
+  /** From the comments list: show the overlay and open this thread. */
+  | { type: "talkcontext:open-thread"; threadId: string };
 
 /** Live transcript: interim state (delta) or finished segment (final). */
 export type LiveTextEvent =

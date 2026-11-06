@@ -32,7 +32,7 @@ export function TeamFolder({ team, query }: { team: TeamConfig; query: string })
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!needle) return rows ?? [];
-    return (rows ?? []).filter((row) => [row.title, row.url, row.owner_email].join(" ").toLowerCase().includes(needle));
+    return (rows ?? []).filter((row) => [row.title, row.url, row.owner_name].join(" ").toLowerCase().includes(needle));
   }, [rows, query]);
 
   const open = async (row: TeamRecording) => {
@@ -102,7 +102,7 @@ export function TeamFolder({ team, query }: { team: TeamConfig; query: string })
               <span className="opacity-60">{pathOf(row.url)}</span>
             </p>
           </div>
-          <span className="truncate text-xs text-muted-foreground">{row.owner_email}</span>
+          <span className="truncate text-xs text-muted-foreground">{row.owner_name}</span>
           <span className="flex items-center gap-1.5 text-sm tabular-nums">
             <ClockIcon className="size-3.5 text-muted-foreground" />
             {formatDuration(row.duration_ms)}

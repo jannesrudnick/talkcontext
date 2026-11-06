@@ -74,11 +74,22 @@ to Claude or transcribed automatically, and can be handed off from there like yo
 ### Team folder (Supabase)
 
 With your team's own Supabase project ([setup](../supabase/README.md)) the same file can be
-shared without sending it around: *Settings → Team sharing* → project URL + anon key → sign in
-with your work email and the 6-digit code. Then a recording has **Share with team** in its header,
+shared without sending it around: *Settings → Team sharing* → project URL, anon key, team key and
+your name → **Connect**. Then a recording has **Share with team** in its header,
 and the Recordings page gets a **Team** view that updates live. Opening a team recording downloads
-it once and imports it (badge "From <email>"). "Shared → Update shared copy" re-uploads, e.g. after
+it once and imports it (badge "From <name>"). "Shared → Update shared copy" re-uploads, e.g. after
 transcribing; "Stop sharing" removes the row and the file.
+
+## On-page comments (Figma-style)
+
+Needs team sharing. In the overlay (Alt+Shift+Q): **comment button** → click any element → write.
+The thread sticks to that element as a pin; click a pin for the conversation, reply (⌘↵) or
+resolve. The **#feature** chip in the dock sets what you work on: new threads are filed under it
+and only its pins are shown (empty = all features). **Comments** in the sidebar lists every
+thread with filters for feature and status, and "Open on page" jumps back to the element.
+**Specs** holds one shared text per feature. Claude Code sees all of it through the MCP tools
+`talkcontext_list_comments`, `talkcontext_reply_comment`, `talkcontext_resolve_comment` and
+`talkcontext_get_spec`.
 
 ## Development
 
