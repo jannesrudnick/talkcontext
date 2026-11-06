@@ -131,7 +131,7 @@ function SpecEditor({
           {saving ? (
             <Loader2Icon className="inline size-3.5 animate-spin" />
           ) : spec ? (
-            `Saved · ${spec.updated_by_email} · ${formatRelative(new Date(spec.updated_at).getTime())}`
+            `Saved · ${spec.updated_by_name} · ${formatRelative(new Date(spec.updated_at).getTime())}`
           ) : spec === null ? (
             "Not written yet"
           ) : (

@@ -182,21 +182,21 @@ function ThreadCard({ thread, client }: { thread: Thread; client: SupabaseClient
                 comment.via_claude ? "bg-[#d97757]" : "bg-amber-500",
               )}
             >
-              {comment.via_claude ? <SparklesIcon className="size-3.5" /> : comment.author_email.charAt(0).toUpperCase()}
+              {comment.via_claude ? <SparklesIcon className="size-3.5" /> : comment.author_name.charAt(0).toUpperCase()}
             </span>
             <div className="min-w-0 flex-1">
               <p className="flex items-baseline gap-1.5 text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">{comment.via_claude ? "Claude" : comment.author_email}</span>
-                {comment.via_claude && <span>for {comment.author_email}</span>}
+                <span className="font-medium text-foreground">{comment.via_claude ? "Claude" : comment.author_name}</span>
+                {comment.via_claude && <span>for {comment.author_name}</span>}
                 <span>{formatRelative(new Date(comment.created_at).getTime())}</span>
               </p>
               <p className="text-sm whitespace-pre-wrap break-words">{comment.body}</p>
             </div>
           </div>
         ))}
-        {resolved && thread.resolved_by_email && (
+        {resolved && thread.resolved_by_name && (
           <p className="text-xs text-muted-foreground">
-            Resolved by {thread.resolved_by_email}
+            Resolved by {thread.resolved_by_name}
             {thread.resolved_at ? ` · ${formatRelative(new Date(thread.resolved_at).getTime())}` : ""}
           </p>
         )}

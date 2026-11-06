@@ -74,10 +74,10 @@ to Claude or transcribed automatically, and can be handed off from there like yo
 ### Team folder (Supabase)
 
 With your team's own Supabase project ([setup](../supabase/README.md)) the same file can be
-shared without sending it around: *Settings → Team sharing* → project URL + anon key → sign in
-with your work email and the 6-digit code. Then a recording has **Share with team** in its header,
+shared without sending it around: *Settings → Team sharing* → project URL, anon key, team key and
+your name → **Connect**. Then a recording has **Share with team** in its header,
 and the Recordings page gets a **Team** view that updates live. Opening a team recording downloads
-it once and imports it (badge "From <email>"). "Shared → Update shared copy" re-uploads, e.g. after
+it once and imports it (badge "From <name>"). "Shared → Update shared copy" re-uploads, e.g. after
 transcribing; "Stop sharing" removes the row and the file.
 
 ## On-page comments (Figma-style)

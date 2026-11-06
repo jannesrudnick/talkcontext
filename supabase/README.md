@@ -4,28 +4,38 @@ TalkContext works fully locally. To share recordings inside a team, connect it t
 project you own. There is no TalkContext server: the extension talks to Supabase directly and
 the database rules in `setup.sql` decide who may see and change what.
 
-## Setup (about 10 minutes, once per team)
+## Setup (about 5 minutes, once per team)
 
 1. **Create or pick a Supabase project.** A dedicated one is simplest; every object of
    TalkContext is prefixed with `talkcontext_`, so an existing project works too.
-2. **Run `setup.sql`** in Dashboard → SQL Editor. It can be re-run safely.
-3. **Add your email domain(s)** in the SQL Editor:
+2. **Run `setup.sql`** in Dashboard → SQL Editor. It can be re-run safely, and upgrades the
+   earlier email-based version in place.
+3. **Allow anonymous sign-ins:** Authentication → Sign In / Providers → *Allow anonymous
+   sign-ins*. No email provider and no SMTP needed.
+4. **Create the team key** in the SQL Editor and copy the result – it is shown only once:
    ```sql
-   insert into public.talkcontext_allowed_domains (domain) values ('example.com');
+   select public.talkcontext_new_team_key('team');
    ```
-   With an empty list nobody can read anything.
-4. **Turn on the sign-up guard:** Dashboard → Authentication → Hooks → *Before User Created* →
-   Postgres → `public.talkcontext_before_user_created`. Without it outsiders can still create an
-   account; they see nothing, but the account exists.
-5. **Email sign-in by code:** Authentication → Sign In / Providers → Email enabled. In
-   Authentication → Emails → *Magic Link* template, include `{{ .Token }}` so the mail carries the
-   6-digit code the extension asks for.
-6. **Own SMTP** (Authentication → Emails → SMTP Settings). The built-in mailer sends only a few
-   mails per hour and is meant for testing.
-7. **Give each teammate** the project URL and the anon/publishable key (Settings → API). Both are
-   meant to be public. Never hand out the `service_role` key; the extension does not need it.
+5. **Give each teammate** the project URL, the anon/publishable key (Settings → API) and the team
+   key. Never hand out the `service_role` key; the extension does not need it.
 
-In the extension: Settings → Team sharing → paste URL and key → sign in with your work email.
+In the extension: Settings → Team sharing → URL, anon key, team key, your name → **Connect**.
+
+### How the key protects the data
+
+The extension signs in anonymously and calls `talkcontext_join(team_key, name)` once. That
+function compares the key's SHA-256 with `talkcontext_team_keys`, a table nobody can read
+through the API (RLS on, no policies, no grants), and on a match records the user in
+`talkcontext_members`. Every policy checks that membership. An anonymous user without a valid key
+is signed in but sees and changes nothing.
+
+- **Rotate or revoke:** `delete from public.talkcontext_team_keys;` removes every member of that
+  key at once; then create a new key and hand it out.
+- **Names are not verified:** whoever holds the key picks a display name. Fine inside a team,
+  not an identity system. Ownership (unshare, delete) is bound to the anonymous user, not the name.
+- **Upgrading from the email version?** If you had enabled the *Before User Created* hook, disable
+  it (re-running `setup.sql` already makes it a no-op). `talkcontext_allowed_domains` is unused
+  and can be dropped.
 
 ## On-page comments and specs
 
@@ -46,7 +56,7 @@ resolves threads through the TalkContext MCP server.
 
 ## What is shared and who sees it
 
-| | Without sign-in | Signed in, team domain |
+| | Not connected | Connected with the team key |
 |---|---|---|
 | Record, replay, hand off to Claude Code | yes, local | yes, local |
 | Share a recording | – | yes, stays yours |

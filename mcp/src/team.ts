@@ -10,7 +10,8 @@ export interface TeamSession {
   accessToken: string;
   /** epoch ms */
   expiresAt: number;
-  email: string;
+  /** Display name of the member Claude acts for. */
+  name: string;
 }
 
 let session: TeamSession | null = null;
@@ -20,13 +21,13 @@ export function setTeamSession(next: TeamSession | null) {
 }
 
 export function teamStatus() {
-  return session ? { email: session.email, expiresAt: session.expiresAt } : null;
+  return session ? { name: session.name, expiresAt: session.expiresAt } : null;
 }
 
 function current(): TeamSession {
   if (!session) {
     throw new Error(
-      "No team session yet. Sign in under TalkContext extension → Settings → Team sharing (with this Claude Code running) – the extension then hands over access.",
+      "No team session yet. Connect under TalkContext extension → Settings → Team sharing (with this Claude Code running) – the extension then hands over access.",
     );
   }
   if (session.expiresAt < Date.now() + 30_000) {
@@ -64,7 +65,7 @@ async function rest<T>(path: string, init: RequestInit = {}): Promise<T> {
 export interface Comment {
   id: string;
   body: string;
-  author_email: string;
+  author_name: string;
   via_claude: boolean;
   created_at: string;
 }
@@ -77,14 +78,14 @@ export interface Thread {
   selector: string;
   element_label: string | null;
   status: "open" | "resolved";
-  created_by_email: string;
+  created_by_name: string;
   created_at: string;
-  resolved_by_email: string | null;
+  resolved_by_name: string | null;
   comments: Comment[];
 }
 
 const q = encodeURIComponent;
-const SELECT = "select=*,comments:talkcontext_comments(id,body,author_email,via_claude,created_at)&comments.order=created_at.asc";
+const SELECT = "select=*,comments:talkcontext_comments(id,body,author_name,via_claude,created_at)&comments.order=created_at.asc";
 
 export async function listThreads(filter: { feature?: string; status?: "open" | "resolved"; url?: string; limit?: number }) {
   const parts = [SELECT, "order=last_activity_at.desc", `limit=${filter.limit ?? 50}`];
@@ -113,8 +114,8 @@ export async function setStatus(threadId: string, status: "open" | "resolved") {
 }
 
 export async function getSpec(feature: string) {
-  const rows = await rest<Array<{ body: string; updated_at: string; updated_by_email: string }>>(
-    `talkcontext_specs?feature=eq.${q(feature)}&select=body,updated_at,updated_by_email`,
+  const rows = await rest<Array<{ body: string; updated_at: string; updated_by_name: string }>>(
+    `talkcontext_specs?feature=eq.${q(feature)}&select=body,updated_at,updated_by_name`,
   );
   return rows[0] ?? null;
 }
@@ -140,12 +141,12 @@ export function threadMarkdown(thread: Thread): string {
     `### Thread ${thread.id} · #${thread.feature} · ${thread.status}`,
     `- Page: ${thread.url}${thread.page_title ? ` (“${thread.page_title}”)` : ""}`,
     `- Element: ${thread.element_label ?? "?"} — selector \`${thread.selector}\``,
-    `- Opened by ${thread.created_by_email} at ${thread.created_at}`,
+    `- Opened by ${thread.created_by_name} at ${thread.created_at}`,
   ];
-  if (thread.status === "resolved") lines.push(`- Resolved by ${thread.resolved_by_email ?? "?"}`);
+  if (thread.status === "resolved") lines.push(`- Resolved by ${thread.resolved_by_name ?? "?"}`);
   lines.push("");
   for (const comment of thread.comments) {
-    const who = comment.via_claude ? `Claude (for ${comment.author_email})` : comment.author_email;
+    const who = comment.via_claude ? `Claude (for ${comment.author_name})` : comment.author_name;
     lines.push(`> **${who}** · ${comment.created_at}`, ...comment.body.split("\n").map((line) => `> ${line}`), ">");
   }
   return lines.join("\n");

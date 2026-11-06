@@ -303,7 +303,7 @@ server.registerTool(
       }
       const spec = await team.getSpec(feature);
       if (!spec?.body.trim()) return { content: [text(`#${feature} has no spec yet.`)] };
-      return { content: [text(`# Spec #${feature}\n_Last edited by ${spec.updated_by_email} at ${spec.updated_at}_\n\n${spec.body}`)] };
+      return { content: [text(`# Spec #${feature}\n_Last edited by ${spec.updated_by_name} at ${spec.updated_at}_\n\n${spec.body}`)] };
     } catch (error) {
       return fail(error);
     }

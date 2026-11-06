@@ -79,6 +79,10 @@ export interface HandoffConfig {
 export interface TeamConfig {
   url: string;
   anonKey: string;
+  /** Team key from `talkcontext_new_team_key()` - only Supabase can check it. */
+  key: string;
+  /** Your display name on shares and comments. */
+  name: string;
   /** Feature you are working on - new comments are filed under it, pins on the page are filtered by it. */
   feature: string;
 }

@@ -78,8 +78,8 @@ export function startHttp(port: number, version: string, log: (message: string) 
         const valid =
           typeof body.url === "string" && /^https?:\/\//.test(body.url) &&
           typeof body.anonKey === "string" && typeof body.accessToken === "string" &&
-          typeof body.expiresAt === "number" && typeof body.email === "string";
-        if (!valid) return send(400, { error: "url, anonKey, accessToken, expiresAt and email expected" });
+          typeof body.expiresAt === "number" && typeof body.name === "string";
+        if (!valid) return send(400, { error: "url, anonKey, accessToken, expiresAt and name expected" });
         setTeamSession(body as TeamSession);
         return send(200, { ok: true });
       } catch (error) {

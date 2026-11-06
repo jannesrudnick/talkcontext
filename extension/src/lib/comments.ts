@@ -9,7 +9,7 @@ export interface Comment {
   id: string;
   thread_id: string;
   body: string;
-  author_email: string;
+  author_name: string;
   via_claude: boolean;
   created_at: string;
 }
@@ -24,11 +24,12 @@ export interface Thread {
   pin_x: number;
   pin_y: number;
   status: "open" | "resolved";
-  created_by_email: string;
+  created_by: string;
+  created_by_name: string;
   created_at: string;
   last_activity_at: string;
   resolved_at: string | null;
-  resolved_by_email: string | null;
+  resolved_by_name: string | null;
   comments: Comment[];
 }
 
@@ -36,7 +37,7 @@ export interface Spec {
   feature: string;
   body: string;
   updated_at: string;
-  updated_by_email: string;
+  updated_by_name: string;
 }
 
 export interface NewThread {
@@ -77,7 +78,7 @@ export function pageKey(href: string): string {
 export async function listThreads(client: SupabaseClient, filter: ThreadFilter = {}): Promise<Thread[]> {
   let query = client
     .from(THREADS)
-    .select(`*, comments:${COMMENTS}(id, thread_id, body, author_email, via_claude, created_at)`)
+    .select(`*, comments:${COMMENTS}(id, thread_id, body, author_name, via_claude, created_at)`)
     .order("last_activity_at", { ascending: false })
     .order("created_at", { referencedTable: COMMENTS, ascending: true })
     .limit(500);
@@ -92,7 +93,7 @@ export async function listThreads(client: SupabaseClient, filter: ThreadFilter =
 export async function getThread(client: SupabaseClient, id: string): Promise<Thread> {
   const { data, error } = await client
     .from(THREADS)
-    .select(`*, comments:${COMMENTS}(id, thread_id, body, author_email, via_claude, created_at)`)
+    .select(`*, comments:${COMMENTS}(id, thread_id, body, author_name, via_claude, created_at)`)
     .eq("id", id)
     .order("created_at", { referencedTable: COMMENTS, ascending: true })
     .single();

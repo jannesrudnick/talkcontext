@@ -52,7 +52,7 @@ Multiple Claude Code sessions at the same time are fine: the first one holds the
 the same folder.
 
 The comment tools need team sharing (see [supabase/README.md](../supabase/README.md)): once you are
-signed in in the extension, it hands your access token to this server (`POST /team-session`,
+connected in the extension (Settings → Team sharing), it hands your access token to this server (`POST /team-session`,
 memory only, refreshed every 20 minutes while Chrome runs). Claude then acts with your rights –
 RLS applies exactly as for you.
 

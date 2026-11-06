@@ -16,7 +16,7 @@ import {
   type Thread,
 } from "./comments";
 import { getSettings, watchSettings } from "./settings";
-import { teamClient } from "./team";
+import { ensureConnected, teamClient } from "./team";
 import type { Settings } from "./types";
 
 export type CommentOp =
@@ -28,17 +28,18 @@ export type CommentOp =
   | { op: "status"; threadId: string; status: Thread["status"] }
   | { op: "delete"; threadId: string };
 
-async function signedInClient(): Promise<{ client: SupabaseClient; email: string } | null> {
-  const client = teamClient((await getSettings()).team);
-  if (!client) return null;
+async function signedInClient(): Promise<{ client: SupabaseClient; name: string; id: string } | null> {
+  const { team } = await getSettings();
+  const client = teamClient(team);
+  if (!client || !(await ensureConnected(team))) return null;
   const { data } = await client.auth.getSession();
-  return data.session ? { client, email: data.session.user.email ?? "" } : null;
+  return data.session ? { client, name: team.name.trim(), id: data.session.user.id } : null;
 }
 
 export async function handleCommentOp(request: CommentOp): Promise<unknown> {
   const team = await signedInClient();
-  if (request.op === "session") return team ? { email: team.email } : null;
-  if (!team) throw new Error("Sign in under Settings → Team sharing to comment.");
+  if (request.op === "session") return team ? { name: team.name, id: team.id } : null;
+  if (!team) throw new Error("Connect under Settings → Team sharing to comment.");
   const { client } = team;
   switch (request.op) {
     case "list":
@@ -63,14 +64,14 @@ const ALARM = "talkcontext-team-token";
 async function pushToken(settings: Settings) {
   const client = teamClient(settings.team);
   // getSession() refreshes an expired token first.
-  const session = client ? (await client.auth.getSession()).data.session : null;
+  const session = client && (await ensureConnected(settings.team)) ? (await client.auth.getSession()).data.session : null;
   const body = session
     ? {
         url: settings.team.url.trim().replace(/\/$/, ""),
         anonKey: settings.team.anonKey.trim(),
         accessToken: session.access_token,
         expiresAt: (session.expires_at ?? 0) * 1000,
-        email: session.user.email,
+        name: settings.team.name.trim(),
       }
     : { signedOut: true };
   await fetch(`${settings.handoff.endpoint.replace(/\/$/, "")}/team-session`, {

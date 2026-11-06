@@ -25,7 +25,7 @@ interface Draft {
 
 interface CommentState {
   /** undefined = not checked yet, null = not signed in. */
-  session: { email: string } | null | undefined;
+  session: { name: string; id: string } | null | undefined;
   threads: Thread[];
   features: string[];
   feature: string;
@@ -95,7 +95,7 @@ export function CommentLayer({ feature }: { feature: string }) {
   useEffect(() => {
     let alive = true;
     let lastUrl = pageKey(location.href);
-    void call<{ email: string } | null>({ op: "session" }).then(
+    void call<{ name: string; id: string } | null>({ op: "session" }).then(
       (session) => {
         if (!alive) return;
         commentStore.setState({ session });
@@ -206,7 +206,7 @@ function PlacementLayer() {
 
 /* -------------------------------------------------------------------- Pins */
 
-const initial = (email: string) => email.trim().charAt(0).toUpperCase() || "?";
+const initial = (name: string) => name.trim().charAt(0).toUpperCase() || "?";
 
 function pinPosition(rect: DOMRect | null, x: number, y: number) {
   return rect ? { left: rect.left + rect.width * x, top: rect.top + rect.height * y } : null;
@@ -232,7 +232,7 @@ function Pin({ thread }: { thread: Thread }) {
         )}
         style={{ left: at.left, top: at.top }}
       >
-        {resolved ? <CheckIcon className="size-3.5" /> : initial(thread.created_by_email)}
+        {resolved ? <CheckIcon className="size-3.5" /> : initial(thread.created_by_name)}
         {thread.comments.length > 1 && <span className="opacity-80">{thread.comments.length}</span>}
       </button>
       {open && <ThreadPopover thread={thread} at={at} />}
@@ -316,7 +316,7 @@ function Composer({ placeholder, onSend, autoFocus }: { placeholder: string; onS
 }
 
 function ThreadPopover({ thread, at }: { thread: Thread; at: { left: number; top: number } | null }) {
-  const email = useComments((s) => s.session?.email);
+  const me = useComments((s) => s.session?.id);
   const resolved = thread.status === "resolved";
   const list = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -344,7 +344,7 @@ function ThreadPopover({ thread, at }: { thread: Thread; at: { left: number; top
         >
           {resolved ? <RotateCcwIcon /> : <CheckIcon />}
         </IconButton>
-        {thread.created_by_email === email && (
+        {thread.created_by === me && (
           <IconButton title="Delete thread" onClick={() => void act({ op: "delete", threadId: thread.id })}>
             <Trash2Icon />
           </IconButton>
@@ -357,12 +357,12 @@ function ThreadPopover({ thread, at }: { thread: Thread; at: { left: number; top
         {thread.comments.map((comment) => (
           <div key={comment.id} className="flex gap-2">
             <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white", comment.via_claude ? "bg-[#d97757]" : "bg-amber-500")}>
-              {comment.via_claude ? <SparklesIcon className="size-3.5" /> : initial(comment.author_email)}
+              {comment.via_claude ? <SparklesIcon className="size-3.5" /> : initial(comment.author_name)}
             </span>
             <div className="min-w-0 flex-1">
               <p className="flex items-baseline gap-1.5 text-[11px] text-zinc-400">
-                <span className="truncate font-medium text-zinc-200">{comment.via_claude ? "Claude" : comment.author_email.split("@")[0]}</span>
-                {comment.via_claude && <span className="truncate">for {comment.author_email.split("@")[0]}</span>}
+                <span className="truncate font-medium text-zinc-200">{comment.via_claude ? "Claude" : comment.author_name}</span>
+                {comment.via_claude && <span className="truncate">for {comment.author_name}</span>}
                 <span className="shrink-0">{formatRelative(new Date(comment.created_at).getTime())}</span>
               </p>
               <p className="text-[13px] leading-[18px] whitespace-pre-wrap break-words text-zinc-100">{comment.body}</p>
@@ -371,7 +371,7 @@ function ThreadPopover({ thread, at }: { thread: Thread; at: { left: number; top
         ))}
         {resolved && (
           <p className="text-center text-[11px] text-zinc-500">
-            Resolved by {thread.resolved_by_email?.split("@")[0] ?? "someone"}
+            Resolved by {thread.resolved_by_name ?? "someone"}
             {thread.resolved_at ? ` · ${formatRelative(new Date(thread.resolved_at).getTime())}` : ""}
           </p>
         )}
