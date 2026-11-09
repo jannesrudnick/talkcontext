@@ -355,7 +355,7 @@ function TranscriptionSection({ settings, update }: SectionProps) {
     <section>
       <SectionHeader
         title="Transcription"
-        description="Live during recording via OpenAI Realtime or Soniox: you see right away what was understood and which feedback point it belongs to. Without a key, the audio is transcribed locally with Whisper after stopping."
+        description="Live during recording via OpenAI Realtime or Soniox: you see right away what was understood and which feedback point it belongs to. Without a key, the audio is transcribed locally with Whisper after stopping. Any recording can be (re-)transcribed later in its Transcript tab – with Whisper, OpenAI or Soniox."
       />
       <FieldGroup>
         <Field orientation="horizontal">

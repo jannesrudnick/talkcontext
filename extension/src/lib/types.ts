@@ -46,7 +46,7 @@ export type WhisperModelId =
   | "onnx-community/whisper-base"
   | "onnx-community/whisper-small";
 
-export type TranscriptionEngine = "none" | "whisper" | "openai";
+export type TranscriptionEngine = "none" | "whisper" | "openai" | "soniox";
 
 export type ThemePreference = "system" | "light" | "dark";
 
@@ -284,7 +284,7 @@ export interface RecordingMeta {
   };
   audioError?: string;
   transcript?: {
-    source: "whisper" | "openai" | "openai-live" | "soniox-live";
+    source: "whisper" | "openai" | "soniox" | "openai-live" | "soniox-live";
     model: string;
     /** Times relative to the start of the audio track. */
     segments: TranscriptSegment[];

@@ -19,7 +19,16 @@ export interface TranscriptionChoice {
 const ENGINE_ITEMS = [
   { value: "whisper", label: "Whisper local (in browser)" },
   { value: "openai", label: "OpenAI (Cloud)" },
+  { value: "soniox", label: "Soniox (Cloud)" },
 ];
+
+const SOURCE_LABEL: Record<NonNullable<RecordingMeta["transcript"]>["source"], string> = {
+  whisper: "Whisper local",
+  openai: "OpenAI",
+  soniox: "Soniox",
+  "openai-live": "OpenAI live",
+  "soniox-live": "Soniox live",
+};
 
 export function TranscriptPanel({
   meta,
@@ -133,10 +142,11 @@ export function TranscriptPanel({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center gap-2 border-b px-3 py-2">
-        <span className="text-xs text-muted-foreground">
-          {meta.transcript?.source === "openai" ? "OpenAI" : "Whisper local"} · {meta.transcript?.model.split("/").pop()}
+        <span className="min-w-0 truncate text-xs text-muted-foreground">
+          {meta.transcript ? SOURCE_LABEL[meta.transcript.source] : "Live"} · {meta.transcript?.model.split("/").pop()}
         </span>
-        <Button size="sm" variant="ghost" className="ml-auto" onClick={onTranscribe} disabled={running}>
+        <div className="ml-auto">{controls}</div>
+        <Button size="sm" variant="ghost" onClick={onTranscribe} disabled={running}>
           {running ? <Loader2Icon className="animate-spin" /> : <RefreshCwIcon />}
           Redo
         </Button>
