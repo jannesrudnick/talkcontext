@@ -41,7 +41,7 @@ import { useSettings } from "@/hooks/use-settings";
 import { navigate } from "@/hooks/use-hash-route";
 import { deleteRecording, updateRecording } from "@/lib/db";
 import { formatDateTime, formatDuration } from "@/lib/format";
-import { transcribeWithOpenAi, transcribeWithWhisper, type TranscriptionProgress } from "@/lib/transcription/transcribe";
+import { transcribeWithOpenAi, transcribeWithSoniox, transcribeWithWhisper, type TranscriptionProgress } from "@/lib/transcription/transcribe";
 import { ActivityPanel } from "./activity-panel";
 import { ConsolePanel } from "./console-panel";
 import { ElementInspector } from "./element-inspector";
@@ -113,8 +113,10 @@ function RecordingView({
   const autoStarted = useRef(false);
   const { meta } = recording;
 
+  const { openaiKey, sonioxKey, liveProvider } = settings.transcription;
   const effectiveChoice: TranscriptionChoice = choice ?? {
-    engine: settings.transcription.openaiKey ? "openai" : "whisper",
+    // Whoever has a Soniox key and uses it live most likely wants it here too.
+    engine: sonioxKey && (liveProvider === "soniox" || !openaiKey) ? "soniox" : openaiKey ? "openai" : "whisper",
     model: settings.transcription.whisperModel,
   };
 
@@ -166,15 +168,20 @@ function RecordingView({
     setTranscribing(true);
     setTranscriptError(null);
     try {
-      const segments =
-        effectiveChoice.engine === "openai"
-          ? await transcribeWithOpenAi(recording.audio, settings.transcription.openaiKey, settings.language)
-          : await transcribeWithWhisper(recording.audio, effectiveChoice.model, settings.language, setProgress);
+      const { segments, model } =
+        effectiveChoice.engine === "soniox"
+          ? await transcribeWithSoniox(recording.audio, sonioxKey, settings.language, setProgress)
+          : effectiveChoice.engine === "openai"
+            ? { segments: await transcribeWithOpenAi(recording.audio, openaiKey, settings.language), model: "whisper-1" }
+            : {
+                segments: await transcribeWithWhisper(recording.audio, effectiveChoice.model, settings.language, setProgress),
+                model: effectiveChoice.model,
+              };
       const next = await updateRecording(meta.id, (current) => ({
         ...current,
         transcript: {
           source: effectiveChoice.engine,
-          model: effectiveChoice.engine === "openai" ? "whisper-1" : effectiveChoice.model,
+          model,
           segments,
           createdAt: Date.now(),
         },
