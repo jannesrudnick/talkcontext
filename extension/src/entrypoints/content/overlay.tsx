@@ -22,6 +22,7 @@ import type { RecordingController, TargetInfo } from "./controller";
 import { feedbackStore, type FeedbackState } from "./feedback";
 import { overlayStore, useOverlay, useStore } from "./store";
 import { CommentDockControls, CommentError, CommentLayer } from "./comments";
+import { PresenceDock, PresenceLayer } from "./presence";
 
 const useFeedback = <T,>(selector: (state: FeedbackState) => T) => useStore(feedbackStore, selector);
 
@@ -47,6 +48,7 @@ export function Overlay({ controller }: { controller: RecordingController }) {
       {recording && active && <PinnedTarget item={active} />}
       {recording && active && <FeedbackBubble controller={controller} item={active} />}
       <CommentLayer feature={tab.settings.team.feature} />
+      <PresenceLayer feature={tab.settings.team.feature} />
       <Dock controller={controller} />
     </div>
   );
@@ -95,6 +97,7 @@ function Dock({ controller }: { controller: RecordingController }) {
           </button>
           <DockContent controller={controller} />
           <CommentDockControls dockButton={(props) => <DockButton {...props} />} />
+          <PresenceDock />
         </div>
       </div>
     </div>

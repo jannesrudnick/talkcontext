@@ -5,7 +5,7 @@
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { CheckIcon, HashIcon, Loader2Icon, MessageCirclePlusIcon, RotateCcwIcon, SendIcon, SparklesIcon, Trash2Icon, XIcon } from "lucide-react";
-import { pageKey, type NewThread, type Thread } from "@/lib/comments";
+import { pageKey, watchComments, type NewThread, type Thread } from "@/lib/comments";
 import { describe } from "@/lib/recorder/describe";
 import { getSettings, saveSettings } from "@/lib/settings";
 import type { CommentOp } from "@/lib/team-bridge";
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { request } from "./api";
 import { isOverlayNode } from "./controller";
 import { useElementRect } from "./overlay";
+import { realtime } from "./realtime";
 import { createStore, useStore } from "./store";
 
 interface Draft {
@@ -91,32 +92,45 @@ export function CommentLayer({ feature }: { feature: string }) {
     commentStore.setState({ feature });
   }, [feature]);
 
-  // Session + features once, threads every few seconds and on SPA navigation.
+  // Session + features once; threads live via Realtime, again on SPA navigation and when the tab comes back.
   useEffect(() => {
     let alive = true;
+    let unwatch: (() => void) | undefined;
     let lastUrl = pageKey(location.href);
+    let debounce = 0;
+    const soon = () => {
+      window.clearTimeout(debounce);
+      debounce = window.setTimeout(() => void refresh(), 250);
+    };
     void call<{ name: string; id: string } | null>({ op: "session" }).then(
       (session) => {
         if (!alive) return;
         commentStore.setState({ session });
-        if (session) {
-          void refresh();
-          void call<string[]>({ op: "features" }).then((features) => alive && commentStore.setState({ features }));
-        }
+        if (!session) return;
+        void refresh();
+        void call<string[]>({ op: "features" }).then((features) => alive && commentStore.setState({ features }));
+        void realtime().then((client) => {
+          if (alive && client) unwatch = watchComments(client, soon);
+        });
       },
       () => alive && commentStore.setState({ session: null }),
     );
     const timer = window.setInterval(() => {
       const url = pageKey(location.href);
-      if (url !== lastUrl) {
-        lastUrl = url;
-        commentStore.setState({ openId: null, draft: null });
-      }
+      if (url === lastUrl) return;
+      lastUrl = url;
+      commentStore.setState({ openId: null, draft: null });
       void refresh();
-    }, 6000);
+    }, 1000);
+    // Realtime drops events while the socket is down (sleep, offline) - catch up on return.
+    const onVisible = () => document.visibilityState === "visible" && void refresh();
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       alive = false;
+      unwatch?.();
       window.clearInterval(timer);
+      window.clearTimeout(debounce);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 
@@ -394,6 +408,7 @@ function DraftPopover({ draft }: { draft: Draft }) {
     const thread: NewThread = {
       feature: name.trim(),
       url: pageKey(location.href),
+      href: location.origin + location.pathname + location.search,
       page_title: document.title.slice(0, 300),
       selector: draft.selector,
       element_label: draft.label,

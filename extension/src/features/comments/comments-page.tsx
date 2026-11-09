@@ -237,7 +237,7 @@ function ThreadCard({ thread, client }: { thread: Thread; client: SupabaseClient
 
 /** Open the page in a new tab, then ask its content script to show this thread. */
 async function openOnPage(thread: Thread) {
-  const tab = await browser.tabs.create({ url: thread.url });
+  const tab = await browser.tabs.create({ url: thread.href ?? thread.url });
   if (tab.id == null) return;
   const tabId = tab.id;
   const send = (attempt = 0) =>

@@ -17,7 +17,10 @@ export interface Comment {
 export interface Thread {
   id: string;
   feature: string;
+  /** Page pattern, see pageKey(). */
   url: string;
+  /** Concrete page the thread was opened on - for "open on page". Null on threads from before patterns. */
+  href: string | null;
   page_title: string | null;
   selector: string;
   element_label: string | null;
@@ -43,6 +46,7 @@ export interface Spec {
 export interface NewThread {
   feature: string;
   url: string;
+  href: string;
   page_title?: string;
   selector: string;
   element_label?: string;
@@ -65,11 +69,24 @@ const fail = (error: { message: string } | null) => {
   if (error) throw new Error(error.message);
 };
 
-/** Page identity for pins: origin + path, no query/hash. */
+/**
+ * Path segments that name a record, not a screen: UUIDs, numeric ids, hex hashes,
+ * cuid/ksuid-style ids. Keep in sync with mcp/src/team.ts and setup.sql §4.
+ */
+const ID_SEGMENT = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d+|[0-9a-f]{16,}|(?=[a-z0-9]*\d)(?=[a-z0-9]*[a-z])[a-z0-9]{20,})$/i;
+
+/**
+ * Page identity for pins and presence: origin + path with ids replaced by `:id`,
+ * no query/hash. `/series/4f1c…/edit` and `/series/9a2b…/edit` are the same UI.
+ */
 export function pageKey(href: string): string {
   try {
     const url = new URL(href);
-    return url.origin + url.pathname.replace(/\/$/, "");
+    const path = url.pathname
+      .split("/")
+      .map((segment) => (ID_SEGMENT.test(segment) ? ":id" : segment))
+      .join("/");
+    return url.origin + path.replace(/\/$/, "");
   } catch {
     return href;
   }

@@ -253,6 +253,19 @@ create table if not exists public.talkcontext_threads (
   resolved_at timestamptz,
   resolved_by_name text
 );
+-- `url` is the page pattern: ids in the path (uuid, number, hash) are `:id`, so a comment on one
+-- meeting series shows on every series. `href` is the concrete page it was opened on.
+alter table public.talkcontext_threads add column if not exists href text check (char_length(href) <= 2000);
+-- Threads from before patterns: keep the page as href, turn url into its pattern (same rule as
+-- pageKey() in extension/src/lib/comments.ts). Idempotent.
+update public.talkcontext_threads set href = url where href is null;
+update public.talkcontext_threads
+set url = regexp_replace(
+  url,
+  '/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]+|[0-9a-f]{16,}|(?=[a-z0-9]*[0-9])(?=[a-z0-9]*[a-z])[a-z0-9]{20,})(?=/|$)',
+  '/:id',
+  'gi'
+);
 create index if not exists talkcontext_threads_feature on public.talkcontext_threads (feature, last_activity_at desc);
 create index if not exists talkcontext_threads_url on public.talkcontext_threads (url);
 
@@ -396,3 +409,15 @@ begin
   end loop;
 end
 $$;
+
+-- 5. Live presence and cursors -------------------------------------------------------------
+-- The overlay joins a private Realtime channel per feature ("talkcontext:scope:<feature>") to
+-- show who else works on it, on which page, and their cursor. Only team members may join.
+drop policy if exists "talkcontext members receive" on realtime.messages;
+create policy "talkcontext members receive" on realtime.messages
+  for select to authenticated
+  using (realtime.topic() like 'talkcontext:%' and public.talkcontext_is_member());
+drop policy if exists "talkcontext members send" on realtime.messages;
+create policy "talkcontext members send" on realtime.messages
+  for insert to authenticated
+  with check (realtime.topic() like 'talkcontext:%' and public.talkcontext_is_member());
