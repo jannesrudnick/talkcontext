@@ -49,10 +49,14 @@ Threads are pinned to the page *pattern*, not the exact URL: ids in the path (UU
 long hashes) become `:id`, so a comment on `/besprechungsreihen/4f1c…/protokoll` shows on every
 meeting series' protocol page. Re-running `setup.sql` converts older threads.
 
-Section 5 adds live presence: while the overlay is open in a visible tab, you join a private
-Realtime channel for your feature. The dock shows who else is on it and how many are on this page;
-their cursors appear when you share a page. Hover an avatar to jump to them or follow them.
-Comments and pins update live. Only team members can join (RLS on `realtime.messages`).
+Section 5 adds live presence and live view. While the overlay is open in a visible tab, you are on
+the team's private Realtime channel; the dock shows who else is online and in your feature.
+Switch the dock to **Public** to share which page you are on: teammates can go there, or **ask to
+join**. You approve each request in a small dialog; the viewer then watches your tab live (an rrweb
+stream replayed in an extension tab, so they need no login to your app). Stop it from the dock, by
+going private, or by closing the overlay. Comments and pins update live. Only team members can join
+these channels (RLS on `realtime.messages`). Approval is consent, not access control: any member
+could listen on a live channel - fine inside a team that shares the key.
 
 | | Team member |
 |---|---|

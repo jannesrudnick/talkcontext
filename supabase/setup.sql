@@ -411,8 +411,8 @@ end
 $$;
 
 -- 5. Live presence and cursors -------------------------------------------------------------
--- The overlay joins a private Realtime channel per feature ("talkcontext:scope:<feature>") to
--- show who else works on it, on which page, and their cursor. Only team members may join.
+-- Private Realtime channels: "talkcontext:team" (who is online, public pages, join requests) and
+-- "talkcontext:live:<tab>" (a host's live rrweb stream). Only team members may join.
 drop policy if exists "talkcontext members receive" on realtime.messages;
 create policy "talkcontext members receive" on realtime.messages
   for select to authenticated

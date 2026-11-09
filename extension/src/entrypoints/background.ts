@@ -72,8 +72,8 @@ export default defineBackground(() => {
     }
   }
 
-  async function openPage(page: "recordings" | "settings" | "welcome", recordingId?: string) {
-    const hash = page === "recordings" ? (recordingId ? `#/recordings/${recordingId}` : "#/recordings") : `#/${page}`;
+  async function openPage(page: "recordings" | "settings" | "welcome" | "live", id?: string) {
+    const hash = id ? `#/${page}/${encodeURIComponent(id)}` : `#/${page}`;
     await browser.tabs.create({ url: browser.runtime.getURL(`/options.html${hash}`) });
   }
 
@@ -469,7 +469,7 @@ export default defineBackground(() => {
           return true;
         case "talkcontext:open": {
           const request = message as Extract<ContentRequest, { type: "talkcontext:open" }>;
-          await openPage(request.page, request.recordingId);
+          await openPage(request.page, request.page === "live" ? request.hostKey : request.recordingId);
           return true;
         }
         case "talkcontext:capture": {

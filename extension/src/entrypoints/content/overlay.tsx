@@ -48,7 +48,7 @@ export function Overlay({ controller }: { controller: RecordingController }) {
       {recording && active && <PinnedTarget item={active} />}
       {recording && active && <FeedbackBubble controller={controller} item={active} />}
       <CommentLayer feature={tab.settings.team.feature} />
-      <PresenceLayer feature={tab.settings.team.feature} />
+      <PresenceLayer settings={tab.settings} />
       <Dock controller={controller} />
     </div>
   );
