@@ -47,8 +47,12 @@ export function Overlay({ controller }: { controller: RecordingController }) {
       {recording && <StrokeLayer controller={controller} />}
       {recording && active && <PinnedTarget item={active} />}
       {recording && active && <FeedbackBubble controller={controller} item={active} />}
-      <CommentLayer feature={tab.settings.team.feature} />
-      <PresenceLayer settings={tab.settings} />
+      {tab.settings.team.collab && (
+        <>
+          <CommentLayer feature={tab.settings.team.feature} />
+          <PresenceLayer settings={tab.settings} />
+        </>
+      )}
       <Dock controller={controller} />
     </div>
   );
@@ -60,6 +64,7 @@ function Dock({ controller }: { controller: RecordingController }) {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const drag = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
   const capturing = useFeedback((s) => s.capturing);
+  const collab = useOverlay((s) => s.tab?.settings.team.collab ?? false);
 
   const onPointerDown = (event: ReactPointerEvent) => {
     drag.current = { startX: event.clientX, startY: event.clientY, baseX: offset.x, baseY: offset.y };
@@ -96,8 +101,12 @@ function Dock({ controller }: { controller: RecordingController }) {
             <GripVerticalIcon className="size-3.5" />
           </button>
           <DockContent controller={controller} />
-          <CommentDockControls dockButton={(props) => <DockButton {...props} />} />
-          <PresenceDock />
+          {collab && (
+            <>
+              <CommentDockControls dockButton={(props) => <DockButton {...props} />} />
+              <PresenceDock />
+            </>
+          )}
         </div>
       </div>
     </div>

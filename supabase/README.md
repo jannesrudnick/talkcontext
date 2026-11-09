@@ -39,7 +39,8 @@ is signed in but sees and changes nothing.
 
 ## On-page comments and specs
 
-Section 4 of `setup.sql` adds Figma-style comments: in the extension overlay, click the comment
+Collaboration is opt-in per person: Settings → Collaboration in the extension. Section 4 of
+`setup.sql` adds Figma-style comments: in the extension overlay, click the comment
 button, pick an element, write. Threads (`talkcontext_threads` + `talkcontext_comments`) are filed
 under the feature you work on and show as pins on that element for everyone on the team. Every
 feature also has one shared spec text (`talkcontext_specs`). Claude Code reads, answers and

@@ -2,17 +2,19 @@ import type { ReactNode } from "react";
 import { FileTextIcon, KeyboardIcon, ListVideoIcon, MessageSquareIcon, SettingsIcon, SparklesIcon } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
 import { navigate } from "@/hooks/use-hash-route";
+import { useSettings } from "@/hooks/use-settings";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { path: "recordings", label: "Recordings", icon: ListVideoIcon },
-  { path: "comments", label: "Comments", icon: MessageSquareIcon },
-  { path: "specs", label: "Specs", icon: FileTextIcon },
+  { path: "comments", label: "Comments", icon: MessageSquareIcon, collab: true },
+  { path: "specs", label: "Specs", icon: FileTextIcon, collab: true },
   { path: "settings", label: "Settings", icon: SettingsIcon },
   { path: "welcome", label: "Getting started", icon: SparklesIcon },
 ];
 
 export function AppShell({ active, children }: { active: string; children: ReactNode }) {
+  const { settings } = useSettings();
   return (
     <div className="flex h-screen overflow-hidden">
       <aside className="flex w-60 shrink-0 flex-col border-r bg-sidebar px-3 py-4">
@@ -22,7 +24,7 @@ export function AppShell({ active, children }: { active: string; children: React
           <span className="rounded-md border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">beta</span>
         </button>
         <nav className="flex flex-col gap-0.5">
-          {NAV.map(({ path, label, icon: Icon }) => (
+          {NAV.filter((item) => !("collab" in item) || settings.team.collab).map(({ path, label, icon: Icon }) => (
             <button
               key={path}
               type="button"

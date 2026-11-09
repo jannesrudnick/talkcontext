@@ -87,6 +87,8 @@ export interface TeamConfig {
   feature: string;
   /** Teammates see which page you are on and can ask to watch live. */
   public: boolean;
+  /** Collaboration (on-page comments, specs, presence, live view) - off: a pure recording tool. */
+  collab: boolean;
 }
 
 export interface Settings {

@@ -9,11 +9,14 @@ import { RecordingsListPage } from "@/features/recordings/list-page";
 import { SettingsPage } from "@/features/settings/settings-page";
 import { WelcomePage } from "@/features/welcome/welcome-page";
 import { useHashRoute } from "@/hooks/use-hash-route";
+import { useSettings } from "@/hooks/use-settings";
+import { CollabOff } from "@/features/comments/not-signed-in";
 import { useTheme } from "@/hooks/use-theme";
 
 export function App() {
   useTheme();
   const [page = "recordings", param] = useHashRoute();
+  const { settings, loaded } = useSettings();
 
   let content;
   let active = page;
@@ -32,6 +35,9 @@ export function App() {
   } else {
     active = "recordings";
     content = <RecordingsListPage />;
+  }
+  if ((page === "comments" || page === "specs" || page === "live") && !settings.team.collab) {
+    content = loaded ? <CollabOff /> : null;
   }
 
   return (

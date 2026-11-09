@@ -82,7 +82,8 @@ transcribing; "Stop sharing" removes the row and the file.
 
 ## On-page comments (Figma-style)
 
-Needs team sharing. In the overlay (Alt+Shift+Q): **comment button** → click any element → write.
+Opt-in: needs team sharing and **Settings → Collaboration → Enable collaboration** (off by default –
+without it TalkContext is a recording tool only). In the overlay (Alt+Shift+Q): **comment button** → click any element → write.
 The thread sticks to that element as a pin; click a pin for the conversation, reply (⌘↵) or
 resolve. The **#feature** chip in the dock sets what you work on: new threads are filed under it
 and only its pins are shown (empty = all features). **Comments** in the sidebar lists every

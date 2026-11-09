@@ -7,6 +7,7 @@ import {
   DatabaseIcon,
   Loader2Icon,
   MessageSquareDotIcon,
+  MessagesSquareIcon,
   PlugZapIcon,
   RefreshCwIcon,
   UsersIcon,
@@ -57,6 +58,7 @@ const SECTIONS = [
   { id: "transcription", label: "Transcription", icon: SparklesIcon },
   { id: "claude", label: "Claude Code", icon: BotIcon },
   { id: "team", label: "Team sharing", icon: UsersIcon },
+  { id: "collab", label: "Collaboration", icon: MessagesSquareIcon },
   { id: "data", label: "Data", icon: DatabaseIcon },
 ] as const;
 
@@ -93,6 +95,7 @@ export function SettingsPage({ section }: { section?: string }) {
         {loaded && active === "transcription" && <TranscriptionSection settings={settings} update={update} />}
         {loaded && active === "claude" && <ClaudeSection settings={settings} update={update} />}
         {loaded && active === "team" && <TeamSection settings={settings} update={update} />}
+        {loaded && active === "collab" && <CollabSection settings={settings} update={update} />}
         {loaded && active === "data" && <DataSection />}
       </div>
     </div>
@@ -697,7 +700,7 @@ function TeamSection({ settings, update }: SectionProps) {
     <section>
       <SectionHeader
         title="Team sharing"
-        description="Share recordings and comment on pages with your team through your own Supabase project. Set up once with supabase/setup.sql in the repo – it also creates the team key."
+        description="Share recordings with your team through your own Supabase project. Set up once with supabase/setup.sql in the repo – it also creates the team key. Comments and live view are under Collaboration."
       />
       <FieldGroup>
         <Field>
@@ -754,7 +757,43 @@ function TeamSection({ settings, update }: SectionProps) {
             </Button>
           </div>
         </Field>
-        {session && (
+      </FieldGroup>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------ Collaboration */
+
+function CollabSection({ settings, update }: SectionProps) {
+  const team = settings.team;
+  const set = (patch: Partial<Settings["team"]>) => update((s) => ({ ...s, team: { ...s.team, ...patch } }));
+  const session = useTeamSession(team);
+
+  return (
+    <section>
+      <SectionHeader
+        title="Collaboration"
+        description="On-page comments and specs, who of your team is online, and watching each other live. Off, TalkContext is a recording tool only – nothing about your browsing goes to the team."
+      />
+      <FieldGroup>
+        <SwitchField
+          label="Enable collaboration"
+          description="Adds comments, presence and the Public/Private switch to the overlay, plus the Comments and Specs pages. Needs team sharing."
+          checked={team.collab}
+          onChange={(collab) => set({ collab, ...(collab ? {} : { public: false }) })}
+        />
+        {team.collab && !session && (
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel>Not connected</FieldLabel>
+              <FieldDescription>Collaboration runs through your team's Supabase project. Connect it first.</FieldDescription>
+            </FieldContent>
+            <Button variant="outline" onClick={() => navigate("settings/team")}>
+              Team sharing
+            </Button>
+          </Field>
+        )}
+        {team.collab && session && (
           <>
             <FieldSeparator />
             <Field orientation="horizontal">
