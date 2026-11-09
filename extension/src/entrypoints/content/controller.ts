@@ -4,7 +4,6 @@
  * Everything is buffered and sent every second over a port to the background,
  * which writes it to IndexedDB.
  */
-import { record } from "rrweb";
 import { injectScript } from "#imports";
 import {
   COMPONENT_PROBE_EVENT,
@@ -20,6 +19,7 @@ import { describe, meaningful } from "@/lib/recorder/describe";
 import { newId } from "@/lib/settings";
 import type { ChunkKind, ChunkPayloads, ComponentInfo, FeedbackItem, Settings } from "@/lib/types";
 import { FeedbackManager } from "./feedback";
+import { subscribeRrweb } from "./rrweb-stream";
 import type { ElementRef } from "@/lib/qa/types";
 
 /** Anything belonging to the overlay shows up neither in the replay nor in the log. */
@@ -96,18 +96,7 @@ export class RecordingController {
     this.injectMainWorld();
     this.connect();
 
-    const blockSelector = [OVERLAY_TAG, settings.replay.blockSelector.trim()].filter(Boolean).join(",");
-    this.stopRrweb = record({
-      emit: (event) => this.push("rrweb", event),
-      blockSelector,
-      maskAllInputs: settings.replay.maskAllInputs,
-      maskInputOptions: { password: true },
-      recordCanvas: settings.replay.recordCanvas,
-      inlineStylesheet: true,
-      collectFonts: true,
-      sampling: { mousemove: 50, scroll: 150, input: "last" },
-      slimDOMOptions: { script: true, comment: true, headFavicon: true, headWhitespace: true },
-    });
+    this.stopRrweb = subscribeRrweb(settings, (event) => this.push("rrweb", event));
 
     this.semantic = startSemanticRecorder({
       config: settings.recorder,

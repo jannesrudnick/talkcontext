@@ -18,6 +18,8 @@ export type ContentRequest =
   | { type: "talkcontext:discard" }
   | { type: "talkcontext:overlay"; visible: boolean }
   | { type: "talkcontext:open"; page: "recordings" | "settings"; recordingId?: string }
+  /** Watch a public teammate's tab live (lib/live.ts). */
+  | { type: "talkcontext:open"; page: "live"; hostKey: string }
   /** Store the visible area of the tab as a screenshot. */
   | { type: "talkcontext:capture"; reason: import("./types").Screenshot["reason"]; feedbackId?: string }
   /** Next sequential feedback number (F1, F2, ...) - counts across page navigations. */
