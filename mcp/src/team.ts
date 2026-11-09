@@ -73,7 +73,9 @@ export interface Comment {
 export interface Thread {
   id: string;
   feature: string;
+  /** Page pattern: ids in the path are `:id`. */
   url: string;
+  href: string | null;
   page_title: string | null;
   selector: string;
   element_label: string | null;
@@ -85,13 +87,18 @@ export interface Thread {
 }
 
 const q = encodeURIComponent;
+
+/** Same id rule as pageKey() in extension/src/lib/comments.ts - threads store `/series/:id`, not the uuid. */
+const ID_SEGMENT = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d+|[0-9a-f]{16,}|(?=[a-z0-9]*\d)(?=[a-z0-9]*[a-z])[a-z0-9]{20,})$/i;
+export const urlPattern = (url: string) =>
+  url.split(/[?#]/)[0].replace(/\/([^/]+)/g, (part, segment: string) => (ID_SEGMENT.test(segment) ? "/:id" : part));
 const SELECT = "select=*,comments:talkcontext_comments(id,body,author_name,via_claude,created_at)&comments.order=created_at.asc";
 
 export async function listThreads(filter: { feature?: string; status?: "open" | "resolved"; url?: string; limit?: number }) {
   const parts = [SELECT, "order=last_activity_at.desc", `limit=${filter.limit ?? 50}`];
   if (filter.feature) parts.push(`feature=eq.${q(filter.feature)}`);
   if (filter.status) parts.push(`status=eq.${filter.status}`);
-  if (filter.url) parts.push(`url=like.${q(`${filter.url.replace(/[%_*]/g, "")}*`)}`);
+  if (filter.url) parts.push(`url=like.${q(`${urlPattern(filter.url).replace(/[%_*]/g, "")}*`)}`);
   return rest<Thread[]>(`talkcontext_threads?${parts.join("&")}`);
 }
 
@@ -139,7 +146,7 @@ export async function listFeatures(): Promise<Array<{ feature: string; open: num
 export function threadMarkdown(thread: Thread): string {
   const lines = [
     `### Thread ${thread.id} · #${thread.feature} · ${thread.status}`,
-    `- Page: ${thread.url}${thread.page_title ? ` (“${thread.page_title}”)` : ""}`,
+    `- Page: ${thread.url}${thread.page_title ? ` (“${thread.page_title}”)` : ""}${thread.href && thread.href !== thread.url ? ` — opened on ${thread.href}` : ""}`,
     `- Element: ${thread.element_label ?? "?"} — selector \`${thread.selector}\``,
     `- Opened by ${thread.created_by_name} at ${thread.created_at}`,
   ];

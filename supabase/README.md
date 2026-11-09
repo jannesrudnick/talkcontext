@@ -45,6 +45,15 @@ under the feature you work on and show as pins on that element for everyone on t
 feature also has one shared spec text (`talkcontext_specs`). Claude Code reads, answers and
 resolves threads through the TalkContext MCP server.
 
+Threads are pinned to the page *pattern*, not the exact URL: ids in the path (UUIDs, numbers,
+long hashes) become `:id`, so a comment on `/besprechungsreihen/4f1c…/protokoll` shows on every
+meeting series' protocol page. Re-running `setup.sql` converts older threads.
+
+Section 5 adds live presence: while the overlay is open in a visible tab, you join a private
+Realtime channel for your feature. The dock shows who else is on it and how many are on this page;
+their cursors appear when you share a page. Hover an avatar to jump to them or follow them.
+Comments and pins update live. Only team members can join (RLS on `realtime.messages`).
+
 | | Team member |
 |---|---|
 | Read threads, comments, specs | all |

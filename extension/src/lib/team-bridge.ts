@@ -21,6 +21,8 @@ import type { Settings } from "./types";
 
 export type CommentOp =
   | { op: "session" }
+  /** Current access token, for the content script's realtime connection. */
+  | { op: "token" }
   | { op: "list"; url: string; feature?: string }
   | { op: "features" }
   | { op: "create"; thread: NewThread }
@@ -41,6 +43,8 @@ export async function handleCommentOp(request: CommentOp): Promise<unknown> {
   if (request.op === "session") return team ? { name: team.name, id: team.id } : null;
   if (!team) throw new Error("Connect under Settings → Team sharing to comment.");
   const { client } = team;
+  // getSession() refreshes an expired token first.
+  if (request.op === "token") return (await client.auth.getSession()).data.session?.access_token ?? null;
   switch (request.op) {
     case "list":
       return listThreads(client, { url: request.url, feature: request.feature || undefined });
